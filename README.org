@@ -1,0 +1,40 @@
+* Moldable Emacs
+:PROPERTIES:
+:CREATED:  [2021-06-18 Fri 21:45]
+:ID:       db0f9ac1-54f7-476e-b566-0a8395e9943c
+:END:
+
+This is an extension of Emacs aiming to enable Moldable Development.
+Or better still, aiming to make you a better story teller when you
+deal with code.
+
+TODO: I will detail dependencies and more information in a later change.
+
+*Ah! This is a pretty alpha release: I have a plan for quite few
+changes ahead! So avoid to build upon this prototype for now!!*
+
+
+** Further info
+:PROPERTIES:
+:CREATED:  [2021-06-18 Fri 21:51]
+:END:
+
+*** View code duplication as an Org buffer
+:PROPERTIES:
+:CREATED:  [2021-06-18 Fri 21:52]
+:ID:       449520e9-de3b-48f9-8f06-bc1f6437102c
+:END:
+
+https://ag91.github.io/blog/2021/05/26/moldable-emacs-make-everything-moldable-through-lisp
+
+*** Vision
+:PROPERTIES:
+:CREATED:  [2021-06-18 Fri 21:51]
+:ID:       dc37968c-16b8-4414-b51d-77b245162970
+:END:
+
+*** Exploring JSON via Elisp
+:PROPERTIES:
+:CREATED:  [2021-06-18 Fri 21:51]
+:END:
+
