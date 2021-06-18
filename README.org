@@ -33,8 +33,11 @@ https://ag91.github.io/blog/2021/05/26/moldable-emacs-make-everything-moldable-t
 :ID:       dc37968c-16b8-4414-b51d-77b245162970
 :END:
 
+https://ag91.github.io/blog/2021/06/18/moldable-emacs-vision-basic-concepts-and-design
 *** Exploring JSON via Elisp
 :PROPERTIES:
 :CREATED:  [2021-06-18 Fri 21:51]
+:ID:       8a0e46f3-4407-4851-a440-f0994367b4b4
 :END:
 
+https://ag91.github.io/blog/2021/06/18/moldable-emacs-how-to-explore-json-via-elisp
