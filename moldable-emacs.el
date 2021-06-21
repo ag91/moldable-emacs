@@ -662,7 +662,7 @@ Excludes the heading and any child subtrees."
            "CompositionOf%sAnd%s"
            (plist-get mold1 :key)
            (plist-get mold2 :key))
-    :given ,(plist-get mold1 :given)
+    :given ,(plist-get mold1 :given) ;; TODO I can do better than this: I want to join the :given of the composed molds. This will be useful to list dependencies.
     :then (lambda ()
             (when (funcall ,(plist-get mold1 :given))
               (switch-to-buffer (funcall ,(plist-get mold1 :then)))

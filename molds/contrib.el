@@ -3,15 +3,17 @@
   (and (ignore-errors (string-to-number time-as-string))
        (let* ((time (string-to-number time-as-string))
               (color (cond
-                      ((>= time (/ 20.0 1000)) "red")
-                      ((>= time (/ 10.0 1000)) "orange")
+                      ((>= time (/ 10.0 1000)) "red")
+                      ((>= time (/ 2.0 1000)) "orange")
                       ('otherwise "green"))))
          (me/color-string time-as-string color))))
 
 (me/register-mold
  :key "TestRunningStats"
  :given (lambda () (and
-                    (ignore-errors (me/find-relative-test-report (buffer-file-name)))))
+                    (require 'esxml)
+                    (ignore-errors
+                      (me/find-relative-test-report (buffer-file-name)))))
  :then (lambda ()
          (let* ((buffername (buffer-name))
                 (file (buffer-file-name))
@@ -21,21 +23,11 @@
                 (testcases (esxml-query-all "testcase" self))
                 (buffer (get-buffer-create (concat "Test Stats For" buffername))))
            (with-current-buffer buffer
-             (read-only-mode -1)
              (erase-buffer)
              (org-mode)
              (insert (format "* %s Statistics\n\n" buffername))
              (me/insert-org-table
-              `(;; ("Class" .
-                ;;  (:extractor
-                ;;   (lambda (obj) (--> obj
-                ;;                   cdr
-                ;;                   car
-                ;;                   (nth 0 it)
-                ;;                   cdr))
-                ;;   :handler
-                ;;   (lambda (s) s)));(me/make-elisp-navigation-link s ,file))))
-                ("Test Case" .
+              `(("Test Case" .
                  (:extractor
                   (lambda (obj)
                     (message "%s" obj)
@@ -58,7 +50,6 @@
                   (lambda (s) (me/highlight-unit-test-time s)))))
               testcases)
              (setq-local self self)
-             (read-only-mode)
              buffer)))
  :docs "Show performance stats of tests that produce a XML report in JUnit style.
 
