@@ -1,3 +1,29 @@
+(defcustom me/files-with-molds
+  (--map
+   (concat
+    (file-name-directory load-file-name) ; https://stackoverflow.com/questions/26991001/elisp-get-path-to-file-relative-to-script
+    it)
+   (list
+    "molds/core.el"
+    "molds/contrib.el"))
+  "Files containing molds.")
+
+(defun me/setup-molds ()
+  "Load molds from `me/files-with-molds'."
+  (-each me/files-with-molds #'load-file))
+
+(defmacro with-file (file &rest body)
+  "Open FILE, execute BODY close FILE if it was not already open."
+  `(let ((old-buffer (current-buffer))
+         (kill-buffer-p (not (get-file-buffer ,file))))
+     (unwind-protect
+         (progn
+           (find-file ,file)
+           ,@body)
+       (progn
+         (when kill-buffer-p (kill-buffer))
+         (switch-to-buffer old-buffer)))))
+
 (defun async-map--finish (futures post-fn too-late-p poll-time)
   (if (not (some #'null (mapcar #'async-ready futures)))
       (funcall post-fn)
@@ -347,7 +373,7 @@ for mold. This should simplify the testing and documentation of molds.")
     (me/test-example it (lambda () (set-buffer (funcall (plist-get mold :then)))))
     (plist-get mold :examples))))
 
-;; (me/check-mold-examples (me/find-mold "Playground"))
+;; (me/test-mold-examples (me/find-mold "Playground"))
 
 (defun me/example-to-docstring (example)
   "Make a string for EXAMPLE."
@@ -449,7 +475,7 @@ some new contents
     (other-window 1)
     (switch-to-buffer then-name)
     (erase-buffer)
-    (insert then-name)
+    (insert then-contents)
     ;;(delete-frame frame) ; probably I do not need to delete it, but just to make it smaller? Indeed, I can delete it manually
     )
   ;;(delete-other-frames)
@@ -517,10 +543,20 @@ some new contents
         me/mold-history)))))
 
 (defun me/add-to-available-molds (mold)
-  (let ((-compare-fn (lambda (x y) (equal (plist-get x :key) (plist-get y :key)))))
-    (setq me/available-molds (-distinct (add-to-list 'me/available-molds mold)))))
+  (let ((-compare-fn (lambda (x y) (equal (plist-get x :key) (plist-get y :key))))
+        (mold (concatenate 'list mold (list :origin (me/find-origin-file-of-mold (plist-get mold :key))))))
+    (setq me/available-molds
+          (-distinct (add-to-list 'me/available-molds mold)))))
 
 (defvar me/before-register-mold-hook nil "Hooks to run before a mold is registered.")
+
+(defun me/find-origin-file-of-mold (key)
+  (--find
+   (with-current-buffer (find-file-noselect it)
+     (save-excursion
+       (goto-char (point-min))
+       (search-forward key nil 't)))
+   me/files-with-molds))
 
 (defmacro me/register-mold (&rest mold) ;; TODO I should validate molds somehow, not just assign them! Also use hashmap?
   (--each me/before-register-mold-hook (funcall it mold))
@@ -541,7 +577,7 @@ some new contents
 (defun me/find-relative-test-report (filepath)
   (let ((report-directory (concat (locate-dominating-file (file-name-directory filepath) "target") "target/test-reports")))
     (--> report-directory
-      directory-files 
+      directory-files
       (--find
        (s-ends-with-p (concat (file-name-base filepath) ".xml") it)
        it)
@@ -658,19 +694,5 @@ Excludes the heading and any child subtrees."
     (message "You have the example of the last run of this mold in the kill ring: use it!")
     ;; TODO make this smarter
     ))
-
-(defcustom me/files-with-molds
-  (--map
-   (concat
-    (file-name-directory load-file-name) ; https://stackoverflow.com/questions/26991001/elisp-get-path-to-file-relative-to-script
-    it)
-   (list
-    "molds/core.el"
-    "molds/contrib.el"))
-  "Files containing molds.")
-
-(defun me/setup-molds ()
-  "Load molds from `me/files-with-molds'."
-  (-each me/files-with-molds #'load-file))
 
 (provide 'moldable-emacs)

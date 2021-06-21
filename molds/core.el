@@ -25,7 +25,7 @@ in the local variable `self'."
  :examples ((
              :name "Empty file"
              :given (:type file :name "/tmp/test.txt" :mode text-mode :contents "")
-             :then (:type buffer :name (me/append-time "m/tree-playground-from") :mode emacs-lisp-mode :contents ""))))
+             :then (:type buffer :name "m/tree-playground-from" :mode emacs-lisp-mode :contents ""))))
 
 (me/register-mold
  :key "CodeAsTree"
@@ -174,7 +174,7 @@ in the local variable `self'."
                      :contents "(+ 1 2)")
              :then (
                     :type buffer
-                    :name (me/append-time "m/tree-eval-from")
+                    :name "m/tree-eval-from"
                     :mode emacs-lisp-mode
                     :contents "3"))))
 
@@ -629,7 +629,7 @@ in the local variable `self'."
            buffer)))
 
 (me/register-mold
- :key "WhatMoldsCanIUse"
+ :key "WhatMoldsCanIUse?"
  :given (lambda () t)
  :then (lambda ()
          (let* ((buffername (buffer-name))
@@ -641,10 +641,7 @@ in the local variable `self'."
              (me/insert-org-table
               `(("Mold" .
                  (:extractor
-                  (lambda (obj) (plist-get obj :key))
-                  :handler
-                  (lambda (s) (me/make-elisp-navigation-link s (symbol-file 'me/register-mold)))
-                  ))
+                  (lambda (obj) (me/make-elisp-navigation-link (plist-get obj :key) (plist-get obj :origin)))))
                 ("Demo" .
                  (:extractor
                   (lambda (obj) (plist-get obj :key))
@@ -657,7 +654,7 @@ in the local variable `self'."
                   :handler
                   (lambda (s) (car (s-split "\n" s))))))
               molds)
-             (setq-local molds))
+             (setq-local self molds))
            buffer))
  :docs "You can see examples and demos of the molds you can use from here."
  :examples nil)
