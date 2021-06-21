@@ -575,11 +575,21 @@ some new contents
       "bla"))))
 
 (defun me/find-relative-test-report (filepath)
-  (let ((report-directory (concat (locate-dominating-file (file-name-directory filepath) "target") "target/test-reports")))
+  ;; TODO refactor a bit for supporting Clojure with https://github.com/ruedigergad/test2junit
+  (let* ((_report-directory (concat (locate-dominating-file (file-name-directory filepath) "target") "target/test-reports"))
+         (report-directory
+          (if (string= "clj" (file-name-extension  filepath))
+              (concat _report-directory "/xml")
+            _report-directory))
+         (_filename (file-name-base filepath))
+         (filename
+          (if (string= "clj" (file-name-extension  filepath))
+              (s-replace "_test" "-test" _filename)
+            _filename)))
     (--> report-directory
       directory-files
       (--find
-       (s-ends-with-p (concat (file-name-base filepath) ".xml") it)
+       (s-ends-with-p (concat filename ".xml") it)
        it)
       (concat report-directory "/" it))))
 

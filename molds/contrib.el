@@ -11,7 +11,6 @@
 (me/register-mold
  :key "TestRunningStats"
  :given (lambda () (and
-                    (eq 'scala-mode major-mode) ;; TODO I guess this could work also for Java?
                     (ignore-errors (me/find-relative-test-report (buffer-file-name)))))
  :then (lambda ()
          (let* ((buffername (buffer-name))
@@ -38,30 +37,36 @@
                 ;;   (lambda (s) s)));(me/make-elisp-navigation-link s ,file))))
                 ("Test Case" .
                  (:extractor
-                  (lambda (obj) (--> obj
-                                  cdr
-                                  car
-                                  (nth 1 it)
-                                  cdr))
+                  (lambda (obj)
+                    (message "%s" obj)
+                    (--> obj
+                      cdr
+                      car
+                      (alist-get 'name it)))
                   :handler
-                  (lambda (s) (me/make-elisp-navigation-link
-                               (s-join ;; get rid of the test's prefix before "should"...
-                                " "
-                                (cdr (--drop-while (not (string= "should" it)) (s-split " " s))))
-                               ,file))))
+                  (lambda (s)
+                    (me/make-elisp-navigation-link
+                     (s-trim (-last-item (s-split "should" s t)))
+                     ,file))))
                 ("Time (s)" .
                  (:extractor
                   (lambda (obj) (--> obj
                                   cdr
                                   car
-                                  (nth 2 it)
-                                  cdr))
+                                  (alist-get 'time it)))
                   :handler
                   (lambda (s) (me/highlight-unit-test-time s)))))
-              testcases) 
+              testcases)
              (setq-local self self)
              (read-only-mode)
-             buffer))))
+             buffer)))
+ :docs "Show performance stats of tests that produce a XML report in JUnit style.
+
+For Clojure support, you need to use https://github.com/ruedigergad/test2junit and have the
+following in your lein project.clj
+
+`:test2junit-output-dir "target/test-reports"
+  :profiles {:dev {:plugins [[test2junit "1.4.2"]]}}`")
 
 
 (me/register-mold
