@@ -14,6 +14,69 @@ TODO: I will detail dependencies and more information in a later change.
 changes ahead! So avoid to build upon this prototype for now!!*
 
 
+** TODO Installation
+:PROPERTIES:
+:CREATED:  [2021-06-23 Wed 00:09]
+:ID:       b68dfda8-54d1-498c-b6f1-fdc52eb21889
+:END:
+
+The suggested way to install this package is via [[https://github.com/jwiegley/use-package][use-package]]. This is
+my installation configuration:
+
+#+begin_src elisp :noeval
+(use-package moldable-emacs
+  :init (if (f-directory-p "~/.emacs.d/lisp/moldable-emacs")
+            (shell-command "cd ~/.emacs.d/lisp/moldable-emacs; git pull;")
+          (shell-command "cd ~/.emacs.d/lisp/; git clone git@github.com:ag91/moldable-emacs.git"))
+  :load-path "~/.emacs.d/lisp/moldable-emacs/"
+  :bind (("C-c m m" . me/mold)
+         ("C-c m f" . me/go-forward)
+         ("C-c m b" . me/go-back)
+         ("C-c m o" . me/open-at-point)
+         ("C-c m d" . me/mold-docs)
+         ("C-c m e a" . me/mold-add-last-example)
+         )
+  :config
+  (require 'moldable-emacs)
+  (add-to-list 'me/files-with-molds (concat (file-name-directory (symbol-file 'me/mold)) "molds/experiments.el")) ;; TODO this is relevant only if you have private molds
+  (me/setup-molds))
+#+end_src
+
+I am working on making =moldable-emacs= itself explain which optional
+and external dependencies you may need for what, but it is still work
+in progress. For now an incomplete list from the top of my mind.
+
+*** TODO Emacs Dependencies
+:PROPERTIES:
+:CREATED:  [2021-06-23 Wed 00:10]
+:END:
+
+This package requires:
+
+- dash.el
+- s.el
+- async.el
+- ??? maybe I forgot something ???
+
+
+Optionally:
+
+- esxml.el
+- emacs-tree-sitter.el
+- code-compass.el
+- ??? 
+
+
+*** TODO (Optional) External Dependencies
+:PROPERTIES:
+:CREATED:  [2021-06-23 Wed 00:15]
+:END:
+
+- graph-cli
+- graphviz
+- imgclip
+- ???
+
 ** Further info
 :PROPERTIES:
 :CREATED:  [2021-06-18 Fri 21:51]
@@ -41,3 +104,10 @@ https://ag91.github.io/blog/2021/06/18/moldable-emacs-vision-basic-concepts-and-
 :END:
 
 https://ag91.github.io/blog/2021/06/18/moldable-emacs-how-to-explore-json-via-elisp
+*** [Setup] Clojure tree-sitter grammar installation
+:PROPERTIES:
+:CREATED:  [2021-06-23 Wed 00:20]
+:ID:       751a4e84-5193-4dbb-9fc9-91ec7a14c6b4
+:END:
+
+https://ag91.github.io/blog/2021/06/22/how-(simple-is)-to-install-a-clojure-tree-sitter-grammar-and-use-it-from-emacs/

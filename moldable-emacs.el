@@ -322,7 +322,7 @@ for mold. This should simplify the testing and documentation of molds.")
          (name (plist-get given :name))
          (contents (plist-get given :contents))
          (mode (plist-get given :mode)))
-    (if (equal type 'buffer)        
+    (if (equal type 'buffer)
         `(with-temp-buffer
            (rename-buffer ,name)
            (insert ,contents)
