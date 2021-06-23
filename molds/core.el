@@ -18,9 +18,9 @@
            buffer))
  ;; TODO experimental for auto-completion: how can I make molds easy to autocomplete?
  :actions (me/by-type identity)
- :docs "You can write any Elisp here. 
-Then you can evaluate with `EvalSexp'. 
-This mold saves structured data of the previous buffer 
+ :docs "You can write any Elisp here.
+Then you can evaluate with `EvalSexp'.
+This mold saves structured data of the previous buffer
 in the local variable `self'."
  :examples ((
              :name "Empty file"
@@ -76,11 +76,10 @@ in the local variable `self'."
 ;; TODO maybe add parent as well? There is not this information in the org-ql node.
 (me/register-mold
  :key "OrgAsTree"
- :given (lambda () (and (eq major-mode 'org-mode) (require 'org-ql)))
+ :given (lambda () (and (eq major-mode 'org-mode) (me/require 'org-ql)))
  :then (lambda ()
          (let* ((buffer (get-buffer-create "m/tree"))
                 (tree (me/org-to-flatten-tree (current-buffer))))
-           
            (with-current-buffer buffer
              (emacs-lisp-mode)
              (erase-buffer)
@@ -92,38 +91,38 @@ in the local variable `self'."
  :key "TreeAsGraph"
  :given (lambda () (and nil (eq major-mode 'emacs-lisp-mode) (equal (buffer-name) "m/tree")))
  :then (lambda ()
-       (pair-tree (save-excursion (goto-char (point-min)) (read (current-buffer)))))) ;; TODO fail I need a better candidate to visualize trees...
+         (pair-tree (save-excursion (goto-char (point-min)) (read (current-buffer)))))) ;; TODO fail I need a better candidate to visualize trees...
 
 (me/register-mold
  :key "SentencesAsTree"
  :given (lambda () (and (eq major-mode 'text-mode)))
  :then (lambda ()
-       (let* ((buffer (get-buffer-create "SentencesTree"))
-              (sentences (s-split (sentence-end) (buffer-substring-no-properties (point-min) (point-max)) 't)))
-         (with-current-buffer buffer
-           (erase-buffer)
-           (prin1 (mapcar 'list sentences) buffer) ;; TODO I need to do keep the position, or allow editing in place, no?
-           (pp-buffer)
-           buffer))))
+         (let* ((buffer (get-buffer-create "SentencesTree"))
+                (sentences (s-split (sentence-end) (buffer-substring-no-properties (point-min) (point-max)) 't)))
+           (with-current-buffer buffer
+             (erase-buffer)
+             (prin1 (mapcar 'list sentences) buffer) ;; TODO I need to do keep the position, or allow editing in place, no?
+             (pp-buffer)
+             buffer))))
 
 (me/register-mold
  :key "ElispAsTree"
  :given (lambda () (eq major-mode 'emacs-lisp-mode))
  :then (lambda ()
-       (let ((sexps)
-             (buffer (get-buffer-create "m/tree")))
-         (ignore-errors
-           (save-excursion
-             (goto-char (point-min))
-             (while (setq sexp (read (current-buffer)))
-               (push sexp sexps)))
-           )
-         (with-current-buffer buffer
-           (erase-buffer)
-           (prin1 (reverse sexps) buffer)
-           (emacs-lisp-mode)
-           (pp-buffer)
-           buffer))))
+         (let ((sexps)
+               (buffer (get-buffer-create "m/tree")))
+           (ignore-errors
+             (save-excursion
+               (goto-char (point-min))
+               (while (setq sexp (read (current-buffer)))
+                 (push sexp sexps)))
+             )
+           (with-current-buffer buffer
+             (erase-buffer)
+             (prin1 (reverse sexps) buffer)
+             (emacs-lisp-mode)
+             (pp-buffer)
+             buffer))))
 
 (me/register-mold
  :key "TreeOfDuplicates"
@@ -182,155 +181,153 @@ in the local variable `self'."
  :key "GotoNodeBuffer"
  :given (lambda () (and (s-starts-with-p "m/tree" (buffer-name)) (eq major-mode 'emacs-lisp-mode) (-contains-p (list-at-point) :buffer)))
  :then (lambda ()
-       (let* ((old-buffer (current-buffer))
-              (result (list-at-point))
-              (buffer (plist-get result :buffer)))
-         (switch-to-buffer buffer)
-         (message "%s" (plist-get result :begin))
-         (goto-char (plist-get result :begin))
-         (switch-to-buffer old-buffer)
-         buffer)))
+         (let* ((old-buffer (current-buffer))
+                (result (list-at-point))
+                (buffer (plist-get result :buffer)))
+           (switch-to-buffer buffer)
+           (message "%s" (plist-get result :begin))
+           (goto-char (plist-get result :begin))
+           (switch-to-buffer old-buffer)
+           buffer)))
 
 (me/register-mold
  :key "TreeToOrgTodos"
  :given (lambda () (and (s-starts-with-p "m/tree" (buffer-name)) (eq major-mode 'emacs-lisp-mode)))
  :then (lambda ()
-       (let* ((tree (ignore-errors
-                      (save-excursion
-                        (goto-char (point-min))
-                        (eval `',(read (current-buffer))))))
-              (buffer (get-buffer-create "TodosOnTheFly"))
-              (text (concat
-                     "* Todo list [/]\n"
-                     (s-join
-                      "\n\n"
-                      (--map
-                       (format
-                        "- [ ] [[elisp:%s][%s]]"
-                        (format
-                         "(progn (find-file-other-window \"%s\") (goto-char %s))"
-                         (plist-get it :buffer-file)
-                         (plist-get it :begin))
-                        (s-truncate 100 (plist-get it :text)))
-                       tree)))))
-         (with-current-buffer buffer
-           (erase-buffer)
-           (org-mode)
-           (setq-local org-confirm-elisp-link-function nil)
-           (insert text))
-         buffer)))
+         (let* ((tree (ignore-errors
+                        (save-excursion
+                          (goto-char (point-min))
+                          (eval `',(read (current-buffer))))))
+                (buffer (get-buffer-create "TodosOnTheFly"))
+                (text (concat
+                       "* Todo list [/]\n"
+                       (s-join
+                        "\n\n"
+                        (--map
+                         (format
+                          "- [ ] [[elisp:%s][%s]]"
+                          (format
+                           "(progn (find-file-other-window \"%s\") (goto-char %s))"
+                           (plist-get it :buffer-file)
+                           (plist-get it :begin))
+                          (s-truncate 100 (plist-get it :text)))
+                         tree)))))
+           (with-current-buffer buffer
+             (erase-buffer)
+             (org-mode)
+             (setq-local org-confirm-elisp-link-function nil)
+             (insert text))
+           buffer)))
 
 (me/register-mold
  :key "Stats"
  :given (lambda () 't)
  :then (lambda () ;; TODO deliver this in org-mode buffer because later I can interpret that in a tree and run new molds on it!
-       (let* ((old-buffer (buffer-name))
-              (buffer (get-buffer-create "Statistics"))
-              (self (me/mold-treesitter-to-parse-tree))
-              (lines (count-lines-page))
-              (words (call-interactively 'count-words))
-              (book-pages (/ (count-words (point-min) (point-max)) 280)) ;; https://kindlepreneur.com/words-per-page/
-              (reading-time (/ (count-words (point-min) (point-max)) 228)) ; https://www.coengoedegebure.com/add-reading-time-to-articles/
-              (word-analysis (--filter (> (length (car it)) 2) (c/word-stats (buffer-substring-no-properties (point-min) (point-max))))) ;; TODO fix when I merge code-compass
-              (word-analysis-stats (-concat (-take 3 word-analysis) (reverse (-take 3 (reverse word-analysis)))))
-              (funs (when self (length (--filter (eq (plist-get it :type) 'function_definition) self))))
-              (ifs (when self (length (--filter (or (eq (plist-get it :type) 'if_expression) (eq (plist-get it :type) 'if_statement)) self))))
-              (classes (when self (length (--filter  (eq (plist-get it :type) 'class_definition) self))))
-              (comments (when self (length (--filter (eq (plist-get it :type) 'comment) self)))))
-         (with-current-buffer buffer
-           (read-only-mode -1)
-           (erase-buffer)
-           (org-mode)
-           (insert "* Generic Stats\n\n")
-           (insert (format "- Reading time: %s minutes \n" reading-time))
-           (insert (format "- %s\n" lines))
-           (insert (format "- %s\n" words))
-           (insert (format "- Average book pages for this text: %s\n\n" book-pages))
-           (insert (format "- Buffer size in KiloBytes: %s\n\n" (buffer-size)))
-           (insert "- Up to three most and least used words:\n\n") ;; TODO maybe add an org link that can rerun the complete analysis keeping track of the previous buffer by creating a link [[(elisp: c/analyswords old-buffer; navigate to new buffer)][click here for all the analysis]] OR I could just implement the linking of mold buffers for at least last buffer!! 
-           (--each word-analysis-stats
-             (insert (format "  %s | %s\n" (substring (concat (number-to-string (cdr it)) (s-repeat 5 " ")) 0 3) (car it))))
-           (insert "\n")
-           (when funs
-             (insert "* Programming Stats\n\n")  
+         (let* ((old-buffer (buffer-name))
+                (buffer (get-buffer-create "Statistics"))
+                (self (me/mold-treesitter-to-parse-tree))
+                (lines (count-lines-page))
+                (words (call-interactively 'count-words))
+                (book-pages (/ (count-words (point-min) (point-max)) 280)) ;; https://kindlepreneur.com/words-per-page/
+                (reading-time (/ (count-words (point-min) (point-max)) 228)) ; https://www.coengoedegebure.com/add-reading-time-to-articles/
+                (word-analysis (--filter (> (length (car it)) 2) (c/word-stats (buffer-substring-no-properties (point-min) (point-max))))) ;; TODO fix when I merge code-compass
+                (word-analysis-stats (-concat (-take 3 word-analysis) (reverse (-take 3 (reverse word-analysis)))))
+                (funs (when self (length (--filter (eq (plist-get it :type) 'function_definition) self))))
+                (ifs (when self (length (--filter (or (eq (plist-get it :type) 'if_expression) (eq (plist-get it :type) 'if_statement)) self))))
+                (classes (when self (length (--filter  (eq (plist-get it :type) 'class_definition) self))))
+                (comments (when self (length (--filter (eq (plist-get it :type) 'comment) self)))))
+           (with-current-buffer buffer
+             (read-only-mode -1)
+             (erase-buffer)
+             (org-mode)
+             (insert "* Generic Stats\n\n")
+             (insert (format "- Reading time: %s minutes \n" reading-time))
+             (insert (format "- %s\n" lines))
+             (insert (format "- %s\n" words))
+             (insert (format "- Average book pages for this text: %s\n\n" book-pages))
+             (insert (format "- Buffer size in KiloBytes: %s\n\n" (buffer-size)))
+             (insert "- Up to three most and least used words:\n\n") ;; TODO maybe add an org link that can rerun the complete analysis keeping track of the previous buffer by creating a link [[(elisp: c/analyswords old-buffer; navigate to new buffer)][click here for all the analysis]] OR I could just implement the linking of mold buffers for at least last buffer!!
+             (--each word-analysis-stats
+               (insert (format "  %s | %s\n" (substring (concat (number-to-string (cdr it)) (s-repeat 5 " ")) 0 3) (car it))))
              (insert "\n")
-             (insert "-- Code Stats --\n\n")
-             (insert (format "#Functions: %s \n" funs))
-             (insert (format "#If-else: %s \n" ifs))
-             (insert (format "#Classes: %s \n" classes))
-             (insert (format "#Comments: %s \n" comments)))
-           (insert "\n")
-           (when self
-             (message "debug3")
-             
-             (insert "* Duplication Stats\n\n")
-             (insert "-- Code Duplication By Token Type --\n\n")
-             (let* ((duplicates-by-type (--group-by (plist-get it :type) (nodes-with-duplication self)))
-                    (texts-by-type
-                     (--map
-                      (cons (car it) (-map (lambda (x) (plist-get x :text)) (cdr it)))
-                      (--group-by (plist-get it :type) self))))
-               (require 'tree-sitter-query)
-               (cursor-sensor-mode)
-               (--each
-                   duplicates-by-type
-                 (let ((type (car it))
-                       (texts (--map (ignore-errors (plist-get it :text)) it))
-                       (beg (point)))
-                   (insert
-                    (format
-                     "%s: %s/%s\n"
-                     type
-                     (length (--filter (-contains-p texts it) (-find (lambda (x) (eq (car x) type)) texts-by-type)))
-                     (length (cdr (-find (lambda (x) (eq (car x) type)) texts-by-type)))
-                     ))
-                   (let ((ov (make-overlay beg (- (point) 1))))
-                     (overlay-put
-                      ov
-                      'cursor-sensor-functions
-                      (list `(lambda (affected-window old-position entered-or-left)
-                               (cond
-                                ((eq entered-or-left 'entered)
-                                 (overlay-put ,ov 'face 'tree-sitter-query-match)
-                                 (let ((tree-sitter-query--target-buffer ,old-buffer))
-                                   (tree-sitter-query--eval-query (format "((%s) @%s)" ,(symbol-name type) ,(symbol-name type)))))
-                                ((eq entered-or-left 'left)
-                                 (let ((tree-sitter-query--target-buffer ,old-buffer))
-                                   (overlay-put ,ov 'face nil)
-                                   (tree-sitter-query--clean-target-buffer))))))))))))
-           (read-only-mode)
-           buffer))))
+             (when funs
+               (insert "* Programming Stats\n\n")
+               (insert "\n")
+               (insert "-- Code Stats --\n\n")
+               (insert (format "#Functions: %s \n" funs))
+               (insert (format "#If-else: %s \n" ifs))
+               (insert (format "#Classes: %s \n" classes))
+               (insert (format "#Comments: %s \n" comments)))
+             (insert "\n")
+             (when self
+               (insert "* Duplication Stats\n\n")
+               (insert "-- Code Duplication By Token Type --\n\n")
+               (let* ((duplicates-by-type (--group-by (plist-get it :type) (nodes-with-duplication self)))
+                      (texts-by-type
+                       (--map
+                        (cons (car it) (-map (lambda (x) (plist-get x :text)) (cdr it)))
+                        (--group-by (plist-get it :type) self))))
+                 (me/require 'tree-sitter-query)
+                 (cursor-sensor-mode)
+                 (--each
+                     duplicates-by-type
+                   (let ((type (car it))
+                         (texts (--map (ignore-errors (plist-get it :text)) it))
+                         (beg (point)))
+                     (insert
+                      (format
+                       "%s: %s/%s\n"
+                       type
+                       (length (--filter (-contains-p texts it) (-find (lambda (x) (eq (car x) type)) texts-by-type)))
+                       (length (cdr (-find (lambda (x) (eq (car x) type)) texts-by-type)))
+                       ))
+                     (let ((ov (make-overlay beg (- (point) 1))))
+                       (overlay-put
+                        ov
+                        'cursor-sensor-functions
+                        (list `(lambda (affected-window old-position entered-or-left)
+                                 (cond
+                                  ((eq entered-or-left 'entered)
+                                   (overlay-put ,ov 'face 'tree-sitter-query-match)
+                                   (let ((tree-sitter-query--target-buffer ,old-buffer))
+                                     (tree-sitter-query--eval-query (format "((%s) @%s)" ,(symbol-name type) ,(symbol-name type)))))
+                                  ((eq entered-or-left 'left)
+                                   (let ((tree-sitter-query--target-buffer ,old-buffer))
+                                     (overlay-put ,ov 'face nil)
+                                     (tree-sitter-query--clean-target-buffer))))))))))))
+             (read-only-mode)
+             buffer))))
 
 (me/register-mold
  :key "JsonAsTree"
  :given (lambda () (eq major-mode 'json-mode)) ;; TODO or region contains json
  :then (lambda ()
-       (let ((json
-              (save-excursion
-                (let ((json-object-type 'alist)
-                      (json-array-type 'list))
-                  (goto-char (point-min))
-                  (json-read))))
-             (buffer (get-buffer-create "m/tree")))
-         (with-current-buffer buffer
-           (erase-buffer)
-           (prin1 json buffer)
-           (emacs-lisp-mode)
-           (pp-buffer)
-           buffer))))
+         (let ((json
+                (save-excursion
+                  (let ((json-object-type 'alist)
+                        (json-array-type 'list))
+                    (goto-char (point-min))
+                    (json-read))))
+               (buffer (get-buffer-create "m/tree")))
+           (with-current-buffer buffer
+             (erase-buffer)
+             (prin1 json buffer)
+             (emacs-lisp-mode)
+             (pp-buffer)
+             buffer))))
 
 (me/register-mold
  :key "AsParseTree"
  :given (lambda () (or (eq major-mode 'json-mode)
-                         (eq major-mode 'yaml-mode)
-                         (eq major-mode 'javascript-mode)
-                         (eq major-mode 'xml-mode)
-                         (eq major-mode 'scala-mode)
-                         (eq major-mode 'tilde-mode)
-                         (eq major-mode 'typescript-mode))) ;; TODO or region contains json
+                       (eq major-mode 'yaml-mode)
+                       (eq major-mode 'javascript-mode)
+                       (eq major-mode 'xml-mode)
+                       (eq major-mode 'scala-mode)
+                       (eq major-mode 'tilde-mode)
+                       (eq major-mode 'typescript-mode))) ;; TODO or region contains json
  :then (lambda ()
-       (tree-sitter-debug-mode)
-       tree-sitter-debug--tree-buffer))
+         (tree-sitter-debug-mode)
+         tree-sitter-debug--tree-buffer))
 
 (me/register-mold
  :key "FirstOrgTable"
@@ -375,19 +372,19 @@ in the local variable `self'."
  :key "OrgTableToCSV"
  :given (lambda () (and (eq major-mode 'org-mode) (s-starts-with-p "m/first-org-table" (buffer-name))))
  :then (lambda ()
-       (let ((table (org-table-to-lisp))
-             (buffer (get-buffer-create (me/append-time "m/csv-from-org-table"))))
-         (with-current-buffer buffer
-           (read-only-mode -1)
-           (erase-buffer)
-           (csv-mode)
-           (insert (orgtbl-to-csv table nil))
-           (goto-char (point-min))
-           (while (eq (org-next-link) 't)
-             (ag/org-replace-link-by-link-description))
-           (setq-local self table)
-           (read-only-mode)
-           buffer))))
+         (let ((table (org-table-to-lisp))
+               (buffer (get-buffer-create (me/append-time "m/csv-from-org-table"))))
+           (with-current-buffer buffer
+             (read-only-mode -1)
+             (erase-buffer)
+             (csv-mode)
+             (insert (orgtbl-to-csv table nil))
+             (goto-char (point-min))
+             (while (eq (org-next-link) 't)
+               (ag/org-replace-link-by-link-description))
+             (setq-local self table)
+             (read-only-mode)
+             buffer))))
 
 (me/register-mold
  :key "CSVToOrgTable"
@@ -552,7 +549,7 @@ in the local variable `self'."
                 (notes
                  (or
                   (when 't self) ;; TODO check that `self' contains notes
-                  (me/load-notes)))) 
+                  (me/load-notes))))
            (with-current-buffer buffer
              (erase-buffer)
              (org-mode)
@@ -587,7 +584,7 @@ in the local variable `self'."
  :then (lambda ()
          (let* ((buffername (buffer-name))
                 (buffer (get-buffer-create "Org Annotate buffer"))
-                (note self)) 
+                (note self))
            (with-current-buffer buffer
              (erase-buffer)
              (org-mode)
@@ -646,7 +643,7 @@ in the local variable `self'."
                  (:extractor
                   (lambda (obj) (plist-get obj :key))
                   :handler
-                  (lambda (s) 
+                  (lambda (s)
                     (me/make-elisp-file-link  "Start!" (format "(me/mold-demo (me/find-mold \"%s\"))" s) "elisp"))))
                 ("Documentation" .
                  (:extractor

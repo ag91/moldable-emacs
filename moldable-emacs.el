@@ -709,4 +709,8 @@ Excludes the heading and any child subtrees."
     ;; TODO make this smarter
     ))
 
+(defun me/require (dependency)
+  "Try to require DEPENDENCY, and just give nil if not found."
+  (ignore-errors (require dependency)))
+
 (provide 'moldable-emacs)

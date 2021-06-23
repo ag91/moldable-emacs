@@ -11,7 +11,7 @@
 (me/register-mold
  :key "TestRunningStats"
  :given (lambda () (and
-                    (require 'esxml)
+                    (me/require 'esxml)
                     (ignore-errors
                       (me/find-relative-test-report (buffer-file-name)))))
  :then (lambda ()
@@ -149,7 +149,7 @@ following in your lein project.clj
 
 (me/register-mold
  :key "FunctionsComplexity"
- :given (lambda () (and (me/by-type 'function_definition (me/mold-treesitter-to-parse-tree)) (require 'code-compass)))
+ :given (lambda () (and (me/by-type 'function_definition (me/mold-treesitter-to-parse-tree)) (me/require 'code-compass)))
  :then (lambda ()
          (let* ((tree (me/mold-treesitter-to-parse-tree))
                 (buffer (get-buffer-create (format "Functions Complexity of %s" (buffer-name))))
