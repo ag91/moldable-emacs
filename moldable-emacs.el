@@ -1,3 +1,7 @@
+(require 'dash)
+(require 's)
+(require 'async)
+
 (defcustom me/files-with-molds
   (--map
    (concat
@@ -28,7 +32,7 @@
   (if (not (some #'null (mapcar #'async-ready futures)))
       (funcall post-fn)
     (if (funcall too-late-p)
-        'interrupted      
+        'interrupted
       (run-with-timer
        poll-time
        nil
