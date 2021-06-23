@@ -713,4 +713,14 @@ Excludes the heading and any child subtrees."
   "Try to require DEPENDENCY, and just give nil if not found."
   (ignore-errors (require dependency)))
 
+(defun me/mold-insert-name ()
+  "Insert a mold name at point."
+  (interactive)
+  (--> me/available-molds
+    (--map (plist-get it :key) it)
+    (completing-read
+     "Insert at point the following mold name:"
+     it)
+    insert))
+
 (provide 'moldable-emacs)
