@@ -757,4 +757,46 @@ Excludes the heading and any child subtrees."
          (word-list (me/count-raw-word-list raw-word-list)))
     (sort word-list (lambda (a b) (> (cdr a) (cdr b))))))
 
+
+(defun me/get-reading-time (text)
+  "Calculate reading time of TEXT in minutes according to https://www.coengoedegebure.com/add-reading-time-to-articles/."
+  (with-temp-buffer
+    (insert text)
+    (/ (count-words (point-min) (point-max)) 228)))
+
+(defun me/get-book-pages (text)
+  "Calculate number of book pages TEXT would fill according to https://kindlepreneur.com/words-per-page/."
+  (with-temp-buffer
+    (insert text)
+    (/ (count-words (point-min) (point-max)) 280)))
+
+(defun me/insert-treesitter-follow-overlay (nodes &optional transformer)
+  "Add overlayed entries for NODES types using `emacs-tree-sitter'.
+You can extract the data you want to show
+with TRANSFORMER, which is a function taking a node and returning
+a string (node -> string)."
+  (cursor-sensor-mode 1)
+  (--each
+      nodes
+    (let ((type (plist-get it :type))
+          (beg (point)))
+      (insert
+       (or (when transformer (funcall transformer it))
+           (format "%s\n" type)))
+      (let ((old-buffer (plist-get it :buffer))
+            (ov (make-overlay beg (- (point) 1)))) ;; after `insert' point =/= beg, point goes after insertion
+        (overlay-put
+         ov
+         'cursor-sensor-functions
+         (list `(lambda (affected-window old-position entered-or-left)
+                  (cond
+                   ((eq entered-or-left 'entered)
+                    (overlay-put ,ov 'face 'tree-sitter-query-match)
+                    (let ((tree-sitter-query--target-buffer ,old-buffer))
+                      (tree-sitter-query--eval-query (format "((%s) @%s)" ,(symbol-name type) ,(symbol-name type)))))
+                   ((eq entered-or-left 'left)
+                    (let ((tree-sitter-query--target-buffer ,old-buffer))
+                      (overlay-put ,ov 'face nil)
+                      (tree-sitter-query--clean-target-buffer)))))))))))
+
 (provide 'moldable-emacs)

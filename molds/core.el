@@ -226,11 +226,12 @@ in the local variable `self'."
          (let* ((old-buffer (buffer-name))
                 (buffer (get-buffer-create "Statistics"))
                 (self (me/mold-treesitter-to-parse-tree))
+                (contents (buffer-substring-no-properties (point-min) (point-max)))
                 (lines (count-lines-page))
                 (words (call-interactively 'count-words))
-                (book-pages (/ (count-words (point-min) (point-max)) 280)) ;; https://kindlepreneur.com/words-per-page/
-                (reading-time (/ (count-words (point-min) (point-max)) 228)) ; https://www.coengoedegebure.com/add-reading-time-to-articles/
-                (word-analysis (--filter (> (length (car it)) 2) (me/word-stats (buffer-substring-no-properties (point-min) (point-max)))))
+                (book-pages (me/get-book-pages contents))
+                (reading-time (me/get-reading-time contents))
+                (word-analysis (--filter (> (length (car it)) 2) (me/word-stats contents)))
                 (word-analysis-stats (-concat (-take 3 word-analysis) (reverse (-take 3 (reverse word-analysis)))))
                 (funs (when self (length (--filter (eq (plist-get it :type) 'function_definition) self))))
                 (ifs (when self (length (--filter (or (eq (plist-get it :type) 'if_expression) (eq (plist-get it :type) 'if_statement)) self))))
@@ -261,40 +262,28 @@ in the local variable `self'."
              (when self
                (insert "* Duplication Stats\n\n")
                (insert "-- Code Duplication By Token Type --\n\n")
-               (let* ((duplicates-by-type (--group-by (plist-get it :type) (nodes-with-duplication self)))
+               (let* ((nodes-with-duplication (nodes-with-duplication self))
                       (texts-by-type
                        (--map
                         (cons (car it) (-map (lambda (x) (plist-get x :text)) (cdr it)))
                         (--group-by (plist-get it :type) self))))
                  (me/require 'tree-sitter-query)
-                 (cursor-sensor-mode)
-                 (--each
-                     duplicates-by-type
-                   (let ((type (car it))
-                         (texts (--map (ignore-errors (plist-get it :text)) it))
-                         (beg (point)))
-                     (insert
+                 (me/insert-treesitter-follow-overlay
+                  nodes-with-duplication
+                  (lambda (node)
+                    (let ((type (plist-get node :type))
+                          (texts (--map
+                                  (ignore-errors (plist-get it :text))
+                                  (me/by-type type nodes-with-duplication))))
                       (format
                        "%s: %s/%s\n"
                        type
-                       (length (--filter (-contains-p texts it) (-find (lambda (x) (eq (car x) type)) texts-by-type)))
-                       (length (cdr (-find (lambda (x) (eq (car x) type)) texts-by-type)))
-                       ))
-                     (let ((ov (make-overlay beg (- (point) 1))))
-                       (overlay-put
-                        ov
-                        'cursor-sensor-functions
-                        (list `(lambda (affected-window old-position entered-or-left)
-                                 (cond
-                                  ((eq entered-or-left 'entered)
-                                   (overlay-put ,ov 'face 'tree-sitter-query-match)
-                                   (let ((tree-sitter-query--target-buffer ,old-buffer))
-                                     (tree-sitter-query--eval-query (format "((%s) @%s)" ,(symbol-name type) ,(symbol-name type)))))
-                                  ((eq entered-or-left 'left)
-                                   (let ((tree-sitter-query--target-buffer ,old-buffer))
-                                     (overlay-put ,ov 'face nil)
-                                     (tree-sitter-query--clean-target-buffer))))))))))))
-             buffer)))
+                       (length (--filter
+                                (-contains-p texts it)
+                                (--find (eq (car it) type) texts-by-type)))
+                       (length (cdr (-find (lambda (x) (eq (car x) type)) texts-by-type)))))))
+                 )))
+           buffer))
  :docs "You can extract information from the original buffer without reading it."
  :examples ((
              :name "Basic stats"
