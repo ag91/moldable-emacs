@@ -230,14 +230,13 @@ in the local variable `self'."
                 (words (call-interactively 'count-words))
                 (book-pages (/ (count-words (point-min) (point-max)) 280)) ;; https://kindlepreneur.com/words-per-page/
                 (reading-time (/ (count-words (point-min) (point-max)) 228)) ; https://www.coengoedegebure.com/add-reading-time-to-articles/
-                (word-analysis (--filter (> (length (car it)) 2) (c/word-stats (buffer-substring-no-properties (point-min) (point-max))))) ;; TODO fix when I merge code-compass
+                (word-analysis (--filter (> (length (car it)) 2) (me/word-stats (buffer-substring-no-properties (point-min) (point-max)))))
                 (word-analysis-stats (-concat (-take 3 word-analysis) (reverse (-take 3 (reverse word-analysis)))))
                 (funs (when self (length (--filter (eq (plist-get it :type) 'function_definition) self))))
                 (ifs (when self (length (--filter (or (eq (plist-get it :type) 'if_expression) (eq (plist-get it :type) 'if_statement)) self))))
                 (classes (when self (length (--filter  (eq (plist-get it :type) 'class_definition) self))))
                 (comments (when self (length (--filter (eq (plist-get it :type) 'comment) self)))))
            (with-current-buffer buffer
-             (read-only-mode -1)
              (erase-buffer)
              (org-mode)
              (insert "* Generic Stats\n\n")
@@ -295,8 +294,15 @@ in the local variable `self'."
                                    (let ((tree-sitter-query--target-buffer ,old-buffer))
                                      (overlay-put ,ov 'face nil)
                                      (tree-sitter-query--clean-target-buffer))))))))))))
-             (read-only-mode)
-             buffer))))
+             buffer)))
+ :docs "You can extract information from the original buffer without reading it."
+ :examples ((
+             :name "Basic stats"
+             :given
+             (:type file :name "/tmp/test.txt" :mode text-mode :contents "This is a little test file. Test!\n")
+             :then
+             (:type buffer :name "Statistics" :mode org-mode :contents "* Generic Stats\n\n- Reading time: 0 minutes \n- Page has 1 line (0 + 1)\n- Buffer has 1 line, 7 words, and 34 characters.\n- Average book pages for this text: 0\n\n- Buffer size in KiloBytes: 158\n\n- Up to three most and least used words:\n\n  1   | file\n  1   | little\n  1   | test\n  1   | test\n  1   | test!\n  1   | this\n\n\n"))
+            ))
 
 (me/register-mold
  :key "JsonAsTree"

@@ -559,7 +559,7 @@ some new contents
    (with-current-buffer (find-file-noselect it)
      (save-excursion
        (goto-char (point-min))
-       (search-forward key nil 't)))
+       (ignore-errors (search-forward (concat "\"" key "\"")))))
    me/files-with-molds))
 
 (defmacro me/register-mold (&rest mold) ;; TODO I should validate molds somehow, not just assign them! Also use hashmap?
@@ -567,7 +567,7 @@ some new contents
   `(me/add-to-available-molds ',mold))
 
 (ert-deftest me/register-mold_new-mold () ;; TODO use this as a documentation mold example??
-  (let ((me/available-molds nil)) 
+  (let ((me/available-molds nil))
     (me/register-mold
      :key "bla"
      :description "bla"
@@ -693,18 +693,17 @@ Excludes the heading and any child subtrees."
   "Add `me/last-example' to last mold."
   (interactive)
   (when me/last-used-mold
-    (let ((filename (symbol-file #'me/register-mold)))
-      (find-file filename)
-      (goto-char (point-min))
-      (search-forward (format ":key \"%s\"" me/last-used-mold))
-      (let* ((result (me/check-example me/last-example (plist-get (me/find-mold me/last-used-mold) :then)))
-             (pass (plist-get result :success))
-             (issues (plist-get result :issues)))
-        (unless pass
-          (warn (format
-                 "The example you are trying to add does not work because the following did not match:\n%s"
-                 issues))))
-      (kill-new (pp-to-string me/last-example)))
+    (find-file (plist-get (me/find-mold me/last-used-mold) :origin))
+    (goto-char (point-min))
+    (search-forward (format ":key \"%s\"" me/last-used-mold))
+    (let* ((result (me/check-example me/last-example (plist-get (me/find-mold me/last-used-mold) :then)))
+           (pass (plist-get result :success))
+           (issues (plist-get result :issues)))
+      (unless pass
+        (warn (format
+               "The example you are trying to add does not work because the following did not match:\n%s"
+               issues))))
+    (kill-new (pp-to-string me/last-example))
     (message "You have the example of the last run of this mold in the kill ring: use it!")
     ;; TODO make this smarter
     ))
@@ -722,5 +721,40 @@ Excludes the heading and any child subtrees."
      "Insert at point the following mold name:"
      it)
     insert))
+
+
+;; taken from: https://emacs.stackexchange.com/questions/13514/how-to-obtain-the-statistic-of-the-the-frequency-of-words-in-a-buffer
+(defvar me/punctuation-marks '(","
+                               "."
+                               "'"
+                               "&"
+                               "\"")
+  "List of Punctuation Marks that you want to count.")
+
+(defun me/count-raw-word-list (raw-word-list)
+  "Produce a dictionary of RAW-WORD-LIST with the number of occurrences for each word."
+  (--> raw-word-list
+    (--reduce-from
+     (progn
+       (incf (cdr (or (assoc it acc)
+                      (car (push (cons it 0) acc)))))
+       acc)
+     nil
+     it)
+    (sort it (lambda (a b) (string< (car a) (car b))))))
+
+(defun me/word-stats (string)
+  "Return word (as a token between spaces) frequency in STRING."
+  (let* ((words (split-string
+                 (downcase string)
+                 (format "[ %s\f\t\n\r\v]+"
+                         (mapconcat #'identity me/punctuation-marks ""))
+                 t))
+         (punctuation-marks (--filter
+                             (member it me/punctuation-marks)
+                             (split-string string "" t)))
+         (raw-word-list (append punctuation-marks words))
+         (word-list (me/count-raw-word-list raw-word-list)))
+    (sort word-list (lambda (a b) (> (cdr a) (cdr b))))))
 
 (provide 'moldable-emacs)
