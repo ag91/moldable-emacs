@@ -271,3 +271,31 @@ following in your lein project.clj
 (me/register-mold-by-key
  "OrgTablesToDotPicture"
  (me/mold-compose "OrgTablesToDot" "DotToPicture"))
+
+
+(me/register-mold
+ :key "Image To Text"
+ :docs "Extracts text from the image using `imageclip'."
+ :given (lambda () (and
+                    (eq major-mode 'image-mode)
+                    (executable-find "imgclip")))
+ :then (lambda ()
+         (let* ((buffername (buffer-name))
+                (self nil) ;; TODO what here?
+                (buffer (get-buffer-create (format "Text from %s" buffername)))
+                (_ (async-map
+                    `(lambda (s)
+                       (shell-command-to-string
+                        (format "imgclip -p '%s' --lang eng" s)))
+                    (list (or (buffer-file-name)
+                              (let ((path (concat "/tmp/" buffername)))
+                                (write-region (point-min) (point-max) path)
+                                path)))
+                    `(lambda ()
+                       (with-current-buffer ,buffer
+                         (erase-buffer)
+                         (clipboard-yank))))))
+           (with-current-buffer buffer
+             (erase-buffer)
+             (insert "Loading text from image..."))
+           buffer)))
