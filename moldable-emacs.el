@@ -801,9 +801,8 @@ a string (node -> string)."
 
 (defun me/calc-numeric-p (text)
   "Check if TEXT is a numeric arithmetic expression `calc' can work with."
-  (condition-case err
-      (let ((calc-eval-error 't)) (calc-eval text 'num))
-    (error nil)))
+  (let ((calc-eval-error 't)) (ignore-errors (calc-eval text 'num)))
+  )
 
 (defun me/not-arithmetic-expression-member-p (it)
   "Tell if string IT contains a member that does NOT belong in an arithmetic expression."
@@ -828,7 +827,9 @@ a string (node -> string)."
 
 (defun me/arithmetic-on-line ()
   "Find an arithmetic expression on the current line. NIL if not there."
-  (--> (thing-at-point 'line 't)
+  (--> (or
+        (when (region-active-p) (buffer-substring-no-properties (car (car (region-bounds))) (cdr (car (region-bounds)))))
+        (thing-at-point 'line 't))
     (s-split " " it 't)
     (-drop-while
      #'me/not-arithmetic-expression-member-p
