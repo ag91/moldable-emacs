@@ -804,31 +804,24 @@ a string (node -> string)."
   (let ((calc-eval-error 't)) (ignore-errors (calc-eval text 'num)))
   )
 
+(defun me/arithmetic-component-p (it)
+  "Is IT an arithmetic component?"
+  (or
+   (string= it (number-to-string (string-to-number it)))
+   (string= "-" it)
+   (string= "+" it)
+   (string= "/" it)
+   (string= "*" it)
+   (string= "%" it)
+   (string= "^" it)))
+
 (defun me/not-arithmetic-expression-member-p (it)
   "Tell if string IT contains a member that does NOT belong in an arithmetic expression."
-  (not (or (string= it (number-to-string (string-to-number it)))
-           (string= "-" it)
-           (string= "+" it)
-           (string= "/" it)
-           (string= "*" it)
-           (string= "%" it)
-           (string= "^" it)
-           (--all?
-            (or
-             (string= it (number-to-string (string-to-number it)))
-             (string= "-" it)
-             (string= "+" it)
-             (string= "/" it)
-             (string= "*" it)
-             (string= "%" it)
-             (string= "^" it))
+  (not (or (me/arithmetic-component-p it)
+           ;; in case we have something like "1+1"
+           (-all?
+            #'me/arithmetic-component-p
             (s-split "" it 't)))))
-
-
-(defun me/letter-p (char)
-  "Is CHAR a letter?" ;; taken from https://emacs.stackexchange.com/questions/8261/how-to-determine-if-the-current-character-is-a-letter
-  (memq (get-char-code-property char 'general-category)
-        '(Ll Lu Lo Lt Lm Mn Mc Me Nl)))
 
 (defun me/arithmetic-on-line ()
   "Find an arithmetic expression on the current line. NIL if not there."
@@ -846,9 +839,10 @@ a string (node -> string)."
                       reverse
                       (s-join " " it))))
     (and
-     (not (--find
-           #'me/letter-p
-           (string-to-list expression)))
+     (not (string= "" (s-trim expression)))
+     (eq nil (-remove
+              #'me/arithmetic-component-p
+              (-remove #'string-blank-p (s-split "" expression 't))))
      expression)))
 
 (provide 'moldable-emacs)
