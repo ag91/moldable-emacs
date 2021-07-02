@@ -825,20 +825,30 @@ a string (node -> string)."
             (s-split "" it 't)))))
 
 
+(defun me/letter-p (char)
+  "Is CHAR a letter?" ;; taken from https://emacs.stackexchange.com/questions/8261/how-to-determine-if-the-current-character-is-a-letter
+  (memq (get-char-code-property char 'general-category)
+        '(Ll Lu Lo Lt Lm Mn Mc Me Nl)))
+
 (defun me/arithmetic-on-line ()
   "Find an arithmetic expression on the current line. NIL if not there."
-  (--> (or
-        (when (region-active-p) (buffer-substring-no-properties (car (car (region-bounds))) (cdr (car (region-bounds)))))
-        (thing-at-point 'line 't))
-    (s-split " " it 't)
-    (-drop-while
-     #'me/not-arithmetic-expression-member-p
-     it)
-    reverse
-    (-drop-while
-     #'me/not-arithmetic-expression-member-p
-     it)
-    reverse
-    (s-join " " it)))
+  (let ((expression (--> (or
+                          (when (region-active-p) (buffer-substring-no-properties (car (car (region-bounds))) (cdr (car (region-bounds)))))
+                          (thing-at-point 'line 't))
+                      (s-split " " it 't)
+                      (-drop-while
+                       #'me/not-arithmetic-expression-member-p
+                       it)
+                      reverse
+                      (-drop-while
+                       #'me/not-arithmetic-expression-member-p
+                       it)
+                      reverse
+                      (s-join " " it))))
+    (and
+     (not (--find
+           #'me/letter-p
+           (string-to-list expression)))
+     expression)))
 
 (provide 'moldable-emacs)
