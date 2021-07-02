@@ -799,4 +799,45 @@ a string (node -> string)."
                       (overlay-put ,ov 'face nil)
                       (tree-sitter-query--clean-target-buffer)))))))))))
 
+(defun me/calc-numeric-p (text)
+  "Check if TEXT is a numeric arithmetic expression `calc' can work with."
+  (condition-case err
+      (let ((calc-eval-error 't)) (calc-eval text 'num))
+    (error nil)))
+
+(defun me/not-arithmetic-expression-member-p (it)
+  "Tell if string IT contains a member that does NOT belong in an arithmetic expression."
+  (not (or (string= it (number-to-string (string-to-number it)))
+           (string= "-" it)
+           (string= "+" it)
+           (string= "/" it)
+           (string= "*" it)
+           (string= "%" it)
+           (string= "^" it)
+           (--all?
+            (or
+             (string= it (number-to-string (string-to-number it)))
+             (string= "-" it)
+             (string= "+" it)
+             (string= "/" it)
+             (string= "*" it)
+             (string= "%" it)
+             (string= "^" it))
+            (s-split "" it 't)))))
+
+
+(defun me/arithmetic-on-line ()
+  "Find an arithmetic expression on the current line. NIL if not there."
+  (--> (thing-at-point 'line 't)
+    (s-split " " it 't)
+    (-drop-while
+     #'me/not-arithmetic-expression-member-p
+     it)
+    reverse
+    (-drop-while
+     #'me/not-arithmetic-expression-member-p
+     it)
+    reverse
+    (s-join " " it)))
+
 (provide 'moldable-emacs)

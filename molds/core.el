@@ -38,7 +38,15 @@ in the local variable `self'."
              (prin1 tree buffer) ;; TODO I need to do keep the position, or allow editing in place, no?
              (pp-buffer)
              (emacs-lisp-mode)
-             buffer))))
+             buffer)))
+ :docs "You get a flattened tree of all parsed elements. You can transform this to extract information with the Playground mold."
+ :examples ((
+             :name "JSON to code flattened tree"
+             :given
+             (:type file :name "/tmp/test.json" :mode json-mode :contents "{\n  \"a\": 1,\n  \"b\": [1,2]\n}\n")
+             :then
+             (:type buffer :name "m/tree" :mode emacs-lisp-mode :contents "((:type object :text \"{\n  \\\"a\\\": 1,\n  \\\"b\\\": [1,2]\n}\" :begin 1 :end 27 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"{\" :text \"{\" :begin 1 :end 2 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type pair :text \"\\\"a\\\": 1\" :begin 5 :end 11 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type string :text \"\\\"a\\\"\" :begin 5 :end 8 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 5 :end 6 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type string_content :text \"a\" :begin 6 :end 7 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 7 :end 8 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \":\" :text \":\" :begin 8 :end 9 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type number :text \"1\" :begin 10 :end 11 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \",\" :text \",\" :begin 11 :end 12 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type pair :text \"\\\"b\\\": [1,2]\" :begin 15 :end 25 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type string :text \"\\\"b\\\"\" :begin 15 :end 18 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 15 :end 16 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type string_content :text \"b\" :begin 16 :end 17 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 17 :end 18 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \":\" :text \":\" :begin 18 :end 19 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type array :text \"[1,2]\" :begin 20 :end 25 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"[\" :text \"[\" :begin 20 :end 21 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type number :text \"1\" :begin 21 :end 22 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \",\" :text \",\" :begin 22 :end 23 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type number :text \"2\" :begin 23 :end 24 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"]\" :text \"]\" :begin 24 :end 25 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"}\" :text \"}\" :begin 26 :end 27 :buffer \"test.json\" :buffer-file \"/tmp/test.json\"))\n"))
+            ))
 
 (me/register-mold
  :key "NodeAtPointToTree"
@@ -225,6 +233,7 @@ in the local variable `self'."
  :then (lambda () ;; TODO deliver this in org-mode buffer because later I can interpret that in a tree and run new molds on it!
          (let* ((old-buffer (buffer-name))
                 (buffer (get-buffer-create "Statistics"))
+                (buffersize (buffer-size))
                 (self (me/mold-treesitter-to-parse-tree))
                 (contents (buffer-substring-no-properties (point-min) (point-max)))
                 (lines (count-lines-page))
@@ -233,10 +242,11 @@ in the local variable `self'."
                 (reading-time (me/get-reading-time contents))
                 (word-analysis (--filter (> (length (car it)) 2) (me/word-stats contents)))
                 (word-analysis-stats (-concat (-take 3 word-analysis) (reverse (-take 3 (reverse word-analysis)))))
-                (funs (when self (length (--filter (eq (plist-get it :type) 'function_definition) self))))
+                (funs (when self (length (me/by-type 'function_definition self))))
+                (methods (when self (length (me/by-type 'method_declaration self))))
                 (ifs (when self (length (--filter (or (eq (plist-get it :type) 'if_expression) (eq (plist-get it :type) 'if_statement)) self))))
-                (classes (when self (length (--filter  (eq (plist-get it :type) 'class_definition) self))))
-                (comments (when self (length (--filter (eq (plist-get it :type) 'comment) self)))))
+                (classes (when self (length (--filter (or (eq (plist-get it :type) 'class_definition) (eq (plist-get it :type) 'class_declaration)) self))))
+                (comments (when self (length (me/by-type 'comment self)))))
            (with-current-buffer buffer
              (erase-buffer)
              (org-mode)
@@ -245,7 +255,7 @@ in the local variable `self'."
              (insert (format "- %s\n" lines))
              (insert (format "- %s\n" words))
              (insert (format "- Average book pages for this text: %s\n\n" book-pages))
-             (insert (format "- Buffer size in KiloBytes: %s\n\n" (buffer-size)))
+             (insert (format "- Buffer size in KiloBytes: %s\n\n" buffersize))
              (insert "- Up to three most and least used words:\n\n") ;; TODO maybe add an org link that can rerun the complete analysis keeping track of the previous buffer by creating a link [[(elisp: c/analyswords old-buffer; navigate to new buffer)][click here for all the analysis]] OR I could just implement the linking of mold buffers for at least last buffer!!
              (--each word-analysis-stats
                (insert (format "  %s | %s\n" (substring (concat (number-to-string (cdr it)) (s-repeat 5 " ")) 0 3) (car it))))
@@ -255,6 +265,7 @@ in the local variable `self'."
                (insert "\n")
                (insert "-- Code Stats --\n\n")
                (insert (format "#Functions: %s \n" funs))
+               (insert (format "#Methods: %s \n" methods))
                (insert (format "#If-else: %s \n" ifs))
                (insert (format "#Classes: %s \n" classes))
                (insert (format "#Comments: %s \n" comments)))
@@ -671,3 +682,26 @@ in the local variable `self'."
              (setq-local self-pos node-pos)
              (setq-local self node)
              buffer))))
+
+(me/register-mold
+ :key "Evaluate Arithmetic Expression"
+ :given (lambda () (me/arithmetic-on-line)) ;; TODO this is naive: does not support neither square root!
+ :then (lambda ()
+         (let* ((buffername (buffer-name))
+                (expression (me/arithmetic-on-line))
+                (buffer (get-buffer-create (format "Evaluate %s" expression)))
+                (colored-result (me/color-string (calc-eval expression) "green")))
+           (with-current-buffer buffer
+             (read-only-mode -1)
+             (erase-buffer)
+             (insert (format "%s = %s" expression colored-result))
+             (setq-local self expression))
+           buffer))
+ :docs "You can produce the result of arithmetic expressions."
+ :examples ((
+             :name "Simple arithmetic expression"
+             :given
+             (:type file :name "/tmp/my.txt" :mode text-mode :contents "bla bla 1 + 1 / 2 bla bla\n")
+             :then
+             (:type buffer :name "Evaluate 1 + 1 / 2" :mode fundamental-mode :contents "1 + 1 / 2 = 1.5"))
+            ))
