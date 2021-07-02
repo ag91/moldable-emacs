@@ -60,7 +60,15 @@ in the local variable `self'."
              (prin1 tree buffer)
              (pp-buffer)
              (setq self tree)
-             (current-buffer)))))
+             (current-buffer))))
+ :docs "You can obtain the code flattened tree only for the node at point. This is a more focused view than `CodeToTree.'"
+ :examples ((
+             :name "Pointer just after \"a\": "
+             :given
+             (:type file :name "/tmp/test.json" :mode json-mode :contents "{\n  \"a\": 1,\n  \"b\": [1,2]\n}\n")
+             :then
+             (:type buffer :name "m/tree" :mode emacs-lisp-mode :contents "((:type string :text \"\\\"a\\\"\" :begin 5 :end 8 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 5 :end 6 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type string_content :text \"a\" :begin 6 :end 7 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 7 :end 8 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \":\" :text \":\" :begin 8 :end 9 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type number :text \"1\" :begin 10 :end 11 :buffer \"test.json\" :buffer-file \"/tmp/test.json\"))\n"))
+            ))
 
 ;; TODO maybe mold treeWithJsonToPlist? (--map (json-parse-string (plist-get it :text) :object-type 'plist) self)
 ;; TODO and maybe plist to Org Table? See "GebE2ECumulativeErrors" for that
@@ -659,7 +667,7 @@ in the local variable `self'."
               molds)
              (setq-local self molds))
            buffer))
- :docs "You can see examples and demos of the molds you can use from here."
+ :docs "You can see examples and demos of the molds you can use."
  :examples nil)
 
 (me/register-mold
