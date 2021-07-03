@@ -693,7 +693,7 @@ in the local variable `self'."
 
 (me/register-mold
  :key "Evaluate Arithmetic Expression"
- :given (lambda () (me/arithmetic-at-point)) ;; TODO this is naive: does not support neither square root!
+ :given (lambda () (me/arithmetic-at-point)) ;; TODO this is naive: does not support neither square root! Actually it does: 4^1/2. Still it breaks for things like ". 1 + 2" because the expression starts with a dot...
  :then (lambda ()
          (let* ((buffername (buffer-name))
                 (expression (me/arithmetic-at-point))

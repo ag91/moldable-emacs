@@ -815,7 +815,8 @@ a string (node -> string)."
    (string= "%" it)
    (string= "^" it)
    (string= "(" it)
-   (string= ")" it)))
+   (string= ")" it)
+   (string= "." it)))
 
 (defun me/arithmetic-expression-member-p (it)
   "Tell if string IT contains an arithmetic member."
