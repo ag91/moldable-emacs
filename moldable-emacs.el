@@ -815,34 +815,48 @@ a string (node -> string)."
    (string= "%" it)
    (string= "^" it)))
 
-(defun me/not-arithmetic-expression-member-p (it)
-  "Tell if string IT contains a member that does NOT belong in an arithmetic expression."
-  (not (or (me/arithmetic-component-p it)
-           ;; in case we have something like "1+1"
-           (-all?
-            #'me/arithmetic-component-p
-            (s-split "" it 't)))))
+(defun me/arithmetic-expression-member-p (it)
+  "Tell if string IT contains an arithmetic member."
+  (or (me/arithmetic-component-p it)
+      ;; in case we have something like "1+1"
+      (-all?
+       #'me/arithmetic-component-p
+       (s-split "" it 't))))
 
-(defun me/arithmetic-on-line ()
+(defun me/arithmetic-at-point () ;; TODO needs refactoring!
   "Find an arithmetic expression on the current line. NIL if not there."
-  (let ((expression (--> (or
-                          (when (region-active-p) (buffer-substring-no-properties (car (car (region-bounds))) (cdr (car (region-bounds)))))
-                          (thing-at-point 'line 't))
-                      (s-split " " it 't)
-                      (-drop-while
-                       #'me/not-arithmetic-expression-member-p
-                       it)
-                      reverse
-                      (-drop-while
-                       #'me/not-arithmetic-expression-member-p
-                       it)
-                      reverse
-                      (s-join " " it))))
-    (and
-     (not (string= "" (s-trim expression)))
-     (eq nil (-remove
-              #'me/arithmetic-component-p
-              (-remove #'string-blank-p (s-split "" expression 't))))
-     expression)))
+  (--> (or
+        (when (region-active-p)
+          (list
+           (buffer-substring-no-properties
+            (car (car (region-bounds)))
+            (cdr (car (region-bounds))))
+           "")) ;; this is for common format (list string-before-point string-after-point)
+        (list
+         (buffer-substring-no-properties
+          (save-excursion (beginning-of-line) (point))
+          (point))
+         (buffer-substring-no-properties
+          (point)
+          (save-excursion (end-of-line) (point)))))
+    (list
+     ;; take only arithmetic words from point to beginning of line
+     (--> it
+       (nth 0 it)
+       (s-split " " it 't)
+       (reverse it)
+       (-take-while #'me/arithmetic-expression-member-p it)
+       (reverse it)
+       (s-join " " it))
+     ;; take only arithmetic words from point to end of line
+     (--> it
+       (nth 1 it)
+       (s-split " " it 't)
+       (-take-while #'me/arithmetic-expression-member-p it)
+       (s-join " " it)))
+    ;; join the two parts
+    (concat (nth 0 it) (nth 1 it))
+    s-trim
+    (unless (string-blank-p it) it)))
 
 (provide 'moldable-emacs)

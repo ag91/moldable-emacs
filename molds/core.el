@@ -693,17 +693,19 @@ in the local variable `self'."
 
 (me/register-mold
  :key "Evaluate Arithmetic Expression"
- :given (lambda () (me/arithmetic-on-line)) ;; TODO this is naive: does not support neither square root!
+ :given (lambda () (me/arithmetic-at-point)) ;; TODO this is naive: does not support neither square root!
  :then (lambda ()
          (let* ((buffername (buffer-name))
-                (expression (me/arithmetic-on-line))
+                (expression (me/arithmetic-at-point))
+                (result (calc-eval expression))
+                (tree (list :given expression :then result))
                 (buffer (get-buffer-create (format "Evaluate %s" expression)))
-                (colored-result (me/color-string (calc-eval expression) "green")))
+                (colored-result (me/color-string result "green")))
            (with-current-buffer buffer
              (read-only-mode -1)
              (erase-buffer)
              (insert (format "%s = %s" expression colored-result))
-             (setq-local self expression))
+             (setq-local self tree))
            buffer))
  :docs "You can produce the result of arithmetic expressions."
  :examples ((
