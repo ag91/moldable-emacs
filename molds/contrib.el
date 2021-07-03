@@ -62,7 +62,9 @@ following in your lein project.clj
 
 (me/register-mold
  :key "CSVToBarChart"
- :given (lambda () (and (executable-find "graph") (eq major-mode 'csv-mode)))
+ :given (lambda ()
+          (and (executable-find "graph")
+               (eq major-mode 'csv-mode)))
  :then (lambda ()
          (let ((table nil) ;; TODO maybe I can use org-table-convert-region to produce a org table, also maybe another mold
                (contents (buffer-substring-no-properties (point-min) (point-max))))
@@ -79,7 +81,8 @@ following in your lein project.clj
 
 (me/register-mold
  :key "CSVToLineChart"
- :given (lambda () (and (executable-find "graph") (eq major-mode 'csv-mode)))
+ :given (lambda () (and (executable-find "graph")
+                        (eq major-mode 'csv-mode)))
  :then (lambda ()
          (let ((table nil) ;; TODO maybe I can use org-table-convert-region to produce a org table, also maybe another mold
                (contents (buffer-substring-no-properties (point-min) (point-max))))
@@ -149,7 +152,10 @@ following in your lein project.clj
 
 (me/register-mold
  :key "FunctionsComplexity"
- :given (lambda () (and (me/by-type 'function_definition (me/mold-treesitter-to-parse-tree)) (me/require 'code-compass)))
+ :given (lambda () (and
+                    (me/by-type 'function_definition (me/mold-treesitter-to-parse-tree))
+                    (me/require 'code-compass)
+                    (me/require 'tree-sitter)))
  :then (lambda ()
          (let* ((tree (me/mold-treesitter-to-parse-tree))
                 (buffer (get-buffer-create (format "Functions Complexity of %s" (buffer-name))))
@@ -260,6 +266,7 @@ following in your lein project.clj
 (me/register-mold ;; https://orgmode.org/worg/org-tutorials/org-dot-diagrams.html
  :key "DotToPicture"
  :given (lambda () (and
+                    (executable-find "dot")
                     (eq major-mode 'fundamental-mode)
                     (s-starts-with-p "dot-" (buffer-name))))
  :then (lambda ()

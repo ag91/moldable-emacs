@@ -2,9 +2,10 @@
  :key "Playground"
  :given (lambda () 't)
  :then (lambda ()
-         (let ((tree (or
+         (let ((tree (or ;; TODO I need to revisit this: has the code tree always precedence?
                       (ignore-errors
                         (me/mold-treesitter-to-parse-tree))
+                      (ignore-errors self)
                       (ignore-errors
                         (save-excursion
                           (goto-char (point-min))
@@ -28,8 +29,71 @@ in the local variable `self'."
              :then (:type buffer :name "m/tree-playground-from" :mode emacs-lisp-mode :contents ""))))
 
 (me/register-mold
+ :key "WhatMoldsCanIUse?"
+ :given (lambda () t)
+ :then (lambda ()
+         (let* ((buffername (buffer-name))
+                (buffer (get-buffer-create (format "What Molds Can I Use For %s ?" buffername)))
+                (molds (me/usable-mold))
+                (missing-deps-molds
+                 (--filter
+                  (plist-get it :missing-dependencies)
+                  (me/find-missing-dependencies-for-molds (me/usable-molds-requiring-deps)))))
+           (with-current-buffer buffer
+             (erase-buffer)
+             (org-mode)
+             (insert "* Molds you can use now.\n\n")
+             (me/insert-org-table
+              `(("Mold" .
+                 (:extractor
+                  (lambda (obj) (me/make-elisp-navigation-link (plist-get obj :key) (plist-get obj :origin)))))
+                ("Demo" .
+                 (:extractor
+                  (lambda (obj) (plist-get obj :key))
+                  :handler
+                  (lambda (s)
+                    (me/make-elisp-file-link  "Start!" (format "(me/mold-demo (me/find-mold \"%s\"))" s) "elisp"))))
+                ("Documentation" .
+                 (:extractor
+                  (lambda (obj) (or (plist-get obj :docs) "Not available."))
+                  :handler
+                  (lambda (s) (car (s-split "\n" s))))))
+              molds)
+             (when missing-deps-molds
+               (insert "\n\n\n** Molds you could use by installing some extra dependencies.\n\n")
+               (me/insert-org-table
+                `(("Mold" .
+                   (:extractor
+                    (lambda (obj) (me/make-elisp-navigation-link (plist-get obj :key) (plist-get (me/find-mold (plist-get obj :key)) :origin)))))
+                  ("Demo" .
+                   (:extractor
+                    (lambda (obj) (plist-get obj :key))
+                    :handler
+                    (lambda (s)
+                      (me/make-elisp-file-link  "Start!" (format "(me/mold-demo (me/find-mold \"%s\"))" s) "elisp"))))
+                  ("Documentation" .
+                   (:extractor
+                    (lambda (obj) (or (plist-get (me/find-mold (plist-get obj :key)) :docs) "Not available."))
+                    :handler
+                    (lambda (s) (car (s-split "\n" s)))))
+                  ("Required Dependencies" .
+                   (:extractor
+                    (lambda (obj) (pp-to-string (plist-get obj :missing-dependencies)))
+                    ;; TODO maybe I can add links to find them online (like duckduckgo?q=jq)
+                                        ;:handler
+                                        ;(lambda (s) (car (s-split "\n" s)))
+                    )))
+                missing-deps-molds))
+             (setq-local self molds))
+           buffer))
+ :docs "You can see examples and demos of the molds you can use."
+ :examples nil)
+
+(me/register-mold
  :key "CodeAsTree"
- :given (lambda () (seq-contains-p minor-mode-list 'tree-sitter-mode))
+ :given (lambda () (and
+                    (me/require 'tree-sitter)
+                    (seq-contains-p minor-mode-list 'tree-sitter-mode)))
  :then (lambda ()
          (let* ((buffer (get-buffer-create "m/tree"))
                 (tree (me/mold-treesitter-to-parse-tree)))
@@ -50,7 +114,9 @@ in the local variable `self'."
 
 (me/register-mold
  :key "NodeAtPointToTree"
- :given (lambda () (ignore-errors (tree-sitter-node-at-point)))
+ :given (lambda () (and
+                    (me/require 'tree-sitter)
+                    (ignore-errors (tree-sitter-node-at-point))))
  :then (lambda ()
          (let* ((buffer (get-buffer-create "m/tree"))
                 (tree (me/mold-treesitter-to-parse-tree (tree-sitter-node-at-point))))
@@ -92,7 +158,9 @@ in the local variable `self'."
 ;; TODO maybe add parent as well? There is not this information in the org-ql node.
 (me/register-mold
  :key "OrgAsTree"
- :given (lambda () (and (eq major-mode 'org-mode) (me/require 'org-ql)))
+ :given (lambda () (and
+                    (eq major-mode 'org-mode)
+                    (me/require 'org-ql)))
  :then (lambda ()
          (let* ((buffer (get-buffer-create "m/tree"))
                 (tree (me/org-to-flatten-tree (current-buffer))))
@@ -104,17 +172,15 @@ in the local variable `self'."
              buffer))))
 
 (me/register-mold
- :key "TreeAsGraph"
- :given (lambda () (and nil (eq major-mode 'emacs-lisp-mode) (equal (buffer-name) "m/tree")))
- :then (lambda ()
-         (pair-tree (save-excursion (goto-char (point-min)) (read (current-buffer)))))) ;; TODO fail I need a better candidate to visualize trees...
-
-(me/register-mold
  :key "SentencesAsTree"
  :given (lambda () (and (eq major-mode 'text-mode)))
  :then (lambda ()
          (let* ((buffer (get-buffer-create "SentencesTree"))
-                (sentences (s-split (sentence-end) (buffer-substring-no-properties (point-min) (point-max)) 't)))
+                (sentences
+                 (s-split
+                  (sentence-end)
+                  (buffer-substring-no-properties (point-min) (point-max))
+                  't)))
            (with-current-buffer buffer
              (erase-buffer)
              (prin1 (mapcar 'list sentences) buffer) ;; TODO I need to do keep the position, or allow editing in place, no?
@@ -195,7 +261,10 @@ in the local variable `self'."
 
 (me/register-mold
  :key "GotoNodeBuffer"
- :given (lambda () (and (s-starts-with-p "m/tree" (buffer-name)) (eq major-mode 'emacs-lisp-mode) (-contains-p (list-at-point) :buffer)))
+ :given (lambda () (and
+                    (s-starts-with-p "m/tree" (buffer-name))
+                    (eq major-mode 'emacs-lisp-mode)
+                    (-contains-p (list-at-point) :buffer)))
  :then (lambda ()
          (let* ((old-buffer (current-buffer))
                 (result (list-at-point))
@@ -208,7 +277,9 @@ in the local variable `self'."
 
 (me/register-mold
  :key "TreeToOrgTodos"
- :given (lambda () (and (s-starts-with-p "m/tree" (buffer-name)) (eq major-mode 'emacs-lisp-mode)))
+ :given (lambda () (and
+                    (s-starts-with-p "m/tree" (buffer-name))
+                    (eq major-mode 'emacs-lisp-mode)))
  :then (lambda ()
          (let* ((tree (ignore-errors
                         (save-excursion
@@ -332,13 +403,9 @@ in the local variable `self'."
 
 (me/register-mold
  :key "AsParseTree"
- :given (lambda () (or (eq major-mode 'json-mode)
-                       (eq major-mode 'yaml-mode)
-                       (eq major-mode 'javascript-mode)
-                       (eq major-mode 'xml-mode)
-                       (eq major-mode 'scala-mode)
-                       (eq major-mode 'tilde-mode)
-                       (eq major-mode 'typescript-mode))) ;; TODO or region contains json
+ :given (lambda () (and
+                    (me/require 'tree-sitter)
+                    (seq-contains-p minor-mode-list 'tree-sitter-mode)))
  :then (lambda ()
          (tree-sitter-debug-mode)
          tree-sitter-debug--tree-buffer))
@@ -418,42 +485,6 @@ in the local variable `self'."
              (read-only-mode)
              buffer))))
 
-
-(defcustom me/note-file-store "~/workspace/agenda/moldableNotes.el" "Store for notes.")
-
-(defvar me/notes nil "Prototype of notes.")
-
-(defun me/store-note (note) ;; TODO implement persistence
-  (add-to-list 'me/notes note)
-  (async-start
-   `(lambda ()
-      (write-region ,(pp-to-string (me/load-notes)) nil ,me/note-file-store)))
-  me/notes note)
-
-(defun me/load-notes () ;; TODO implement persistence
-  (if me/notes
-      me/notes
-    (setq me/notes
-          (ignore-errors
-            (with-temp-buffer
-              (insert-file-contents-literally me/note-file-store)
-              (goto-char (point-min))
-              (eval `',(list-at-point)))))))
-
-(defun me/ask-for-details-according-to-context (note)
-  (let ((text (read-string "Note:"))) ;; TODO I want to ask also the color this should highlight!
-    (plist-put note :then `(:string ,text))))
-
-(defun me/override-keybiding-in-buffer (key command)
-  ;; https://stackoverflow.com/questions/21486934/file-specific-key-binding-in-emacs
-  (interactive "KSet key buffer-locally: \nCSet key %s buffer-locally to command: ")
-  (let ((oldmap (current-local-map))
-        (newmap (make-sparse-keymap)))
-    (when oldmap
-      (set-keymap-parent newmap oldmap))
-    (define-key newmap key command)
-    (use-local-map newmap)))
-
 (me/register-mold
  :key "Annotate"
  :given (lambda () 't)
@@ -496,10 +527,6 @@ in the local variable `self'."
              (setq-local self note))
            buffer)))
 
-(defun me/filter-notes-by-buffer (buffername)
-  (--filter
-   (ignore-errors (equal buffername (plist-get (plist-get (plist-get it :given) :node) :buffer)))
-   me/notes))
 
 (me/register-mold
  :key "ShowNotesByBuffer"
@@ -516,10 +543,6 @@ in the local variable `self'."
              (pp-buffer))
            buffer)))
 
-(defun me/filter-notes-by-mode (mode)
-  (--filter
-   (ignore-errors (equal mode (plist-get (plist-get (plist-get it :given) :node) :mode)))
-   me/notes))
 
 (me/register-mold
  :key "ShowNotesByMode"
@@ -535,21 +558,6 @@ in the local variable `self'."
              (setq self notes)
              (pp-buffer))
            buffer)))
-
-(defun me/note-to-org-heading (note)
-  "Turn a NOTE in a `org-mode' heading."
-  (let* ((given (plist-get (plist-get note :given) :node))
-         (then (plist-get note :then))
-         (id (plist-get given :key))
-         (title (me/make-elisp-file-link
-                 (s-truncate 60 (plist-get given :text))
-                 (plist-get given :buffer-file)))
-         (content (plist-get then :string)))
-    (format
-     "* %s\n:PROPERTIES:\n:ID:       %s\n:END:\n%s\n"
-     title
-     id
-     content)))
 
 (me/register-mold
  :key "NotesToOrg"
@@ -640,39 +648,10 @@ in the local variable `self'."
            buffer)))
 
 (me/register-mold
- :key "WhatMoldsCanIUse?"
- :given (lambda () t)
- :then (lambda ()
-         (let* ((buffername (buffer-name))
-                (buffer (get-buffer-create (format "What Molds Can I Use For %s ?" buffername)))
-                (molds (me/usable-mold)))
-           (with-current-buffer buffer
-             (erase-buffer)
-             (org-mode)
-             (me/insert-org-table
-              `(("Mold" .
-                 (:extractor
-                  (lambda (obj) (me/make-elisp-navigation-link (plist-get obj :key) (plist-get obj :origin)))))
-                ("Demo" .
-                 (:extractor
-                  (lambda (obj) (plist-get obj :key))
-                  :handler
-                  (lambda (s)
-                    (me/make-elisp-file-link  "Start!" (format "(me/mold-demo (me/find-mold \"%s\"))" s) "elisp"))))
-                ("Documentation" .
-                 (:extractor
-                  (lambda (obj) (or (plist-get obj :docs) "Not available."))
-                  :handler
-                  (lambda (s) (car (s-split "\n" s))))))
-              molds)
-             (setq-local self molds))
-           buffer))
- :docs "You can see examples and demos of the molds you can use."
- :examples nil)
-
-(me/register-mold
  :key "NodeAtPointToPlayground"
- :given (lambda () (and (thing-at-point 'sexp) (equal major-mode 'emacs-lisp-mode)))
+ :given (lambda () (and
+                    (thing-at-point 'sexp)
+                    (equal major-mode 'emacs-lisp-mode)))
  :then (lambda ()
          (let* ((buffer (get-buffer-create "Node at point"))
                                         ;(tree (me/mold-treesitter-to-parse-tree (tree-sitter-node-at-point)))
@@ -689,7 +668,15 @@ in the local variable `self'."
              (pp-buffer)
              (setq-local self-pos node-pos)
              (setq-local self node)
-             buffer))))
+             buffer)))
+ :docs "You can move the node under point to a Playground mold."
+ :examples ((
+             :name "Simple list"
+             :given
+             (:type file :name "/tmp/test.el" :mode emacs-lisp-mode :contents "(list 1 2 3)")
+             :then
+             (:type buffer :name "Node at point" :mode emacs-lisp-mode :contents "(list 1 2 3)\n"))
+            ))
 
 (me/register-mold
  :key "Evaluate Arithmetic Expression"
@@ -713,5 +700,4 @@ in the local variable `self'."
              :given
              (:type file :name "/tmp/my.txt" :mode text-mode :contents "bla bla 1 + 1 / 2 bla bla\n")
              :then
-             (:type buffer :name "Evaluate 1 + 1 / 2" :mode fundamental-mode :contents "1 + 1 / 2 = 1.5"))
-            ))
+             (:type buffer :name "Evaluate 1 + 1 / 2" :mode fundamental-mode :contents "1 + 1 / 2 = 1.5"))))

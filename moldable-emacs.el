@@ -88,8 +88,7 @@
 (defun me/insert-string-table (table-string)
   (insert table-string)
   (save-excursion
-    (goto-char (point-min))
-    (search-forward "|")
+    (search-backward "|")
     (org-cycle))
   (setq-local org-confirm-elisp-link-function nil))
 
@@ -172,7 +171,7 @@
 
 
 (defun me/mold-treesitter-to-parse-tree (&optional node)
-  "Return list of all abstract syntax tree nodes one step away from leaf nodes."
+  "Return list of all abstract syntax tree nodes one step away from leaf nodes. Optionally start from NODE."
   (let ((root (or
                node
                (ignore-errors (tsc-root-node tree-sitter-tree)))))
@@ -861,5 +860,109 @@ a string (node -> string)."
     (concat (nth 0 it) (nth 1 it))
     s-trim
     (unless (string-blank-p it) it)))
+
+(defcustom me/note-file-store "~/workspace/agenda/moldableNotes.el" "Store for notes.")
+
+(defvar me/notes nil "Prototype of notes.")
+
+(defun me/store-note (note) ;; TODO implement persistence
+  (add-to-list 'me/notes note)
+  (async-start
+   `(lambda ()
+      (write-region ,(pp-to-string (me/load-notes)) nil ,me/note-file-store)))
+  me/notes note)
+
+(defun me/load-notes () ;; TODO implement persistence
+  (if me/notes
+      me/notes
+    (setq me/notes
+          (ignore-errors
+            (with-temp-buffer
+              (insert-file-contents-literally me/note-file-store)
+              (goto-char (point-min))
+              (eval `',(list-at-point)))))))
+
+(defun me/ask-for-details-according-to-context (note)
+  (let ((text (read-string "Note:"))) ;; TODO I want to ask also the color this should highlight!
+    (plist-put note :then `(:string ,text))))
+
+(defun me/override-keybiding-in-buffer (key command)
+  ;; https://stackoverflow.com/questions/21486934/file-specific-key-binding-in-emacs
+  (interactive "KSet key buffer-locally: \nCSet key %s buffer-locally to command: ")
+  (let ((oldmap (current-local-map))
+        (newmap (make-sparse-keymap)))
+    (when oldmap
+      (set-keymap-parent newmap oldmap))
+    (define-key newmap key command)
+    (use-local-map newmap)))
+
+(defun me/filter-notes-by-buffer (buffername)
+  (--filter
+   (ignore-errors (equal buffername (plist-get (plist-get (plist-get it :given) :node) :buffer)))
+   me/notes))
+
+(defun me/filter-notes-by-mode (mode)
+  (--filter
+   (ignore-errors (equal mode (plist-get (plist-get (plist-get it :given) :node) :mode)))
+   me/notes))
+
+(defun me/note-to-org-heading (note)
+  "Turn a NOTE in a `org-mode' heading."
+  (let* ((given (plist-get (plist-get note :given) :node))
+         (then (plist-get note :then))
+         (id (plist-get given :key))
+         (title (me/make-elisp-file-link
+                 (s-truncate 60 (plist-get given :text))
+                 (plist-get given :buffer-file)))
+         (content (plist-get then :string)))
+    (format
+     "* %s\n:PROPERTIES:\n:ID:       %s\n:END:\n%s\n"
+     title
+     id
+     content)))
+
+
+(defun me/usable-molds-requiring-deps ()
+  "Find molds that require dependencies to run."
+  (--filter
+   (let ((given-cond (nth 2 (plist-get it :given))))
+     (and
+      (ignore-errors (> (length given-cond) 1))
+      (eq (car given-cond) 'and)
+      (eval (cons 'and (--remove
+                        (or
+                         (-contains? it 'executable-find)
+                         (-contains? it 'me/require))
+                        (cdr given-cond))))
+      ))
+   me/available-molds))
+
+(defun me/find-missing-dependencies-for-mold (mold)
+  "List unmet dependencies by MOLD."
+  (let ((given-cond (nth 2 (plist-get mold :given))))
+    (list
+     :key (plist-get mold :key)
+     :missing-dependencies
+     (and
+      (ignore-errors (> (length given-cond) 1))
+      (eq (car given-cond) 'and)
+      (--> (cdr given-cond)
+        (--filter
+         (or
+          (and
+           (-contains? it 'executable-find)
+           (not (eval it)))
+          (and
+           (-contains? it 'me/require)
+           (not (eval it)))
+          )
+         it)
+        )))))
+
+(defun me/find-missing-dependencies-for-molds (molds)
+  "List unmet dependencies by MOLDS."
+  (-map
+   #'me/find-missing-dependencies-for-mold
+   molds))
 
 (provide 'moldable-emacs)
