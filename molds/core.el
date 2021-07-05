@@ -80,11 +80,15 @@ in the local variable `self'."
                     (lambda (s) (car (s-split "\n" s)))))
                   ("Required Dependencies" .
                    (:extractor
-                    (lambda (obj) (pp-to-string (plist-get obj :missing-dependencies)))
-                    ;; TODO maybe I can add links to find them online (like duckduckgo?q=jq)
-                                        ;:handler
-                                        ;(lambda (s) (car (s-split "\n" s)))
-                    )))
+                    (lambda (obj) (--> (plist-get obj :missing-dependencies)
+                                    (--map
+                                     (concat
+                                      (when (equal (nth 0 it) 'me/require) "emacs ")
+                                      (pp-to-string (nth 1 it)))
+                                     it)
+                                    (s-join ", " it)))
+                    :handler
+                    (lambda (s) (me/make-elisp-file-link s (format "//duckduckgo.com/?q=%s" s) "https")))))
                 missing-deps-molds))
              (setq-local self molds))
            buffer))
@@ -140,6 +144,57 @@ in the local variable `self'."
 
 ;; TODO maybe mold treeWithJsonToPlist? (--map (json-parse-string (plist-get it :text) :object-type 'plist) self)
 ;; TODO and maybe plist to Org Table? See "GebE2ECumulativeErrors" for that
+
+
+(me/register-mold
+ :key "ElispListToOrgTable"
+ :given (lambda () (let ((l (list-at-point)))
+                     (ignore-errors
+                       (and
+                        (> (length l) 2)
+                        (listp (car l))
+                        (or
+                         (consp (car l))
+                         (--all? (= (length it) (length (car l))) l))
+                        (or
+                         (-all? #'stringp (list (caar l) (cdar l)))
+                         (-all? #'stringp (car l))
+                         (and (stringp (caar l)) (stringp (cdar l)))
+                         (--all? (equal (-filter #'symbolp (car l)) (-filter #'symbolp it)) l))))))
+ :then (lambda ()
+         (let* ((buffername (buffer-name))
+                (l (list-at-point))
+                (list (if (ignore-errors (length (car l)))
+                          (me/alist-to-plist l)
+                        (me/alist-to-plist (-map #'-cons-to-list l))))
+                (buffer (get-buffer-create (format "Org Table for list starting for %s" (car list)))))
+           (with-current-buffer buffer
+             (org-mode)
+             (erase-buffer)
+             (me/insert-flat-org-table list)
+             (setq-local self list))
+           buffer))
+ :docs "You can produce an Org Table of the plist, list or alist _starting_ at point."
+ :examples ((
+             :name "Alist to Org table"
+             :given
+             (:type file :name "/tmp/my.el" :mode emacs-lisp-mode :contents "((\"Index\" \"Value\")\n (1 3)\n (2 9)\n (3  27))")
+             :then
+             (:type buffer :name "Org Table for list starting for (:Index 1 :Value 3)" :mode org-mode :contents "| Index | Value |\n|-------+-------|\n|     1 |     3 |\n|     2 |     9 |\n|     3 |    27 |\n|       |       |\n"))
+            (
+             :name "Cons list to Org table"
+             :given
+             (:type file :name "/tmp/my.el" :mode emacs-lisp-mode :contents "((\"Index\" . \"Value\")\n (1 . 3)\n (2 . 9)\n (3 . 27))")
+             :then
+             (:type buffer :name "Org Table for list starting for (:Index 1 :Value 3)" :mode org-mode :contents "| Index | Value |\n|-------+-------|\n|     1 |     3 |\n|     2 |     9 |\n|     3 |    27 |\n|       |       |\n"))
+            (
+             :name "Property list to Org table"
+             :given
+             (:type file :name "/tmp/my.el" :mode emacs-lisp-mode :contents "((:index 1 :value 3)\n (:index 2 :value 9)\n (:index 3 :value 27))")
+             :then
+             (:type buffer :name "Org Table for list starting for (:index 1 :value 3)" :mode org-mode :contents "| index | value |\n|-------+-------|\n|     1 |     3 |\n|     2 |     9 |\n|     3 |    27 |\n|       |       |\n"))
+
+            ))
 
 (me/register-mold
  :key "XMLToTree"
@@ -419,13 +474,11 @@ in the local variable `self'."
          (let ((table (me/first-org-table))
                (buffer (get-buffer-create (me/append-time "m/first-org-table"))))
            (with-current-buffer buffer
-             (read-only-mode -1)
              (erase-buffer)
              (org-mode)
              (me/insert-flat-org-table table)
              (goto-char (point-min))
              (setq-local self table)
-             (read-only-mode)
              buffer)))
  :examples ((
              :name "Sample table"
@@ -458,7 +511,6 @@ in the local variable `self'."
          (let ((table (org-table-to-lisp))
                (buffer (get-buffer-create (me/append-time "m/csv-from-org-table"))))
            (with-current-buffer buffer
-             (read-only-mode -1)
              (erase-buffer)
              (csv-mode)
              (insert (orgtbl-to-csv table nil))
@@ -466,8 +518,15 @@ in the local variable `self'."
              (while (eq (org-next-link) 't)
                (ag/org-replace-link-by-link-description))
              (setq-local self table)
-             (read-only-mode)
-             buffer))))
+             buffer)))
+ :docs "You can make a CSV out of an Org Table."
+ :examples ((
+             :name "Simple table to CSV"
+             :given
+             (:type buffer :name "m/first-org-table2021-07-04-18:20:55" :mode org-mode :contents "| bla   | some |\n|-------+------|\n| \"bla\" |    1 |\n| \"blo\" |    2 |\n")
+             :then
+             (:type buffer :name "m/csv-from-org-table2021-07-04-18:33:27" :mode csv-mode :contents "bla,some\n\"\"\"bla\"\"\",1\n\"\"\"blo\"\"\",2"))
+            ))
 
 (me/register-mold
  :key "CSVToOrgTable"
@@ -476,7 +535,6 @@ in the local variable `self'."
          (let ((buffer (get-buffer-create (me/append-time "m/org-table-from-csv")))
                (table (buffer-string)))
            (with-current-buffer buffer
-             (read-only-mode -1)
              (erase-buffer)
              (org-mode)
              (insert table)
@@ -484,7 +542,6 @@ in the local variable `self'."
              (call-interactively #'org-table-create-or-convert-from-region)
              (goto-char (point-min))
              (setq-local self (org-table-to-lisp))
-             (read-only-mode)
              buffer))))
 
 (me/register-mold
@@ -691,7 +748,6 @@ in the local variable `self'."
                 (buffer (get-buffer-create (format "Evaluate %s" expression)))
                 (colored-result (me/color-string result "green")))
            (with-current-buffer buffer
-             (read-only-mode -1)
              (erase-buffer)
              (insert (format "%s = %s" expression colored-result))
              (setq-local self tree))

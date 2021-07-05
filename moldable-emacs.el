@@ -88,13 +88,24 @@
 (defun me/insert-string-table (table-string)
   (insert table-string)
   (save-excursion
-    (search-backward "|")
+    (search-backward "|" nil nil 2) ;; count 2 to avoid an extra (empty) row at the bottom
     (org-cycle))
   (setq-local org-confirm-elisp-link-function nil))
 
 (defun me/insert-org-table (headlines objects)
   "Produce org table of OBJECTS formatting with HEADLINES."
   (me/insert-string-table (me/make-org-table headlines objects)))
+
+(defun me/alist-to-plist (alist)
+  "Convert ALIST to a `plist'."
+  (if-let* ((_ (ignore-errors (-filter #'stringp (car alist))))
+            (keys (--map (intern (concat ":" it)) (car alist))))
+      (--map (-flatten (-zip-lists keys it)) (cdr alist))
+    alist))
+
+(ert-deftest me/alist-to-plist_convert-alist-to-plist ()
+  (should
+   (equal (me/alist-to-plist '(("A" "b") (1 2) (3 4))) '((:A 1 :b 2) (:A 3 :b 4)))))
 
 (defun me/org-table-to-plist (table-string)  ;; TODO from https://www.reddit.com/r/emacs/comments/lo6n9y/converting_table_to_list/ useful for a table to tree mold
 
@@ -117,7 +128,7 @@
 (defun me/flat-org-table-to-string (flat-org-table)
   (me/make-org-table
    (--map
-    (list (substring (symbol-name it) 1) . (:extractor `(lambda (x) (plist-get x ,it))))
+    (list (substring (symbol-name it) 1) . (:extractor `(lambda (x) (format "%s" (plist-get x ,it)))))
     (-filter #'keywordp (car flat-org-table)))
    flat-org-table))
 
