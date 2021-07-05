@@ -125,7 +125,7 @@
   (me/insert-string-table (me/flat-org-table-to-string flat-org-table)))
 
 (defun me/first-org-table (&optional buffer)
-  "Find first org table. Optionally in FILE."
+  "Find first org table. Optionally in BUFFER."
   (ignore-errors
     (with-current-buffer (or buffer (current-buffer)) ;; TODO remove org links in table!
       (save-excursion
@@ -265,16 +265,30 @@
       switch-to-buffer-other-window)
     (run-hooks 'me/mold-after-hook)))
 
-(defvar me/last-example nil "Last automatically generated example
-for mold. This should simplify the testing and documentation of molds.")
+(defvar me/last-example nil "Last automatically generated example for mold.
+This should simplify the testing and documentation of molds.")
+
+(defcustom me/example-resource-dir
+  (concat (file-name-directory load-file-name) "resources/")
+  "Directory containing resources for examples (like media files)."
+  :group 'moldable-emacs
+  :type 'string)
 
 (defun me/record-given-of-example ()
   "Reset and store in `me/last-example' the given of a mold example."
   (let* ((type (if (buffer-file-name) 'file 'buffer))
          (name (or (buffer-file-name) (buffer-name)))
          (mode major-mode)
-         (contents (buffer-substring-no-properties (point-min) (point-max))))
-    (setq me/last-example nil)
+         (contents (if (eq mode 'image-mode)
+                       (let ((filename (concat
+                                        me/example-resource-dir
+                                        (file-name-nondirectory name))))
+                         (write-region
+                          (point-min)
+                          (point-max)
+                          filename)
+                         filename)
+                     (buffer-substring-no-properties (point-min) (point-max)))))
     (setq me/last-example
           `(:given
             (
@@ -288,7 +302,16 @@ for mold. This should simplify the testing and documentation of molds.")
   (let* ((type (if (buffer-file-name) 'file 'buffer))
          (name (or (buffer-file-name) (buffer-name)))
          (mode major-mode)
-         (contents (buffer-substring-no-properties (point-min) (point-max))))
+         (contents (if (eq mode 'image-mode)
+                       (let ((filename (concat
+                                        me/example-resource-dir
+                                        (file-name-nondirectory name))))
+                         (write-region
+                          (point-min)
+                          (point-max)
+                          filename)
+                         filename)
+                     (buffer-substring-no-properties (point-min) (point-max)))))
     (plist-put
      me/last-example
      :then
@@ -323,8 +346,12 @@ for mold. This should simplify the testing and documentation of molds.")
   (let* ((given (eval given))
          (type (plist-get  given :type))
          (name (plist-get given :name))
-         (contents (plist-get given :contents))
-         (mode (plist-get given :mode)))
+         (mode (plist-get given :mode))
+         (contents (if (eq mode 'image-mode)
+                       (with-temp-buffer
+                         (insert-file-contents-literally (plist-get given :contents))
+                         (buffer-substring-no-properties (point-min) (point-max)))
+                     (plist-get given :contents))))
     (if (equal type 'buffer)
         `(with-temp-buffer
            (rename-buffer ,name)
@@ -332,7 +359,7 @@ for mold. This should simplify the testing and documentation of molds.")
            (,(if mode mode 'fundamental-mode))
            ,@body)
       `(with-temp-file ,name
-         (insert ,contents)
+         (insert ,contents) ;; TODO this does not work for images: it seems there are coding system issues
          (,(if mode mode 'fundamental-mode))
          ,@body))))
 
@@ -464,10 +491,20 @@ some new contents
   (let* ((name (plist-get example :name))
          (given (plist-get example :given))
          (given-name (plist-get given :name))
-         (given-contents (plist-get given :contents))
+         (given-mode (plist-get given :mode))
+         (given-contents (if (eq given-mode 'image-mode)
+                             (with-temp-buffer
+                               (insert-file-contents-literally (plist-get given :contents))
+                               (buffer-substring-no-properties (point-min) (point-max)))
+                           (plist-get then :contents)))
          (then (plist-get example :then))
          (then-name (plist-get then :name))
-         (then-contents (plist-get then :contents))
+         (then-mode (plist-get then :mode))
+         (then-contents (if (eq then-mode 'image-mode)
+                            (with-temp-buffer
+                              (insert-file-contents-literally (plist-get then :contents))
+                              (buffer-substring-no-properties (point-min) (point-max)))
+                          (plist-get then :contents)))
          (frame (make-frame `((name . ,name) (width . 100) (height . 70) (fullscreen . nil)))))
     (x-focus-frame frame)
     (select-frame frame)
@@ -475,10 +512,12 @@ some new contents
     (switch-to-buffer given-name)
     (erase-buffer)
     (insert given-contents)
+    (funcall given-mode)
     (other-window 1)
     (switch-to-buffer then-name)
     (erase-buffer)
     (insert then-contents)
+    (funcall then-mode)
     ;;(delete-frame frame) ; probably I do not need to delete it, but just to make it smaller? Indeed, I can delete it manually
     )
   ;;(delete-other-frames)

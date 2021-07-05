@@ -288,7 +288,7 @@ following in your lein project.clj
                     (executable-find "imgclip")))
  :then (lambda ()
          (let* ((buffername (buffer-name))
-                (self nil) ;; TODO what here?
+                (img (list :img (or (buffer-file-name) buffername)))
                 (buffer (get-buffer-create (format "Text from %s" buffername)))
                 (_ (async-map
                     `(lambda (s)
@@ -301,8 +301,16 @@ following in your lein project.clj
                     `(lambda ()
                        (with-current-buffer ,buffer
                          (erase-buffer)
-                         (clipboard-yank))))))
+                         (clipboard-yank)
+                         (plist-put self :text (buffer-substring-no-properties (point-min) (point-max))))))))
            (with-current-buffer buffer
              (erase-buffer)
+             (setq-local self img)
              (insert "Loading text from image..."))
-           buffer)))
+           buffer))
+ :examples ((:name "Initial Loading"
+                   :given
+                   (:type file :name "/tmp/my.jpg" :mode image-mode :contents "/home/andrea/.emacs.d/lisp/moldable-emacs/resources/my.jpg")
+                   :then
+                   (:type buffer :name "Text from my.jpg" :mode fundamental-mode :contents "Loading text from image..."))
+            ))

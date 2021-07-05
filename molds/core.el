@@ -5,11 +5,13 @@
          (let ((tree (or ;; TODO I need to revisit this: has the code tree always precedence?
                       (ignore-errors
                         (me/mold-treesitter-to-parse-tree))
-                      (ignore-errors self)
+                      (ignore-errors (me/org-to-flatten-tree (current-buffer)))
                       (ignore-errors
                         (save-excursion
                           (goto-char (point-min))
-                          (eval `',(read (current-buffer)))))))
+                          (eval `',(read (current-buffer)))))
+                      (ignore-errors self) ;; TODO this should be in :old-self in the data structure!
+                      ))
                (buffer (get-buffer-create (me/append-time "m/tree-playground-from"))))
            (with-current-buffer buffer
              (emacs-lisp-mode)
