@@ -153,7 +153,7 @@ in the local variable `self'."
                        (and
                         (> (length l) 2)
                         (listp (car l))
-                        (or
+                        (or ;; cons list or alist
                          (consp (car l))
                          (--all? (= (length it) (length (car l))) l))
                         (or
@@ -194,6 +194,29 @@ in the local variable `self'."
              :then
              (:type buffer :name "Org Table for list starting for (:index 1 :value 3)" :mode org-mode :contents "| index | value |\n|-------+-------|\n|     1 |     3 |\n|     2 |     9 |\n|     3 |    27 |\n|       |       |\n"))
 
+            ))
+
+(me/register-mold
+ :key "OrgTableToElispPList"
+ :given (lambda () (and
+                    (eq major-mode 'org-mode)
+                    (me/first-org-table)))
+ :then (lambda ()
+         (let* ((list (me/first-org-table))
+                (buffer (get-buffer-create (format "Org Table for list starting for %s" (car list)))))
+           (with-current-buffer buffer
+             (emacs-lisp-mode)
+             (erase-buffer)
+             (insert (pp list))
+             (setq-local self list))
+           buffer))
+ :docs "You can transform an Org Table to a plist."
+ :examples ((
+             :name "Org table to plist"
+             :given
+             (:type file :name "/tmp/my.org" :mode org-mode :contents "| bla   | some |\n|-------+------|\n| \"bla\" |    1 |\n| \"blo\" |    2 |\n\n")
+             :then
+             (:type buffer :name "Org Table for list starting for (:bla \"bla\" :some 1)" :mode emacs-lisp-mode :contents "((:bla \"\\\"bla\\\"\" :some \"1\")\n (:bla \"\\\"blo\\\"\" :some \"2\"))\n"))
             ))
 
 (me/register-mold
@@ -469,7 +492,9 @@ in the local variable `self'."
 
 (me/register-mold
  :key "FirstOrgTable"
- :given (lambda () (eq major-mode 'org-mode))
+ :given (lambda ()
+          (eq major-mode 'org-mode)
+          (me/first-org-table))
  :then (lambda ()
          (let ((table (me/first-org-table))
                (buffer (get-buffer-create (me/append-time "m/first-org-table"))))

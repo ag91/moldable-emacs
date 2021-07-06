@@ -98,7 +98,7 @@
 
 (defun me/alist-to-plist (alist)
   "Convert ALIST to a `plist'."
-  (if-let* ((_ (ignore-errors (-filter #'stringp (car alist))))
+  (if-let* ((_ (ignore-errors (= (length (car alist)) (length (-filter #'stringp (car alist))))))
             (keys (--map (intern (concat ":" it)) (car alist))))
       (--map (-flatten (-zip-lists keys it)) (cdr alist))
     alist))
@@ -107,7 +107,7 @@
   (should
    (equal (me/alist-to-plist '(("A" "b") (1 2) (3 4))) '((:A 1 :b 2) (:A 3 :b 4)))))
 
-(defun me/org-table-to-plist (table-string)  ;; TODO from https://www.reddit.com/r/emacs/comments/lo6n9y/converting_table_to_list/ useful for a table to tree mold
+(defun me/org-table-to-plist (table-string)
 
   (with-temp-buffer
     (save-excursion (insert table-string))
@@ -121,7 +121,7 @@
   (let* ((plist (me/org-table-to-plist table-string))
          (keys (-filter 'symbolp plist)))
     (--> keys
-      (--map (-map (lambda (x) (list it x)) (plist-get plist it)) it)
+      (--map (-map (lambda (x) (list it (substring-no-properties x))) (plist-get plist it)) it)
       (apply '-zip it)
       (-map '-flatten it))))
 
@@ -545,17 +545,6 @@ some new contents
 (defun me/mold-demo-by-key (key)
   (me/mold-demo (me/find-mold key)))
 
-(defcustom me/enable-history 't "Keeps history for current session, if defined.")
-
-(defun me/save-buffer-in-history ()
-  "Enable keeping history for current session."
-  (setq me/mold-history
-        (concatenate
-         'list me/mold-history
-         (list (buffer-name)))))
-
-(when me/enable-history (add-hook 'me/mold-before-hook #'me/save-buffer-in-history))
-
 (defun me/open-at-point ()
   "Follow node at point."
   (interactive)
@@ -575,15 +564,32 @@ some new contents
   "Find mold for KEY."
   (--find (equal key (plist-get it :key)) me/available-molds))
 
+(defcustom me/enable-history 't "Keeps history for current session, if defined.")
+(defvar me/current-history-index 0 "Keeps track of where you are in history.")
+
+(defun me/save-buffer-in-history ()
+  "Enable keeping history for current session."
+  (unless (equal (cdr me/mold-history)
+                 (list (buffer-name)))
+    (setq me/mold-history
+          (concatenate
+           'list
+           (-take me/current-history-index me/mold-history)
+           (list (buffer-name))))
+    (setq me/current-history-index (+ 1 me/current-history-index))))
+
+(when me/enable-history (add-hook 'me/mold-before-hook #'me/save-buffer-in-history))
+
 (defun me/go-back ()
   "Go back to previous mold."
   (interactive)
-  (let ((current-index (--find-index (string= it (buffer-name)) me/mold-history)))
-    (ignore-errors
-      (switch-to-buffer
-       (nth
-        (- current-index 1)
-        me/mold-history)))))
+  (ignore-errors
+    (switch-to-buffer
+     (nth
+      (- me/current-history-index 1)
+      me/mold-history))
+    (setq me/current-history-index (- me/current-history-index 1))
+    (message "Back to %s" (buffer-name))))
 
 (defun me/go-forward ()
   "Go back to next mold." ;; TODO this is naive: can easily be wrong
@@ -593,7 +599,9 @@ some new contents
       (switch-to-buffer
        (nth
         (+ current-index 1)
-        me/mold-history)))))
+        me/mold-history))
+      (setq me/current-history-index (+ current-index 1))
+      (message "Forward to %s" (buffer-name)))))
 
 (defun me/add-to-available-molds (mold)
   (let ((-compare-fn (lambda (x y) (equal (plist-get x :key) (plist-get y :key))))
