@@ -9,13 +9,13 @@
                       (ignore-errors
                         (save-excursion
                           (goto-char (point-min))
-                          (eval `',(read (current-buffer)))))
-                      (ignore-errors self) ;; TODO this should be in :old-self in the data structure!
-                      ))
+                          (eval `',(read (current-buffer)))))))
                (buffer (get-buffer-create "m/tree-playground")))
            (with-current-buffer buffer
              (emacs-lisp-mode)
              (erase-buffer)
+             (insert ";; Tips:\n;;    Use `self' to access the mold context.\n;;    You can access the previous mold context through `mold-data'.\n\n")
+             (goto-char (point-max))
              (setq-local self tree)
              buffer)
            buffer))
