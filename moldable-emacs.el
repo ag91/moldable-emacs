@@ -176,11 +176,6 @@
 ;;     "))
 ;;   (call-interactively 'my/org-table-to-plist))
 
-(defun me/append-time (buffername )
-  (concat buffername (format-time-string "%Y-%m-%d-%H:%M:%S") ;; TODO this creates problems for testing!
-          ))
-
-
 (defun me/mold-treesitter-to-parse-tree (&optional node)
   "Return list of all abstract syntax tree nodes one step away from leaf nodes. Optionally start from NODE."
   (let ((root (or
@@ -275,6 +270,32 @@
       funcall
       switch-to-buffer-other-window)
     (run-hooks 'me/mold-after-hook)))
+
+(defvar me/temporary-mold-data nil "Holder of mold data before it is assigned to local variable `mold-data'.")
+
+(defun me/setup-self-mold-data ()
+  "Setup `me/temporary-mold-data' for setting up `mold-data' in mold buffer."
+  (setq me/temporary-mold-data
+        (list
+         :old-self (ignore-errors self)
+         :old-buffer (buffer-name)
+         :old-file (buffer-file-name)
+         :old-point (point)
+         :old-mode major-mode
+         :old-date (ignore-errors (plist-get mold-data :date)))))
+
+(add-hook 'me/mold-before-hook #'me/setup-self-mold-data)
+
+(defun me/set-self-mold-data ()
+  "Set `mold-data'."
+  (setq-local mold-data
+              (append
+               (list
+                :self (ignore-errors self)
+                :date (format-time-string "%FT%T%z"))
+               me/temporary-mold-data)))
+
+(add-hook 'me/mold-after-hook #'me/set-self-mold-data)
 
 (defvar me/last-example nil "Last automatically generated example for mold.
 This should simplify the testing and documentation of molds.")

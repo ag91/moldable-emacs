@@ -12,7 +12,7 @@
                           (eval `',(read (current-buffer)))))
                       (ignore-errors self) ;; TODO this should be in :old-self in the data structure!
                       ))
-               (buffer (get-buffer-create (me/append-time "m/tree-playground-from"))))
+               (buffer (get-buffer-create "m/tree-playground")))
            (with-current-buffer buffer
              (emacs-lisp-mode)
              (erase-buffer)
@@ -29,6 +29,24 @@ in the local variable `self'."
              :name "Empty file"
              :given (:type file :name "/tmp/test.txt" :mode text-mode :contents "")
              :then (:type buffer :name "m/tree-playground-from" :mode emacs-lisp-mode :contents ""))))
+
+(me/register-mold
+ :key "Query"
+ :given (lambda () 't)
+ :then (lambda ()
+         (let ((self (ignore-errors
+                       (save-excursion
+                         (goto-char (point-min))
+                         (eval `',(read (current-buffer))))))
+               (sexps (call-interactively 'eval-expression))
+               (buffer (get-buffer-create "m/tree")))
+           (with-current-buffer buffer
+             (erase-buffer)
+             (setq-local self sexps)
+             (pp-display-expression sexps buffer)
+             (emacs-lisp-mode)
+             buffer)
+           buffer)))
 
 (me/register-mold
  :key "WhatMoldsCanIUse?"
@@ -295,7 +313,7 @@ in the local variable `self'."
                           (goto-char (point-min))
                           (eval `',(read (current-buffer))))))
                 (duplicated-tree (nodes-with-duplication self))
-                (buffer (get-buffer-create (me/append-time "m/tree-from" ))))
+                (buffer (get-buffer-create "m/tree" )))
            (with-current-buffer buffer
              (erase-buffer)
              (emacs-lisp-mode)
@@ -317,7 +335,7 @@ in the local variable `self'."
                    'bold))
                (tree (list-at-point))
                (result (ignore-errors (eval (list-at-point))))
-               (buffer (get-buffer-create (me/append-time "m/tree-eval-from"))))
+               (buffer (get-buffer-create "m/tree-eval")))
            (with-current-buffer buffer
              (emacs-lisp-mode)
              (erase-buffer)
@@ -497,7 +515,7 @@ in the local variable `self'."
           (me/first-org-table))
  :then (lambda ()
          (let ((table (me/first-org-table))
-               (buffer (get-buffer-create (me/append-time "m/first-org-table"))))
+               (buffer (get-buffer-create "m/first-org-table")))
            (with-current-buffer buffer
              (erase-buffer)
              (org-mode)
@@ -521,7 +539,7 @@ in the local variable `self'."
 ")
              :then (
                     :type buffer
-                    :name (me/append-time "m/first-org-table")
+                    :name "m/first-org-table"
                     :mode org-mode
                     :contents "| a | b |
 |---+---|
@@ -534,7 +552,7 @@ in the local variable `self'."
  :given (lambda () (and (eq major-mode 'org-mode) (s-starts-with-p "m/first-org-table" (buffer-name))))
  :then (lambda ()
          (let ((table (org-table-to-lisp))
-               (buffer (get-buffer-create (me/append-time "m/csv-from-org-table"))))
+               (buffer (get-buffer-create "m/csv-from-org-table")))
            (with-current-buffer buffer
              (erase-buffer)
              (csv-mode)
@@ -557,7 +575,7 @@ in the local variable `self'."
  :key "CSVToOrgTable"
  :given (lambda () (eq major-mode 'csv-mode))
  :then (lambda ()
-         (let ((buffer (get-buffer-create (me/append-time "m/org-table-from-csv")))
+         (let ((buffer (get-buffer-create "m/org-table-from-csv"))
                (table (buffer-string)))
            (with-current-buffer buffer
              (erase-buffer)

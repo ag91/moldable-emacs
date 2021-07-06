@@ -256,7 +256,7 @@ following in your lein project.clj
                           :structure (--find (-contains-p (car it) :option) tables)
                           :nodes (--find (-contains-p (car it) :key) tables)
                           :edges (--find (-contains-p (car it) :to) tables)))
-                (buffer (get-buffer-create (me/append-time "dot-"))))
+                (buffer (get-buffer-create "table-as-dot")))
            (with-current-buffer buffer
              (erase-buffer)
              (insert (me/diagram-to-dot-string diagram))
