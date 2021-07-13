@@ -201,6 +201,13 @@
         (funcall fn root)
         (reverse acc)))))
 
+(defun me/mold-treesitter-file (path)
+  (with-file path
+   (tree-sitter-mode 1)
+   (message "%s" major-mode)
+   (me/mold-treesitter-to-parse-tree))
+  )
+
 (defun nodes-with-duplication (self)
   (-remove
    'null
@@ -590,41 +597,48 @@ some new contents
 
 (defun me/save-buffer-in-history ()
   "Enable keeping history for current session."
-  (unless (equal (cdr me/mold-history)
-                 (list (buffer-name)))
+  (unless (equal (plist-get (-last-item me/mold-history) :buffername)
+                 (buffer-name))
     (setq me/mold-history
           (concatenate
            'list
            (-take me/current-history-index me/mold-history)
-           (list (buffer-name))))
-    (setq me/current-history-index (+ 1 me/current-history-index))))
+           (list (list :buffername (buffer-name) :date (format-time-string "%FT%T%z")))))
+    (setq me/current-history-index (length me/mold-history))))
 
-(when me/enable-history (add-hook 'me/mold-before-hook #'me/save-buffer-in-history))
+(when me/enable-history (progn
+                          (add-hook 'me/mold-before-hook #'me/save-buffer-in-history)
+                          (add-hook 'me/mold-after-hook #'me/save-buffer-in-history)))
 
 (defun me/go-back ()
   "Go back to previous mold."
   (interactive)
   (ignore-errors
-    (switch-to-buffer
-     (nth
-      (- me/current-history-index 1)
-      me/mold-history))
+    (--> me/mold-history
+      (nth
+       (- me/current-history-index 1)
+       it)
+      (plist-get it :buffername)
+      switch-to-buffer)
     (setq me/current-history-index (- me/current-history-index 1))
     (message "Back to %s" (buffer-name))))
 
 (defun me/go-forward ()
-  "Go back to next mold." ;; TODO this is naive: can easily be wrong
+  "Go back to next mold."
   (interactive)
-  (let ((current-index (--find-index (string= it (buffer-name)) me/mold-history)))
+  (let ((current-index (--find-index (string= (plist-get it :buffername) (buffer-name)) me/mold-history)))
     (ignore-errors
-      (switch-to-buffer
-       (nth
-        (+ current-index 1)
-        me/mold-history))
+      (--> me/mold-history
+        (nth
+         (+ current-index 1)
+         it)
+        (plist-get it :buffername)
+        switch-to-buffer)
       (setq me/current-history-index (+ current-index 1))
       (message "Forward to %s" (buffer-name)))))
 
 (defun me/add-to-available-molds (mold)
+  "Add MOLD to `me/available-molds' and so usable by `me/mold'."
   (let ((-compare-fn (lambda (x y) (equal (plist-get x :key) (plist-get y :key))))
         (mold (concatenate 'list mold (list :origin (me/find-origin-file-of-mold (plist-get mold :key))))))
     (setq me/available-molds
@@ -633,6 +647,7 @@ some new contents
 (defvar me/before-register-mold-hook nil "Hooks to run before a mold is registered.")
 
 (defun me/find-origin-file-of-mold (key)
+  "Find the file that defines the mold identified by KEY."
   (--find
    (with-current-buffer (find-file-noselect it)
      (save-excursion

@@ -802,3 +802,37 @@ in the local variable `self'."
              (:type file :name "/tmp/my.txt" :mode text-mode :contents "bla bla 1 + 1 / 2 bla bla\n")
              :then
              (:type buffer :name "Evaluate 1 + 1 / 2" :mode fundamental-mode :contents "1 + 1 / 2 = 1.5"))))
+
+
+(me/register-mold
+ :key "Mold History"
+ :given (lambda () (and me/mold-history me/current-history-index))
+ :then (lambda ()
+         (let* ((buffername (buffer-name))
+                (history me/mold-history)
+                (buffer (get-buffer-create "mold-history")))
+           (with-current-buffer buffer
+             (read-only-mode -1)
+             (org-mode)
+             (erase-buffer)
+             (me/insert-org-table
+              `(("History Item" .
+                 (
+                  :extractor
+                  (lambda (obj) (plist-get obj :buffername))
+                  :handler
+                  (lambda (obj)
+                    (me/make-elisp-file-link
+                     obj
+                     (format "(switch-to-buffer \"%s\")" obj)
+                     "elisp"))
+                  ))
+                ("Time" .
+                 (
+                  :extractor
+                  (lambda (obj) (plist-get obj :date)))))
+              me/mold-history)
+             (setq-local self history))
+           buffer))
+ :docs "You can see the current history of the molds you used."
+ :examples nil)
