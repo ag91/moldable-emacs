@@ -111,3 +111,17 @@ https://ag91.github.io/blog/2021/06/18/moldable-emacs-how-to-explore-json-via-el
 :END:
 
 https://ag91.github.io/blog/2021/06/22/how-(simple-is)-to-install-a-clojure-tree-sitter-grammar-and-use-it-from-emacs/
+*** OCR mold
+:PROPERTIES:
+:CREATED:  [2021-07-19 Mon 19:37]
+:ID:       dede04d1-b6c9-43c8-b3f4-d968fb89991b
+:END:
+
+https://ag91.github.io/blog/2021/07/16/moldable-emacs-capturing-text-from-open-images-with-an-ocr-mold
+*** Grabbing hyperlinks from HTML with Playground
+:PROPERTIES:
+:CREATED:  [2021-07-19 Mon 19:38]
+:ID:       6796b283-eca9-498a-bf25-0451f5832a03
+:END:
+
+https://ag91.github.io/blog/2021/07/19/moldable-emacs-capture-links-from-html-with-playground/
