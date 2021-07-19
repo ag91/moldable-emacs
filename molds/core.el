@@ -326,7 +326,7 @@ in the local variable `self'."
  :key "EvalSexp"
  :given (lambda () (eq major-mode 'emacs-lisp-mode))
  :then (lambda ()
-         (let ((_ (remove-overlays))
+         (let* ((_ (remove-overlays))
                (_ (overlay-put
                    (make-overlay
                     (car (thing-at-point-bounds-of-list-at-point))
@@ -335,7 +335,7 @@ in the local variable `self'."
                    'bold))
                (tree (list-at-point))
                (result (ignore-errors (eval (list-at-point))))
-               (buffer (get-buffer-create "m/tree-eval")))
+               (buffer (get-buffer-create (s-truncate 30 (format "m/tree-eval of %s" tree)))))
            (with-current-buffer buffer
              (emacs-lisp-mode)
              (erase-buffer)

@@ -298,7 +298,7 @@ following in your lein project.clj
                               (let ((path (concat "/tmp/" buffername)))
                                 (write-region (point-min) (point-max) path)
                                 path)))
-                    `(lambda ()
+                    `(lambda (_)
                        (with-current-buffer ,buffer
                          (erase-buffer)
                          (clipboard-yank)

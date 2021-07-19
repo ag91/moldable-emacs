@@ -30,7 +30,15 @@
 
 (defun async-map--finish (futures post-fn too-late-p poll-time)
   (if (not (some #'null (mapcar #'async-ready futures)))
-      (funcall post-fn)
+      (let ((results (--map
+                             (let ((buf (process-buffer it)))
+                               (with-current-buffer buf
+                                 (async-handle-result
+                                  #'identity
+                                  async-callback-value
+                                  (current-buffer))))
+                             futures)))
+        (funcall post-fn results))
     (if (funcall too-late-p)
         'interrupted
       (run-with-timer
@@ -46,14 +54,16 @@
   (let* ((start (current-time))
          (futures (mapcar
                    (lambda (el)
-                     (async-start `(lambda () (funcall ,fn ,el))))
+                     (async-start `(lambda ()
+                                     (setq load-path ',load-path)
+                                     (funcall ,fn ,el))))
                    els))
          (too-late-p
           `(lambda () (>= (time-to-seconds (time-since ',start)) (or ,timeout 300)))))
     (async-map--finish
      futures
-     (or post-fn (lambda ()
-                   (message "async-map: completed!")
+     (or post-fn (lambda (results)
+                   (message (format "async-map finished with the following results:\n%s" results))
                    'completed))
      too-late-p
      (or poll-time 1))))
@@ -61,7 +71,7 @@
 ;; (async-map
 ;;  (lambda (x) (make-directory x 't))
 ;;  (list "/tmp/bla" "/tmp/blo" "/tmp/blu")
-;;  (lambda () (message "%s" (directory-files "/tmp"))))
+;;  (lambda (_) (message "%s" (directory-files "/tmp"))))
 
 (defun me/make-org-table (headlines objects)
   (concat
@@ -204,7 +214,6 @@
 (defun me/mold-treesitter-file (path)
   (with-file path
    (tree-sitter-mode 1)
-   (message "%s" major-mode)
    (me/mold-treesitter-to-parse-tree))
   )
 
