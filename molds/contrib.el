@@ -314,3 +314,94 @@ following in your lein project.clj
                    :then
                    (:type buffer :name "Text from my.jpg" :mode fundamental-mode :contents "Loading text from image..."))
             ))
+
+
+(me/register-mold
+ :key "List Files To Edit After This"
+ :given (lambda () (and (buffer-file-name) (me/require 'code-compass) (me/require 'vc) (vc-root-dir)))
+ :then (lambda ()
+         (let* ((buffername (buffer-name))
+                (bufferfile (buffer-file-name))
+                (buffer (get-buffer-create (concat "Files To Edit After " buffername))))
+           (with-current-buffer buffer
+             (read-only-mode -1)
+             (emacs-lisp-mode)
+             (erase-buffer)
+             (insert "Loading coupled files...")
+             )
+           (c/get-coupled-files-alist
+            (vc-root-dir)
+            `(lambda (files)
+               (with-current-buffer ,buffer
+                 (erase-buffer)
+                 (prin1
+                  (c/get-matching-coupled-files files ,bufferfile)
+                  ,buffer)
+                 (pp-buffer)
+                 (setq-local self files))
+               ))
+           buffer))
+ :docs "You can list the files coupled to the file you are visiting."
+ :examples nil)
+
+(me/register-mold
+ :key "Files To Edit As Org Todos"
+ :given (lambda () (and (me/require 'code-compass) (s-starts-with-p "Files To Edit After " (buffer-name)) self (plist-get mold-data :old-file)))
+ :then (lambda ()
+         (let* ((current-buffer (current-buffer))
+                (tree (-map 'car self))
+                (buffer (let ((buffer (c/show-todo-buffer tree (plist-get mold-data :old-file))))
+                          (switch-to-buffer current-buffer)
+                          buffer)))
+           buffer))
+ :docs "You can make a TODO list of files to edit next."
+ :examples nil)
+
+(me/register-mold
+ :key "Clojure examples for function at point"
+ :given (lambda () (and
+                    (me/require 'projectile)
+                    (eq major-mode 'clojure-mode)
+                    (equal (nth 0 (list-at-point)) 'defn)
+                    (ignore-errors
+                      (projectile-find-matching-test (buffer-file-name)))))
+ :then (lambda ()
+         (let* ((test-file
+                 (concat (projectile-project-root)
+                         (projectile-find-matching-test (buffer-file-name))))
+                (test-file-tree (me/mold-treesitter-file test-file))
+                (funct (list-at-point))
+                (function-name
+                 (--> funct
+                      (when (and it (> (length it) 3) (equal (nth 0 it) 'defn)) (nth 1 it))
+                      (symbol-name it)))
+                (examples-nodes
+                 (--> (me/by-type 'list_lit test-file-tree)
+                      (--filter (and
+                                 (s-starts-with-p "(is(=" (s-replace " " "" (plist-get it :text)))
+                                 (s-contains-p function-name (plist-get it :text)))
+                                it)))
+                (buffer (get-buffer-create (concat "Examples for " function-name))))
+           (with-current-buffer buffer
+             (org-mode)
+             (erase-buffer)
+             (insert (concat "* Examples for " function-name "\n\n"))
+             (--each examples-nodes
+               (insert (format
+                        "
+- [[elisp:(progn (find-file \"%s\") (goto-char %s))][Between test file char %s and %s]]
+
+  #+begin_src clojure
+%s
+  #+end_src
+"
+                        (plist-get it :buffer-file)
+                        (plist-get it :begin)
+                        (plist-get it :begin)
+                        (plist-get it :end)
+                        (plist-get it :text))))
+             (setq-local self funct)
+             (setq-local org-confirm-elisp-link-function nil))
+           buffer))
+ :docs "You can list examples of usage of the Clojure function at point."
+ :examples nil)
