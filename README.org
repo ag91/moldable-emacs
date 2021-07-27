@@ -125,3 +125,10 @@ https://ag91.github.io/blog/2021/07/16/moldable-emacs-capturing-text-from-open-i
 :END:
 
 https://ag91.github.io/blog/2021/07/19/moldable-emacs-capture-links-from-html-with-playground/
+*** Showing examples for a Clojure function at point
+:PROPERTIES:
+:CREATED:  [2021-07-27 Tue 23:21]
+:ID:       646f46fd-6a78-4c23-bccc-28fe51be76e7
+:END:
+
+https://ag91.github.io/blog/2021/07/27/moldable-emacs-finding-examples-of-clojure-functions-(with-tests)/
