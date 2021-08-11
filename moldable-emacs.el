@@ -1068,4 +1068,58 @@ a string (node -> string)."
    #'me/find-missing-dependencies-for-mold
    molds))
 
+
+;; some functionality to edit nodes!!
+(defun me/remove-node (node)
+  "Remove NODE from :buffer or :buffer-file using :begin and :end as anchors."
+  (let ((begin (plist-get node :begin))
+        (end (plist-get node :end))
+        (buffer (plist-get node :buffer))
+        (file (plist-get node :buffer-file)))
+    (if file
+        (with-file file (delete-region begin end))
+      (when (and buffer (get-buffer buffer))
+        (with-current-buffer buffer
+          (delete-region begin end))))))
+
+(defun me/add-node (node)
+  "Add NODE to :buffer or :buffer-file using its :begin position as an anchor."
+  (let ((begin (plist-get node :begin))
+        (text (plist-get node :text))
+        (buffer (plist-get node :buffer))
+        (file (plist-get node :buffer-file)))
+    (if file
+        (with-file file
+                   (goto-char begin)
+                   (insert text))
+      (when (and buffer (get-buffer buffer))
+        (with-current-buffer buffer
+          (goto-char begin)
+          (insert text))))))
+
+(defun me/change-node (transition)
+  "Run a TRANSITION to change a node. This must contain a :before and an :after node."
+  (let ((before (plist-get transition :before))
+        (after (plist-get transition :after)))
+    (me/remove-node before)
+    (me/add-node after)))
+
+(defun me/change-nodes (transitions)
+  "Change nodes according to TRANSITIONS. These contain a :before node and an :after node."
+  (-each (reverse transitions)
+    #'me/change-node))
+
+(defun me/transitate-node-text (node fn)
+  "Create a transition changing text of NODE via FN. FN is a function taking the text of NODE and generating new text."
+  (list
+   :before node
+   :after (plist-put
+           (copy-list node)
+           :text
+           (funcall fn (plist-get node :text)))))
+
+(defun me/transitate-node-texts (nodes fn)
+  "Create transitions changing texts of NODES via FN."
+  (--map (me/transitate-node-text it fn) nodes))
+
 (provide 'moldable-emacs)

@@ -132,3 +132,10 @@ https://ag91.github.io/blog/2021/07/19/moldable-emacs-capture-links-from-html-wi
 :END:
 
 https://ag91.github.io/blog/2021/07/27/moldable-emacs-finding-examples-of-clojure-functions-(with-tests)/
+*** Code transformation: edit your CSS files with a Playground!
+:PROPERTIES:
+:CREATED:  [2021-08-11 Wed 22:14]
+:ID:       9f3ab44c-8b79-41ed-bc57-183614f32eaa
+:END:
+
+https://ag91.github.io/blog/2021/08/11/moldable-emacs-editing-your-file-via-treesitter-(or-how-i-fixed-my-css-with-a-playground)/
