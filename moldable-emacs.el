@@ -203,7 +203,7 @@
                                :begin (tsc-node-start-position n)
                                :end (tsc-node-end-position n)
                                :buffer (buffer-name)
-                               :buffer-file (buffer-file-name))
+                               :buffer-file (s-replace (getenv "HOME") "~" (buffer-file-name)))
                               acc))
                    (funcall fn n))
                  node))))
@@ -1004,6 +1004,13 @@ a string (node -> string)."
    (ignore-errors (equal buffername (plist-get (plist-get (plist-get it :given) :node) :buffer)))
    me/notes))
 
+(defun me/filter-notes-by-project ()
+  "Gather notes by project."
+  (let ((files (-map #'file-name-nondirectory (projectile-current-project-files))))
+    (--filter
+     (ignore-errors (-contains-p files (plist-get (plist-get (plist-get it :given) :node) :buffer)))
+     me/notes)))
+
 (defun me/filter-notes-by-mode (mode)
   (--filter
    (ignore-errors (equal mode (plist-get (plist-get (plist-get it :given) :node) :mode)))
@@ -1015,8 +1022,12 @@ a string (node -> string)."
          (then (plist-get note :then))
          (id (plist-get given :key))
          (title (me/make-elisp-file-link
-                 (s-truncate 60 (plist-get given :text))
-                 (plist-get given :buffer-file)))
+                 (concat (s-trim (s-replace "\"" "" (s-truncate 60 (plist-get given :text)))) " ")
+                 (format
+                  "(progn (find-file-other-window \"%s\") (goto-char %s))"
+                  (plist-get given :buffer-file)
+                  (plist-get given :begin))
+                 "elisp"))
          (content (plist-get then :string)))
     (format
      "* %s\n:PROPERTIES:\n:ID:       %s\n:END:\n%s\n"

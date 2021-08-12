@@ -603,7 +603,7 @@ in the local variable `self'."
                              :begin ,(caar boundaries)
                              :end ,(cdar boundaries)
                              :buffer ,buffername
-                             :buffer-file ,(buffer-file-name)
+                             :buffer-file ,(s-replace (getenv "HOME") "~" (buffer-file-name))
                              :mode ,major-mode))
                     :when nil
                     :then nil))
@@ -637,6 +637,22 @@ in the local variable `self'."
          (let* ((buffername (buffer-name))
                 (buffer (get-buffer-create (format "Notes for %s" buffername)))
                 (notes (me/filter-notes-by-buffer buffername)))
+           (with-current-buffer buffer
+             (erase-buffer)
+             (emacs-lisp-mode)
+             (prin1 notes buffer)
+             (setq self notes)
+             (pp-buffer))
+           buffer)))
+
+
+(me/register-mold
+ :key "ShowNotesByProject"
+ :given (lambda () (and (me/require 'projectile) (me/filter-notes-by-project)))
+ :then (lambda ()
+         (let* ((buffername (buffer-name))
+                (buffer (get-buffer-create (format "Notes for %s" (projectile-project-root))))
+                (notes (me/filter-notes-by-project)))
            (with-current-buffer buffer
              (erase-buffer)
              (emacs-lisp-mode)
@@ -731,8 +747,17 @@ in the local variable `self'."
                  (message "Notes stored!"))))
            buffer)))
 
-(me/register-mold-by-key "AnnotateWithOrg"
-                         (me/mold-compose "Annotate" "NoteToOrg"))
+;; (me/register-mold-by-key "AnnotateWithOrg"
+;;                          (me/mold-compose "Annotate" "NoteToOrg"))
+
+(me/register-mold-by-key "ShowNotesByProjectInOrg"
+                         (me/mold-compose "ShowNotesByProject" "NotesToOrg"))
+
+(me/register-mold-by-key "ShowNotesByBufferInOrg"
+                         (me/mold-compose "ShowNotesByBuffer" "NotesToOrg"))
+
+(me/register-mold-by-key "ShowNotesByModeInOrg"
+                          (me/mold-compose "ShowNotesByMode" "NotesToOrg"))
 
 (me/register-mold
  :key "ShowAllNotes"
