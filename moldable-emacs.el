@@ -986,7 +986,8 @@ a string (node -> string)."
               (eval `',(list-at-point)))))))
 
 (defun me/ask-for-details-according-to-context (note)
-  (let ((text (read-string "Note:"))) ;; TODO I want to ask also the color this should highlight!
+  "Ask for NOTE details."
+  (let ((text (read-string "Note:")))
     (plist-put note :then `(:string ,text))))
 
 (defun me/override-keybiding-in-buffer (key command)
@@ -1006,7 +1007,7 @@ a string (node -> string)."
 
 (defun me/filter-notes-by-project ()
   "Gather notes by project."
-  (let ((files (-map #'file-name-nondirectory (projectile-current-project-files))))
+  (let ((files (-map #'file-name-nondirectory (when (projectile-project-root) (projectile-current-project-files)))))
     (--filter
      (ignore-errors (-contains-p files (file-name-nondirectory (plist-get (plist-get (plist-get it :given) :node) :buffer))))
      me/notes)))

@@ -604,7 +604,10 @@ in the local variable `self'."
                              :end ,(cdar boundaries)
                              :buffer ,buffername
                              :buffer-file ,(ignore-errors (s-replace (getenv "HOME") "~" (buffer-file-name)))
-                             :mode ,major-mode))
+                             :mode ,major-mode
+                             :git-hash ,(when-let* ((hash? (shell-command-to-string "git rev-parse --short HEAD"))
+                                                    (hash (when (< (length hash?) 10) hash?)))
+                                          (s-trim hash))))
                     :when nil
                     :then nil))
                 (note (me/ask-for-details-according-to-context default-note))
