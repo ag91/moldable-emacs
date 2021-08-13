@@ -592,7 +592,7 @@ in the local variable `self'."
  :given (lambda () 't)
  :then (lambda ()
          (let* ((buffername (buffer-name))
-                (boundaries (or (region-bounds) `((,(beginning-of-line) . ,(end-of-line))))) ;; TODO the fallback is not ideal, because a file line can change pretty easily
+                (boundaries (or (region-bounds) (bounds-of-thing-at-point 'sexp) `((,(beginning-of-line) . ,(end-of-line))))) ;; TODO the fallback is not ideal, because a file line can change pretty easily
                 (default-note
                   `(
                     :given (:node
@@ -603,7 +603,7 @@ in the local variable `self'."
                              :begin ,(caar boundaries)
                              :end ,(cdar boundaries)
                              :buffer ,buffername
-                             :buffer-file ,(s-replace (getenv "HOME") "~" (buffer-file-name))
+                             :buffer-file ,(ignore-errors (s-replace (getenv "HOME") "~" (buffer-file-name)))
                              :mode ,major-mode))
                     :when nil
                     :then nil))
