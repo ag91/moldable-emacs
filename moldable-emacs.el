@@ -1008,7 +1008,7 @@ a string (node -> string)."
   "Gather notes by project."
   (let ((files (-map #'file-name-nondirectory (projectile-current-project-files))))
     (--filter
-     (ignore-errors (-contains-p files (plist-get (plist-get (plist-get it :given) :node) :buffer)))
+     (ignore-errors (-contains-p files (file-name-nondirectory (plist-get (plist-get (plist-get it :given) :node) :buffer))))
      me/notes)))
 
 (defun me/filter-notes-by-mode (mode)
