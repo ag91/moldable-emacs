@@ -592,7 +592,7 @@ in the local variable `self'."
  :given (lambda () 't)
  :then (lambda ()
          (let* ((buffername (buffer-name))
-                (boundaries (or (region-bounds) (bounds-of-thing-at-point 'sexp) `((,(beginning-of-line) . ,(end-of-line))))) ;; TODO the fallback is not ideal, because a file line can change pretty easily
+                (boundaries (or (region-bounds) (bounds-of-thing-at-point 'sexp) `((,(beginning-of-line) . ,(end-of-line)))))
                 (default-note
                   `(
                     :given (:node
@@ -708,13 +708,10 @@ in the local variable `self'."
                  (interactive)
                  (--each
                      (me/org-to-flatten-tree (current-buffer))
-                   (plist-put
-                    (plist-get
-                     (-find (lambda (el) (equal (plist-get el :key) (plist-get it :id))) self)
-                     :then)
-                    :string
-                    (plist-get it :text)))
-                 (--each self (me/store-note it))
+                   (let* ((old-note (-find (lambda (el) (equal (plist-get el :key) (plist-get it :id))) self))
+                          (text (plist-get it :text))
+                          (new-note (plist-put old-note :then (list :string text))))
+                   (me/store-note new-note)))
                  (message "Notes stored!"))))
            buffer)))
 
@@ -738,20 +735,15 @@ in the local variable `self'."
               (kbd "C-x C-s")
               '(lambda ()
                  (interactive)
-                 (--each
-                     (me/org-to-flatten-tree (current-buffer))
-                   (plist-put
-                    (plist-get
-                     (-find (lambda (el) (equal (plist-get el :key) (plist-get it :id))) self)
-                     :then)
-                    :string
-                    (plist-get it :text)))
-                 (--each self (me/store-note it))
+                 (let* ((org-node (nth 0 (me/org-to-flatten-tree (current-buffer))))
+                        (text (plist-get org-node :text))
+                        (new-note (plist-put self :then (list :string text))))
+                   (me/store-note new-note))
                  (message "Notes stored!"))))
            buffer)))
 
-;; (me/register-mold-by-key "AnnotateWithOrg"
-;;                          (me/mold-compose "Annotate" "NoteToOrg"))
+(me/register-mold-by-key "AnnotateWithOrg"
+                         (me/mold-compose "Annotate" "NoteToOrg"))
 
 (me/register-mold-by-key "ShowNotesByProjectInOrg"
                          (me/mold-compose "ShowNotesByProject" "NotesToOrg"))
