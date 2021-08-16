@@ -615,6 +615,7 @@ in the local variable `self'."
            (with-current-buffer buffer
              (erase-buffer)
              (emacs-lisp-mode)
+             (insert ";; Remember to save the note with C-x C-s!\n\n\n")
              (prin1 note buffer)
              (pp-buffer)
              (me/override-keybiding-in-buffer
@@ -729,6 +730,7 @@ in the local variable `self'."
              (erase-buffer)
              (org-mode)
              (setq-local org-confirm-elisp-link-function nil)
+             (insert "# Remember to save the note with C-x C-s!\n\n\n")
              (insert (me/note-to-org-heading note))
              (setq self note)
              (me/override-keybiding-in-buffer
