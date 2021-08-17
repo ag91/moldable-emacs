@@ -160,10 +160,6 @@ in the local variable `self'."
              (:type buffer :name "m/tree" :mode emacs-lisp-mode :contents "((:type string :text \"\\\"a\\\"\" :begin 5 :end 8 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 5 :end 6 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type string_content :text \"a\" :begin 6 :end 7 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 7 :end 8 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \":\" :text \":\" :begin 8 :end 9 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type number :text \"1\" :begin 10 :end 11 :buffer \"test.json\" :buffer-file \"/tmp/test.json\"))\n"))
             ))
 
-;; TODO maybe mold treeWithJsonToPlist? (--map (json-parse-string (plist-get it :text) :object-type 'plist) self)
-;; TODO and maybe plist to Org Table? See "GebE2ECumulativeErrors" for that
-
-
 (me/register-mold
  :key "ElispListToOrgTable"
  :given (lambda () (let ((l (list-at-point)))
@@ -496,7 +492,42 @@ in the local variable `self'."
              (erase-buffer)
              (prin1 json buffer)
              (emacs-lisp-mode)
+             (setq self json)
              (pp-buffer)
+             buffer))))
+
+(me/register-mold
+ :key "JsonAsPlist"
+ :given (lambda () (eq major-mode 'json-mode)) ;; TODO or region contains json
+ :then (lambda ()
+         (let ((json
+                (save-excursion
+                  (let ((json-object-type 'plist)
+                        (json-array-type 'list))
+                    (goto-char (point-min))
+                    (json-read))))
+               (buffer (get-buffer-create "m/tree")))
+           (with-current-buffer buffer
+             (erase-buffer)
+             (prin1 json buffer)
+             (emacs-lisp-mode)
+             (setq self json)
+             (pp-buffer)
+             buffer))))
+
+(me/register-mold
+ :key "PlistToJson"
+ :given (lambda () (ignore-errors (json-plist-p (read (thing-at-point 'sexp t)))))
+ :then (lambda ()
+         (let ((plist
+                (read (thing-at-point 'sexp t)))
+               (buffer (get-buffer-create "m/json")))
+           (with-current-buffer buffer
+             (erase-buffer)
+             (insert (json-encode-plist plist))
+             (json-mode)
+             (setq self plist)
+             (json-pretty-print-buffer)
              buffer))))
 
 (me/register-mold
