@@ -1023,7 +1023,7 @@ a string (node -> string)."
          (then (plist-get note :then))
          (id (plist-get given :key))
          (title (me/make-elisp-file-link
-                 (concat (s-trim (s-replace "\"" "" (s-truncate 60 (plist-get given :text)))) " ")
+                 (concat (s-trim (s-replace-all  '(("\"" . "") ("\n" . " ")) (s-truncate 60 (plist-get given :text)))) " ")
                  (format
                   "(progn (find-file-other-window \"%s\") (goto-char %s))"
                   (plist-get given :buffer-file)

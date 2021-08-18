@@ -657,6 +657,7 @@ in the local variable `self'."
                         (ignore-errors
                           (save-excursion
                             (goto-char (point-min))
+                            (search-forward "(")
                             (eval `',(list-at-point))))))
                    (setq-local self note)
                    (me/store-note note)
