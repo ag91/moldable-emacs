@@ -153,9 +153,10 @@ following in your lein project.clj
 (me/register-mold
  :key "FunctionsComplexity"
  :given (lambda () (and
-                    (me/by-type 'function_definition (me/mold-treesitter-to-parse-tree))
                     (me/require 'code-compass)
-                    (me/require 'tree-sitter)))
+                    (me/require 'tree-sitter)
+                    (ignore-errors (me/by-type 'function_definition (me/mold-treesitter-to-parse-tree)))
+                    ))
  :then (lambda ()
          (let* ((tree (me/mold-treesitter-to-parse-tree))
                 (buffer (get-buffer-create (format "Functions Complexity of %s" (buffer-name))))
@@ -318,7 +319,11 @@ following in your lein project.clj
 
 (me/register-mold
  :key "List Files To Edit After This"
- :given (lambda () (and (buffer-file-name) (me/require 'code-compass) (me/require 'vc) (vc-root-dir)))
+ :given (lambda () (and
+                    (buffer-file-name)
+                    (me/require 'code-compass)
+                    (me/require 'vc)
+                    (vc-root-dir)))
  :then (lambda ()
          (let* ((buffername (buffer-name))
                 (bufferfile (buffer-file-name))
@@ -346,7 +351,12 @@ following in your lein project.clj
 
 (me/register-mold
  :key "Files To Edit As Org Todos"
- :given (lambda () (and (me/require 'code-compass) (s-starts-with-p "Files To Edit After " (buffer-name)) self (plist-get mold-data :old-file)))
+ :given (lambda ()
+          (and
+           (me/require 'code-compass)
+           (s-starts-with-p "Files To Edit After " (buffer-name))
+           self
+           (plist-get mold-data :old-file)))
  :then (lambda ()
          (let* ((current-buffer (current-buffer))
                 (tree (-map 'car self))

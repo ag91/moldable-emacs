@@ -806,8 +806,8 @@ in the local variable `self'."
 (me/register-mold
  :key "NodeAtPointToPlayground"
  :given (lambda () (and
-                    (thing-at-point 'sexp)
-                    (equal major-mode 'emacs-lisp-mode)))
+                    (equal major-mode 'emacs-lisp-mode)
+                    (thing-at-point 'sexp)))
  :then (lambda ()
          (let* ((buffer (get-buffer-create "Node at point"))
                                         ;(tree (me/mold-treesitter-to-parse-tree (tree-sitter-node-at-point)))
