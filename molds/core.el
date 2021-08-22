@@ -517,7 +517,10 @@ in the local variable `self'."
 
 (me/register-mold
  :key "PlistToJson"
- :given (lambda () (ignore-errors (json-plist-p (read (thing-at-point 'sexp t)))))
+ :given (lambda () (and
+                    (eq major-mode 'emacs-lisp-mode)
+                    (thing-at-point 'sexp t)
+                    (ignore-errors (json-plist-p (read (thing-at-point 'sexp t))))))
  :then (lambda ()
          (let ((plist
                 (read (thing-at-point 'sexp t)))
