@@ -520,14 +520,18 @@ in the local variable `self'."
  :given (lambda () (and
                     (eq major-mode 'emacs-lisp-mode)
                     (thing-at-point 'sexp t)
-                    (ignore-errors (json-plist-p (read (thing-at-point 'sexp t))))))
+                    (or
+                     (ignore-errors (json-plist-p (read (thing-at-point 'sexp t))))
+                     (ignore-errors (json-plist-p (car (read (thing-at-point 'sexp t))))))))
  :then (lambda ()
          (let ((plist
                 (read (thing-at-point 'sexp t)))
                (buffer (get-buffer-create "m/json")))
            (with-current-buffer buffer
              (erase-buffer)
-             (insert (json-encode-plist plist))
+             (if (json-plist-p plist)
+                 (insert (json-encode-plist plist))
+               (insert (json-encode-array plist)))
              (json-mode)
              (setq self plist)
              (json-pretty-print-buffer)
