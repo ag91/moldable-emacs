@@ -415,3 +415,27 @@ following in your lein project.clj
            buffer))
  :docs "You can list examples of usage of the Clojure function at point."
  :examples nil)
+
+
+(me/register-mold
+ :key "EdnToElisp"
+ :given (lambda () (and
+                    (me/require 'parseedn)
+                    (or (when (region-active-p)
+                          (parseedn-read-str (buffer-substring-no-properties (caar (region-bounds)) (cdar (region-bounds)))))
+                        (parseedn-read))))
+ :then (lambda ()
+         (let* ((buffername (buffer-name))
+                (edn (or (when (region-active-p)
+                           (parseedn-read-str (buffer-substring-no-properties (caar (region-bounds)) (cdar (region-bounds)))))
+                         (parseedn-read)))
+                (plist (me/hash-to-plist edn))
+                (buffer (get-buffer-create "EdnToElisp")))
+           (with-current-buffer buffer
+             (emacs-lisp-mode)
+             (erase-buffer)
+             (prin1 plist buffer)
+             (setq-local self plist))
+           buffer))
+ :docs "You can parse EDN format as an Elisp object."
+ :examples nil)

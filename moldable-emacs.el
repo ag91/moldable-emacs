@@ -1134,4 +1134,17 @@ a string (node -> string)."
   "Create transitions changing texts of NODES via FN."
   (--map (me/transitate-node-text it fn) nodes))
 
+
+(defun me/hash-to-plist (hash-table)
+  ;; from http://ergoemacs.org/emacs/elisp_hash_table.html (this is a recursive version)
+  "Produce a plist from the HASH-TABLE (recursively)."
+  (let (result)
+    (maphash
+     (lambda (k v)
+       (push (list (if (stringp k) (intern k) k)
+                   (if (hash-table-p v) (xah-hash-to-list v) v))
+             result))
+     hash-table)
+    result))
+
 (provide 'moldable-emacs)
