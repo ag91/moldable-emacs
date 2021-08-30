@@ -421,9 +421,10 @@ following in your lein project.clj
  :key "EdnToElisp"
  :given (lambda () (and
                     (me/require 'parseedn)
-                    (or (when (region-active-p)
-                          (parseedn-read-str (buffer-substring-no-properties (caar (region-bounds)) (cdar (region-bounds)))))
-                        (parseedn-read))))
+                    (or
+                     (when (region-active-p)
+                       (ignore-errors (parseedn-read-str (buffer-substring-no-properties (caar (region-bounds)) (cdar (region-bounds))))))
+                     (ignore-errors (parseedn-read)))))
  :then (lambda ()
          (let* ((buffername (buffer-name))
                 (edn (or (when (region-active-p)
