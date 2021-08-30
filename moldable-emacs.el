@@ -545,7 +545,7 @@ some new contents
                              (with-temp-buffer
                                (insert-file-contents-literally (plist-get given :contents))
                                (buffer-substring-no-properties (point-min) (point-max)))
-                           (plist-get then :contents)))
+                           (plist-get given :contents)))
          (then (plist-get example :then))
          (then-name (plist-get then :name))
          (then-mode (plist-get then :mode))
@@ -566,11 +566,7 @@ some new contents
     (switch-to-buffer then-name)
     (erase-buffer)
     (insert then-contents)
-    (funcall then-mode)
-    ;;(delete-frame frame) ; probably I do not need to delete it, but just to make it smaller? Indeed, I can delete it manually
-    )
-  ;;(delete-other-frames)
-  )
+    (funcall then-mode)))
 
 ;; (me/demo-example '(:name "some example" :given (:type buffer :name "somebuffer" :contents "some contents") :then (:type file :name "/tmp/somefile.txt" :contents "some new contents")))
 
@@ -777,11 +773,15 @@ Excludes the heading and any child subtrees."
                 (switch-to-buffer
                  (funcall ,(plist-get mold2 :then))))))))
 
-(defun me/mold-compose (m1 m2)
+(defun me/mold-compose (m1 m2 &optional props)
+  "Compose M1 and M2 in a single mold. Add PROPS (e.g.,  `(:docs \"...\" :examples nil)') to it."
   (let ((mold1 (if (stringp m1) (me/find-mold m1) m1))
         (mold2 (if (stringp m2) (me/find-mold m2) m2)))
     (if (and mold1 mold2)
-        (me/mold-compose-molds mold1 mold2)
+        (let ((result (me/mold-compose-molds mold1 mold2)))
+          (--each props
+            (plist-put result (nth 0 it) (nth 1 it)))
+          result)
       (error (format "Could not find molds, check out: %s." `((,m1 . ,mold1) (,m2 . ,mold2)))))))
 
 
@@ -1042,15 +1042,15 @@ a string (node -> string)."
   "Find molds that require dependencies to run."
   (--filter
    (let ((given-cond (nth 2 (plist-get it :given))))
-     (and
-      (ignore-errors (> (length given-cond) 1))
-      (eq (car given-cond) 'and)
-      (eval (cons 'and (--remove
-                        (or
-                         (-contains? it 'executable-find)
-                         (-contains? it 'me/require))
-                        (cdr given-cond))))
-      ))
+     (ignore-errors (and
+       (> (length given-cond) 1)
+       (eq (car given-cond) 'and)
+       (eval (cons 'and (--remove
+                         (or
+                          (-contains? it 'executable-find)
+                          (-contains? it 'me/require))
+                         (cdr given-cond))))
+       )))
    me/available-molds))
 
 (defun me/find-missing-dependencies-for-mold (mold)
