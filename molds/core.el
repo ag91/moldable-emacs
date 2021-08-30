@@ -50,6 +50,7 @@ in the local variable `self'."
 
 (me/register-mold
  :key "WhatMoldsCanIUse?"
+
  :given (lambda () t)
  :then (lambda ()
          (let* ((buffername (buffer-name))
@@ -209,6 +210,22 @@ in the local variable `self'."
              (:type buffer :name "Org Table for list starting for (:index 1 :value 3)" :mode org-mode :contents "| index | value |\n|-------+-------|\n|     1 |     3 |\n|     2 |     9 |\n|     3 |    27 |\n|       |       |\n"))
 
             ))
+
+(me/register-mold-by-key "ListToCSV"
+                         (me/mold-compose
+                          "ElispListToOrgTable"
+                          "OrgTableToCSV"
+                          '((:docs "You can produce a CSV from a Plist.")
+                            (:examples ((:name "Simple plist to csv." :given (:type buffer :name "m/tree-playground" :mode emacs-lisp-mode :contents ";; Tips:
+;;    Use `self' to access the mold context.
+;;    You can access the previous mold context through `mold-data'.
+
+((:a 1 :b 2)
+ (:a 2 :b 3)
+ (:a 4 :b 9))") :then (:type buffer :name "m/csv-from-org-table" :mode csv-mode :contents "a,b
+1,2
+2,3
+4,9")))))))
 
 (me/register-mold
  :key "OrgTableToElispPList"
@@ -587,7 +604,10 @@ in the local variable `self'."
 
 (me/register-mold
  :key "OrgTableToCSV"
- :given (lambda () (and (eq major-mode 'org-mode) (s-starts-with-p "m/first-org-table" (buffer-name))))
+ :given (lambda () (and
+                    (eq major-mode 'org-mode)
+                    (s-contains-p "org" (buffer-name) t)
+                    (s-contains-p "table" (buffer-name) t)))
  :then (lambda ()
          (let ((table (org-table-to-lisp))
                (buffer (get-buffer-create "m/csv-from-org-table")))
