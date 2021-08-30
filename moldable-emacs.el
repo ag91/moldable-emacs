@@ -250,7 +250,8 @@
         (buffer (or buffer (current-buffer))))
     (with-current-buffer buffer
       (--filter
-       (funcall (plist-get it :given)) ;; TODO run this in parallel when time goes over 100ms (time goes already over for org-table condition when there are many org tables in the same file - I got over 2 seconds wait for 5 tables mostly empty!!!)
+       (save-excursion
+         (funcall (plist-get it :given))) ;; TODO run this in parallel when time goes over 100ms (time goes already over for org-table condition when there are many org tables in the same file - I got over 2 seconds wait for 5 tables mostly empty!!!)
        molds))))
 
 (defun me/mold ()
