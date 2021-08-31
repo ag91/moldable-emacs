@@ -782,7 +782,7 @@ Excludes the heading and any child subtrees."
           (--each props
             (plist-put result (nth 0 it) (nth 1 it)))
           result)
-      (error (format "Could not find molds, check out: %s." `((,m1 . ,mold1) (,m2 . ,mold2)))))))
+      (error (format "Could not find molds, check out: %s." (list m1 m2))))))
 
 
 (defvar me/last-used-mold nil "Keep the `:key' of last used mold.")

@@ -211,22 +211,6 @@ in the local variable `self'."
 
             ))
 
-(me/register-mold-by-key "ListToCSV"
-                         (me/mold-compose
-                          "ElispListToOrgTable"
-                          "OrgTableToCSV"
-                          '((:docs "You can produce a CSV from a Plist.")
-                            (:examples ((:name "Simple plist to csv." :given (:type buffer :name "m/tree-playground" :mode emacs-lisp-mode :contents ";; Tips:
-;;    Use `self' to access the mold context.
-;;    You can access the previous mold context through `mold-data'.
-
-((:a 1 :b 2)
- (:a 2 :b 3)
- (:a 4 :b 9))") :then (:type buffer :name "m/csv-from-org-table" :mode csv-mode :contents "a,b
-1,2
-2,3
-4,9")))))))
-
 (me/register-mold
  :key "OrgTableToElispPList"
  :given (lambda () (and
@@ -628,6 +612,22 @@ in the local variable `self'."
              :then
              (:type buffer :name "m/csv-from-org-table2021-07-04-18:33:27" :mode csv-mode :contents "bla,some\n\"\"\"bla\"\"\",1\n\"\"\"blo\"\"\",2"))
             ))
+
+(me/register-mold-by-key "ListToCSV"
+                         (me/mold-compose
+                          "ElispListToOrgTable"
+                          "OrgTableToCSV"
+                          '((:docs "You can produce a CSV from a Plist.")
+                            (:examples ((:name "Simple plist to csv." :given (:type buffer :name "m/tree-playground" :mode emacs-lisp-mode :contents ";; Tips:
+;;    Use `self' to access the mold context.
+;;    You can access the previous mold context through `mold-data'.
+
+((:a 1 :b 2)
+ (:a 2 :b 3)
+ (:a 4 :b 9))") :then (:type buffer :name "m/csv-from-org-table" :mode csv-mode :contents "a,b
+1,2
+2,3
+4,9")))))))
 
 (me/register-mold
  :key "CSVToOrgTable"
