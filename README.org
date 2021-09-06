@@ -64,6 +64,7 @@ Optionally:
 - esxml.el
 - emacs-tree-sitter.el
 - code-compass.el
+- org-ql
 - ??? 
 
 
