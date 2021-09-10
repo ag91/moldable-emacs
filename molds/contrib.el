@@ -339,7 +339,7 @@ following in your lein project.clj
             `(lambda (files)
                (with-current-buffer ,buffer
                  (erase-buffer)
-                 (pp-display-expression
+                 (me/print-to-buffer
                   (c/get-matching-coupled-files files ,bufferfile)
                   ,buffer)
                  (setq-local self files))
@@ -434,7 +434,7 @@ following in your lein project.clj
            (with-current-buffer buffer
              (emacs-lisp-mode)
              (erase-buffer)
-             (pp-display-expression plist buffer)
+             (me/print-to-buffer plist buffer)
              (setq-local self plist))
            buffer))
  :docs "You can parse EDN format as an Elisp object."

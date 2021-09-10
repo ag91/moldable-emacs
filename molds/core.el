@@ -44,7 +44,7 @@ in the local variable `self'."
            (with-current-buffer buffer
              (erase-buffer)
              (setq-local self sexps)
-             (pp-display-expression sexps buffer)
+             (me/print-to-buffer sexps buffer)
              (emacs-lisp-mode)
              buffer)
            buffer)))
@@ -125,7 +125,7 @@ in the local variable `self'."
                 (tree (me/mold-treesitter-to-parse-tree)))
            (with-current-buffer buffer
              (erase-buffer)
-             (pp-display-expression tree buffer) ;; TODO I need to do keep the position, or allow editing in place, no?
+             (me/print-to-buffer tree buffer) ;; TODO I need to do keep the position, or allow editing in place, no?
              (pp-buffer)
              (emacs-lisp-mode)
              buffer)))
@@ -149,7 +149,7 @@ in the local variable `self'."
            (with-current-buffer buffer
              (erase-buffer)
              (emacs-lisp-mode)
-             (pp-display-expression tree buffer)
+             (me/print-to-buffer tree buffer)
              (pp-buffer)
              (setq self tree)
              (current-buffer))))
@@ -247,7 +247,7 @@ in the local variable `self'."
            (with-current-buffer buffer
              (emacs-lisp-mode)
              (erase-buffer)
-             (pp-display-expression tree buffer)
+             (me/print-to-buffer tree buffer)
              (goto-char (point-min))
              buffer))))
 
@@ -263,7 +263,7 @@ in the local variable `self'."
            (with-current-buffer buffer
              (emacs-lisp-mode)
              (erase-buffer)
-             (pp-display-expression tree buffer)
+             (me/print-to-buffer tree buffer)
              (setq-local self tree)
              buffer))))
 
@@ -279,7 +279,7 @@ in the local variable `self'."
                   't)))
            (with-current-buffer buffer
              (erase-buffer)
-             (pp-display-expression (mapcar 'list sentences) buffer) ;; TODO I need to do keep the position, or allow editing in place, no?
+             (me/print-to-buffer (mapcar 'list sentences) buffer) ;; TODO I need to do keep the position, or allow editing in place, no?
              (pp-buffer)
              buffer))))
 
@@ -297,7 +297,7 @@ in the local variable `self'."
              )
            (with-current-buffer buffer
              (erase-buffer)
-             (pp-display-expression (reverse sexps) buffer)
+             (me/print-to-buffer (reverse sexps) buffer)
              (emacs-lisp-mode)
              (pp-buffer)
              buffer))))
@@ -316,7 +316,7 @@ in the local variable `self'."
              (erase-buffer)
              (emacs-lisp-mode)
              (setq-local self duplicated-tree)
-             (pp-display-expression duplicated-tree buffer)
+             (me/print-to-buffer duplicated-tree buffer)
              buffer)
            buffer)))
 
@@ -337,7 +337,7 @@ in the local variable `self'."
            (with-current-buffer buffer
              (emacs-lisp-mode)
              (erase-buffer)
-             (pp-display-expression (or result tree) buffer)
+             (me/print-to-buffer (or result tree) buffer)
              (setq-local self tree)
              buffer)
            buffer))
@@ -492,7 +492,7 @@ in the local variable `self'."
                (buffer (get-buffer-create "m/tree")))
            (with-current-buffer buffer
              (erase-buffer)
-             (pp-display-expression json buffer)
+             (me/print-to-buffer json buffer)
              (emacs-lisp-mode)
              (setq self json)
              (pp-buffer)
@@ -511,7 +511,7 @@ in the local variable `self'."
                (buffer (get-buffer-create "m/tree")))
            (with-current-buffer buffer
              (erase-buffer)
-             (pp-display-expression json buffer)
+             (me/print-to-buffer json buffer)
              (emacs-lisp-mode)
              (setq self json)
              (pp-buffer)
@@ -675,7 +675,7 @@ in the local variable `self'."
              (erase-buffer)
              (emacs-lisp-mode)
              (insert ";; Remember to save the note with C-x C-s!\n\n\n")
-             (pp-display-expression note buffer)
+             (me/print-to-buffer note buffer)
              (pp-buffer)
              (me/override-keybiding-in-buffer
               (kbd "C-x C-s")
@@ -704,7 +704,7 @@ in the local variable `self'."
            (with-current-buffer buffer
              (erase-buffer)
              (emacs-lisp-mode)
-             (pp-display-expression notes buffer)
+             (me/print-to-buffer notes buffer)
              (setq self notes)
              (pp-buffer))
            buffer)))
@@ -720,7 +720,7 @@ in the local variable `self'."
            (with-current-buffer buffer
              (erase-buffer)
              (emacs-lisp-mode)
-             (pp-display-expression notes buffer)
+             (me/print-to-buffer notes buffer)
              (setq self notes)
              (pp-buffer))
            buffer)))
@@ -736,7 +736,7 @@ in the local variable `self'."
            (with-current-buffer buffer
              (erase-buffer)
              (emacs-lisp-mode)
-             (pp-display-expression notes buffer)
+             (me/print-to-buffer notes buffer)
              (setq self notes)
              (pp-buffer))
            buffer)))
@@ -826,7 +826,7 @@ in the local variable `self'."
            (with-current-buffer buffer
              (erase-buffer)
              (emacs-lisp-mode)
-             (pp-display-expression notes buffer)
+             (me/print-to-buffer notes buffer)
              (setq self notes)
              (pp-buffer))
            buffer)))

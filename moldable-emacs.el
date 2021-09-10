@@ -31,13 +31,13 @@
 (defun async-map--finish (futures post-fn too-late-p poll-time)
   (if (not (some #'null (mapcar #'async-ready futures)))
       (let ((results (--map
-                             (let ((buf (process-buffer it)))
-                               (with-current-buffer buf
-                                 (async-handle-result
-                                  #'identity
-                                  async-callback-value
-                                  (current-buffer))))
-                             futures)))
+                      (let ((buf (process-buffer it)))
+                        (with-current-buffer buf
+                          (async-handle-result
+                           #'identity
+                           async-callback-value
+                           (current-buffer))))
+                      futures)))
         (funcall post-fn results))
     (if (funcall too-late-p)
         'interrupted
@@ -72,6 +72,11 @@
 ;;  (lambda (x) (make-directory x 't))
 ;;  (list "/tmp/bla" "/tmp/blo" "/tmp/blu")
 ;;  (lambda (_) (message "%s" (directory-files "/tmp"))))
+
+(defun me/print-to-buffer (object &optional buffer)
+  "Print OBJECT in BUFFER without truncation."
+  (let ((print-length nil))
+    (pp-display-expression object (or buffer (current-buffer)))))
 
 (defun me/make-org-table (headlines objects)
   (concat
