@@ -13,6 +13,7 @@
                (buffer (get-buffer-create "m/tree-playground")))
            (with-current-buffer buffer
              (emacs-lisp-mode)
+             (auto-save-mode)
              (erase-buffer)
              (insert ";; Tips:\n;;    Use `self' to access the mold context.\n;;    You can access the previous mold context through `mold-data'.\n\n")
              (goto-char (point-max))
@@ -124,7 +125,7 @@ in the local variable `self'."
                 (tree (me/mold-treesitter-to-parse-tree)))
            (with-current-buffer buffer
              (erase-buffer)
-             (prin1 tree buffer) ;; TODO I need to do keep the position, or allow editing in place, no?
+             (pp-display-expression tree buffer) ;; TODO I need to do keep the position, or allow editing in place, no?
              (pp-buffer)
              (emacs-lisp-mode)
              buffer)))
@@ -148,7 +149,7 @@ in the local variable `self'."
            (with-current-buffer buffer
              (erase-buffer)
              (emacs-lisp-mode)
-             (prin1 tree buffer)
+             (pp-display-expression tree buffer)
              (pp-buffer)
              (setq self tree)
              (current-buffer))))
@@ -278,7 +279,7 @@ in the local variable `self'."
                   't)))
            (with-current-buffer buffer
              (erase-buffer)
-             (prin1 (mapcar 'list sentences) buffer) ;; TODO I need to do keep the position, or allow editing in place, no?
+             (pp-display-expression (mapcar 'list sentences) buffer) ;; TODO I need to do keep the position, or allow editing in place, no?
              (pp-buffer)
              buffer))))
 
@@ -296,7 +297,7 @@ in the local variable `self'."
              )
            (with-current-buffer buffer
              (erase-buffer)
-             (prin1 (reverse sexps) buffer)
+             (pp-display-expression (reverse sexps) buffer)
              (emacs-lisp-mode)
              (pp-buffer)
              buffer))))
@@ -491,7 +492,7 @@ in the local variable `self'."
                (buffer (get-buffer-create "m/tree")))
            (with-current-buffer buffer
              (erase-buffer)
-             (prin1 json buffer)
+             (pp-display-expression json buffer)
              (emacs-lisp-mode)
              (setq self json)
              (pp-buffer)
@@ -510,7 +511,7 @@ in the local variable `self'."
                (buffer (get-buffer-create "m/tree")))
            (with-current-buffer buffer
              (erase-buffer)
-             (prin1 json buffer)
+             (pp-display-expression json buffer)
              (emacs-lisp-mode)
              (setq self json)
              (pp-buffer)
@@ -664,7 +665,7 @@ in the local variable `self'."
                              :buffer-file ,(ignore-errors (s-replace (getenv "HOME") "~" (buffer-file-name)))
                              :mode ,major-mode
                              :git-hash ,(when-let* ((hash? (shell-command-to-string "git rev-parse --short HEAD"))
-                                                    (hash (when (< (length hash?) 10) hash?)))
+                                                    (hash (when (< (length hash?) 15) hash?))) ;; TODO this is a hack because more chars may mean an error
                                           (s-trim hash))))
                     :when nil
                     :then nil))
@@ -674,7 +675,7 @@ in the local variable `self'."
              (erase-buffer)
              (emacs-lisp-mode)
              (insert ";; Remember to save the note with C-x C-s!\n\n\n")
-             (prin1 note buffer)
+             (pp-display-expression note buffer)
              (pp-buffer)
              (me/override-keybiding-in-buffer
               (kbd "C-x C-s")
@@ -703,7 +704,7 @@ in the local variable `self'."
            (with-current-buffer buffer
              (erase-buffer)
              (emacs-lisp-mode)
-             (prin1 notes buffer)
+             (pp-display-expression notes buffer)
              (setq self notes)
              (pp-buffer))
            buffer)))
@@ -719,7 +720,7 @@ in the local variable `self'."
            (with-current-buffer buffer
              (erase-buffer)
              (emacs-lisp-mode)
-             (prin1 notes buffer)
+             (pp-display-expression notes buffer)
              (setq self notes)
              (pp-buffer))
            buffer)))
@@ -735,7 +736,7 @@ in the local variable `self'."
            (with-current-buffer buffer
              (erase-buffer)
              (emacs-lisp-mode)
-             (prin1 notes buffer)
+             (pp-display-expression notes buffer)
              (setq self notes)
              (pp-buffer))
            buffer)))
@@ -825,7 +826,7 @@ in the local variable `self'."
            (with-current-buffer buffer
              (erase-buffer)
              (emacs-lisp-mode)
-             (prin1 notes buffer)
+             (pp-display-expression notes buffer)
              (setq self notes)
              (pp-buffer))
            buffer)))
