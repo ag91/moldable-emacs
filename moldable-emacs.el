@@ -1153,4 +1153,14 @@ a string (node -> string)."
      hash-table)
     result))
 
+(defun me/get-in (plist keys)
+  "Navigate PLIST's KEYS in sequence.
+
+For example, (me/get-in '(:a (:b (:c 1))) '(:a :b :c)) yields 1."
+  (ignore-errors
+    (--reduce-from
+     (plist-get acc it)
+     plist
+     keys)))
+
 (provide 'moldable-emacs)
