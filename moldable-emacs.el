@@ -75,7 +75,8 @@
 
 (defun me/print-to-buffer (object &optional buffer)
   "Print OBJECT in BUFFER without truncation."
-  (let ((print-length nil))
+  (let ((print-length nil)
+        (eval-expression-print-length nil))
     (pp-display-expression object (or buffer (current-buffer)))))
 
 (defun me/make-org-table (headlines objects)
@@ -272,26 +273,127 @@
                                                                  ending
                                                                  beginning)))))
     (--> keys
-      (completing-read
-       "Pick the mold you need:"
-       it)
-      (-find
-       (lambda (x)
-         (string=
-          (plist-get x :key)
-          it))
-       molds)
-      (funcall
-       (lambda (mold)
-         (--each
-             me/mold-before-mold-runs-hook
-           (funcall it mold))
-         mold)
-       it)
-      (plist-get it :then)
-      funcall
-      switch-to-buffer-other-window)
+         (completing-read
+          "Pick the mold you need:"
+          it)
+         (-find
+          (lambda (x)
+            (string=
+             (plist-get x :key)
+             it))
+          molds)
+         (funcall
+          (lambda (mold)
+            (--each
+                me/mold-before-mold-runs-hook
+              (funcall it mold))
+            mold)
+          it)
+         (plist-get it :then)
+         funcall
+         switch-to-buffer-other-window)
     (run-hooks 'me/mold-after-hook)))
+
+(defmacro me/with-mold-let (mold &rest body)
+  "Wrap BODY in a let with :let and :buffername of MOLD."
+  `(funcall
+    (lambda (x body)
+      (eval `(let* (,@(plist-get x :let)
+                    (buffername ,(or (plist-get x :buffername) (plist-get x :key))))
+               ,@body)))
+    ,mold
+    ',body))
+
+;; (let ( (x '(:key "hello" :let ((a 1) (b 2)) :buffername nil)))
+;;   (me/with-mold-let x
+;;                     (+ a 1)
+;;                     (+ b 1)))
+
+;; (me/with-mold-let '(:key "hello" :let ((a 1) (b 2)) :buffername nil)
+;;                   (+ a 1)
+;;                   (+ b 1))
+
+
+
+(defun me/mold-run-given (mold)
+  "Run MOLD :given."
+  (me/with-mold-let mold
+                    (eval (me/get-in mold '(:given :fn)))))
+
+(defun me/usable-molds-1 (&optional molds buffer)
+  "Returns the usable molds among the `me/available-molds' for the `current-buffer'. Optionally you can pass a list of MOLDS and a BUFFER to filter the usable ones."
+  (let ((molds (or molds me/available-molds))
+        (buffer (or buffer (current-buffer))))
+    (with-current-buffer buffer
+      (--filter
+       (save-excursion
+         (ignore-errors (me/mold-run-given it))) ;; TODO run this in parallel when time goes over 100ms (time goes already over for org-table condition when there are many org tables in the same file - I got over 2 seconds wait for 5 tables mostly empty!!!)
+       molds))))
+
+(defun me/mold-run-then (mold)
+  "Run MOLD :then."
+  (me/with-mold-let mold
+                    (get-buffer-create buffername)
+                    (eval (me/get-in mold '(:then :fn)))
+                    (ignore-errors (switch-to-buffer-other-window (get-buffer buffername)))))
+
+(defun me/mold-1 ()
+  "Propose a list of available molds for the current context."
+  (interactive)
+  (run-hooks 'me/mold-before-hook)
+  (let* ((beginning (current-time))
+         (molds (me/usable-molds-1))
+         (keys (--map (plist-get it :key) molds))
+         (ending (current-time))
+         (_ (message "Finding molds took %s seconds in total." (time-to-seconds
+                                                                (time-subtract
+                                                                 ending
+                                                                 beginning)))))
+    (--> keys
+         (completing-read
+          "Pick the mold you need:"
+          it)
+         (-find
+          (lambda (x)
+            (string=
+             (plist-get x :key)
+             it))
+          molds)
+         (funcall
+          (lambda (mold)
+            (--each
+                me/mold-before-mold-runs-hook
+              (funcall it mold))
+            mold)
+          it)
+         me/mold-run-then)
+    (run-hooks 'me/mold-after-hook)))
+
+(defun me/mold-compose-molds-1 (mold1 mold2)
+  "Compose MOLD1 and MOLD2 in a new mold."
+  `(
+    :key ,(format
+           "CompositionOf%sAnd%s"
+           (plist-get mold1 :key)
+           (plist-get mold2 :key))
+    :given (:fn (me/mold-run-given ',mold1))
+    :then (:fn
+           (progn (me/mold-run-then ',mold1)
+                  (me/mold-run-then ',mold2)
+                  ;; (delete-window (get-buffer-window (plist-get ',mold1 :buffername)))
+                  (switch-to-buffer buffername)
+                  (kill-buffer-and-window)))))
+
+(defun me/mold-compose-1 (m1 m2 &optional props)
+  "Compose M1 and M2 in a single mold. Add PROPS (e.g.,  `(:docs \"...\" :examples nil)') to it."
+  (let ((mold1 (if (stringp m1) (me/find-mold m1) m1))
+        (mold2 (if (stringp m2) (me/find-mold m2) m2)))
+    (if (and mold1 mold2)
+        (let ((result (me/mold-compose-molds-1 mold1 mold2)))
+          (--each props
+            (plist-put result (nth 0 it) (nth 1 it)))
+          result)
+      (error (format "Could not find molds, check out: %s." (list m1 m2))))))
 
 (defvar me/temporary-mold-data nil "Holder of mold data before it is assigned to local variable `mold-data'.")
 
@@ -667,6 +769,11 @@ some new contents
    me/files-with-molds))
 
 (defmacro me/register-mold (&rest mold) ;; TODO I should validate molds somehow, not just assign them! Also use hashmap?
+  (--each me/before-register-mold-hook (funcall it mold))
+  `(me/add-to-available-molds ',mold))
+
+(defmacro me/register-mold-1 (&rest mold)
+  "Register MOLD."
   (--each me/before-register-mold-hook (funcall it mold))
   `(me/add-to-available-molds ',mold))
 

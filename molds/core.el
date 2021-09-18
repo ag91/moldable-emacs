@@ -300,6 +300,7 @@ in the local variable `self'."
              (me/print-to-buffer (reverse sexps) buffer)
              (emacs-lisp-mode)
              (pp-buffer)
+             (setq-local self sexps)
              buffer))))
 
 (me/register-mold
