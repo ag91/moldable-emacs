@@ -285,6 +285,7 @@ following in your lein project.clj
                       (shell-command-to-string
                        (format "imgclip -p '%s' --lang eng" s)))
                    (list (or (buffer-file-name)
+                             ;; otherwise store the open image in /tmp for imgclip to work on a file
                              (let ((path (concat "/tmp/" buffer)))
                                (write-region (point-min) (point-max) path)
                                path)))
