@@ -715,6 +715,17 @@ in the local variable `self'."
                   (me/store-note new-note))
                 (message "Notes stored!")))))))
 
+(me/register-mold-1
+ :key "ShowAllNotes"
+ :let ((notes (me/load-notes)))
+ :given (:fn notes)
+ :then (:fn
+        (with-current-buffer buffername
+          (erase-buffer)
+          (emacs-lisp-mode)
+          (me/print-to-buffer notes)
+          (setq-local self notes))))
+
 (me/register-mold-by-key "AnnotateWithOrg"
                          (me/mold-compose-1 "Annotate" "NoteToOrg"))
 
@@ -729,17 +740,6 @@ in the local variable `self'."
 
 (me/register-mold-by-key "ShowAllNotesInOrg"
                          (me/mold-compose-1 "ShowAllNotes" "NotesToOrg"))
-
-(me/register-mold-1
- :key "ShowAllNotes"
- :let ((notes (me/load-notes)))
- :given (:fn notes)
- :then (:fn
-        (with-current-buffer buffername
-          (erase-buffer)
-          (emacs-lisp-mode)
-          (me/print-to-buffer notes)
-          (setq-local self notes))))
 
 (me/register-mold-1
  :key "NodeAtPointToPlayground"
