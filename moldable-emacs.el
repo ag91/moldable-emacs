@@ -812,7 +812,7 @@ some new contents
   (format "[[%s:%s][%s]]" (or link-type "file") target description))
 
 (defun me/make-elisp-navigation-link (name file-name)
-  "Make an Elisp Org link that navigates to a position of NAME in BUFFERNAME."
+  "Make an Elisp Org link that navigates to a position of NAME in FILE-NAME."
   (let* ((pos-file (with-temp-buffer
                      (insert-file-contents-literally file-name)
                      (goto-char (point-min))
@@ -823,6 +823,19 @@ some new contents
       "(progn (find-file-other-window \"%s\") (goto-char %s))"
       (nth 1 pos-file)
       (nth 0 pos-file))
+     "elisp")))
+
+(defun me/make-elisp-buffer-navigation-link (name buffer-name)
+  "Make an Elisp Org link that navigates to a position of NAME in BUFFER-NAME."
+  (let* ((pos (with-current-buffer buffer-name
+                (goto-char (point-min))
+                (search-forward (if (s-contains-p "\"" name) (prin1-to-string name) (format "%s" name))))))
+    (me/make-elisp-file-link
+     name
+     (format
+      "(progn (switch-to-buffer-other-window \"%s\") (goto-char %s))"
+      buffer-name
+      pos)
      "elisp")))
 
 (defun me/color-string (str color)
