@@ -429,6 +429,20 @@
 
 (add-hook 'me/mold-before-hook #'me/setup-self-mold-data)
 
+(defun me/set-dired-self-for-playground ()
+  "Set Playground `self' to dired list of files."
+  (when (and
+         (equal me/last-used-mold "Playground")
+         (ignore-errors mold-data)
+         (eq (plist-get mold-data :old-mode) 'dired-mode))
+    (setq-local self (with-current-buffer (plist-get mold-data :old-buffer)
+                       (mark-whole-buffer)
+                       (call-interactively #'dired-mark)
+                       (let ((files (dired-get-marked-files)))
+                         (call-interactively #'dired-unmark-all-files)
+                         files)))))
+(add-hook 'me/mold-after-hook #'me/set-dired-self-for-playground)
+
 (defun me/set-self-mold-data ()
   "Set `mold-data'."
   (setq-local mold-data
