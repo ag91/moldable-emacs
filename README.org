@@ -140,3 +140,10 @@ https://ag91.github.io/blog/2021/07/27/moldable-emacs-finding-examples-of-clojur
 :END:
 
 https://ag91.github.io/blog/2021/08/11/moldable-emacs-editing-your-file-via-treesitter-(or-how-i-fixed-my-css-with-a-playground)/
+*** Howto: Migrating to a terser format for molds
+:PROPERTIES:
+:CREATED:  [2021-09-22 Wed 00:05]
+:ID:       2763024c-15ef-49da-bf94-888ec3de95e2
+:END:
+
+https://ag91.github.io/blog/2021/09/19/moldable-emacs-making-molds-a-little-easier-to-write/
