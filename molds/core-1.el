@@ -819,3 +819,17 @@ in the local variable `self'."
             (setq-local self history))))
  :docs "You can see the current history of the molds you used."
  :examples nil)
+
+
+(me/register-mold-1
+ :key "Inspect molds running time"
+ :given (:fn (and me/molds-debug-on me/usable-mold-stats))
+ :then (:fn
+        (let* ((stats me/usable-mold-stats))
+          (with-current-buffer buffername
+            (emacs-lisp-mode)
+            (erase-buffer)
+            (me/print-to-buffer (--sort (> (plist-get it :time) (plist-get other :time)) stats))
+            (setq-local self stats me/usable-mold-stats))))
+ :docs "You can see how long did the mold take to evaluate the given clause."
+ :examples nil)

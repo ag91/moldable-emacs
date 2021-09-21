@@ -12,6 +12,10 @@
     "molds/contrib.el"))
   "Files containing molds.")
 
+(defcustom me/molds-debug-on
+  nil
+  "Toggle for debugging information.")
+
 (defun me/setup-molds ()
   "Load molds from `me/files-with-molds'."
   (-each me/files-with-molds #'load-file))
@@ -268,10 +272,10 @@
          (molds (me/usable-mold))
          (keys (--map (plist-get it :key) molds))
          (ending (current-time))
-         (_ (message "Finding molds took %s seconds in total." (time-to-seconds
-                                                                (time-subtract
-                                                                 ending
-                                                                 beginning)))))
+         (_ (when me/molds-debug-on (message "Finding molds took %s seconds in total." (time-to-seconds
+                                                                                        (time-subtract
+                                                                                         ending
+                                                                                         beginning))))))
     (--> keys
          (completing-read
           "Pick the mold you need:"
@@ -294,7 +298,7 @@
          switch-to-buffer-other-window)
     (run-hooks 'me/mold-after-hook)))
 
-(defmacro me/with-mold-let (mold &rest body)
+(defmacro me/with-mold-let (mold &rest body) ;; TODO this must evaluate only once any time is called AND needs to make evaluation of bindings lazy?
   "Wrap BODY in a let with :let and :buffername of MOLD."
   `(funcall
     (lambda (x body)
@@ -320,14 +324,27 @@
   (me/with-mold-let mold
                     (eval (me/get-in mold '(:given :fn)))))
 
+(defvar me/usable-mold-stats nil)
+
 (defun me/usable-molds-1 (&optional molds buffer)
-  "Returns the usable molds among the `me/available-molds' for the `current-buffer'. Optionally you can pass a list of MOLDS and a BUFFER to filter the usable ones."
-  (let ((molds (or molds me/available-molds))
+  "Return the usable molds among the `me/available-molds' for the `current-buffer'. Optionally you can pass a list of MOLDS and a BUFFER to filter the usable ones."
+  (let ((_ (setq me/usable-mold-stats nil))
+        (molds (or molds me/available-molds))
         (buffer (or buffer (current-buffer))))
     (with-current-buffer buffer
       (--filter
-       (save-excursion
-         (ignore-errors (me/mold-run-given it))) ;; TODO run this in parallel when time goes over 100ms (time goes already over for org-table condition when there are many org tables in the same file - I got over 2 seconds wait for 5 tables mostly empty!!!)
+       (let* ((beginning (current-time))
+              (result (save-excursion
+                        (ignore-errors (me/mold-run-given it)))) ; TODO composite molds
+              (ending (current-time))
+              (_ (when me/molds-debug-on
+                   (add-to-list 'me/usable-mold-stats (list :mold (plist-get it :key)
+                                                            :time
+                                                            (time-to-seconds
+                                                             (time-subtract
+                                                              ending
+                                                              beginning)))))))
+         result) ;; TODO run this in parallel when time goes over 100ms (time goes already over for org-table condition when there are many org tables in the same file - I got over 2 seconds wait for 5 tables mostly empty!!!)
        molds))))
 
 (defun me/mold-run-then (mold)
@@ -345,10 +362,11 @@
          (molds (me/usable-molds-1))
          (keys (--map (plist-get it :key) molds))
          (ending (current-time))
-         (_ (message "Finding molds took %s seconds in total." (time-to-seconds
-                                                                (time-subtract
-                                                                 ending
-                                                                 beginning)))))
+         (_ (when me/molds-debug-on
+              (message "Finding molds took %s seconds in total." (time-to-seconds
+                                                                  (time-subtract
+                                                                   ending
+                                                                   beginning))))))
     (--> keys
          (completing-read
           "Pick the mold you need:"
@@ -406,7 +424,8 @@
          :old-file (buffer-file-name)
          :old-point (point)
          :old-mode major-mode
-         :old-date (ignore-errors (plist-get mold-data :date)))))
+         :old-date (ignore-errors (plist-get mold-data :date))
+         :old-mold me/last-used-mold)))
 
 (add-hook 'me/mold-before-hook #'me/setup-self-mold-data)
 
