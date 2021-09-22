@@ -1316,4 +1316,10 @@ For example, (me/get-in '(:a (:b (:c 1))) '(:a :b :c)) yields 1."
      plist
      keys)))
 
+(defun me/plist-focus (plist keys)
+  "Focus only on KEYS of PLIST. For example, (me/plist-focus '(:a a :b b :c c) '(:a :c)) => '(:a a :c c)."
+  (-flatten (--map (list it (plist-get plist it)) keys)))
+
+;; (me/plist-focus '(:a a :b b :c c) '(:a :c))
+
 (provide 'moldable-emacs)
