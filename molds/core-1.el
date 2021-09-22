@@ -305,7 +305,7 @@ in the local variable `self'."
           (with-current-buffer buffername
             (emacs-lisp-mode)
             (erase-buffer)
-            (me/print-to-buffer (or result tree))
+            (me/print-to-buffer tree)
             (setq-local self tree))))
  :docs "You can evaluate a lisp expression after point and produce a new buffer with the result."
  :examples ((
