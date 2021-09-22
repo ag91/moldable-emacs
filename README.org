@@ -140,6 +140,20 @@ https://ag91.github.io/blog/2021/07/27/moldable-emacs-finding-examples-of-clojur
 :END:
 
 https://ag91.github.io/blog/2021/08/11/moldable-emacs-editing-your-file-via-treesitter-(or-how-i-fixed-my-css-with-a-playground)/
+*** Prototype: integrating Nyxt and Vega-Lite
+:PROPERTIES:
+:CREATED:  [2021-09-22 Wed 23:42]
+:END:
+
+https://ag91.github.io/blog/2021/08/22/moldable-emacs-vega-lite-nyxt-and-emacs-towards-sustainable-development
+
+*** Taking notes with molds
+:PROPERTIES:
+:CREATED:  [2021-09-22 Wed 23:42]
+:END:
+
+https://ag91.github.io/blog/2021/09/05/moldable-emacs-taking-lispy-notes-that-are-easier-to-search
+
 *** Howto: Migrating to a terser format for molds
 :PROPERTIES:
 :CREATED:  [2021-09-22 Wed 00:05]
