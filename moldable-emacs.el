@@ -442,7 +442,7 @@
                                   (let ((files (dired-get-marked-files)))
                                     (call-interactively #'dired-unmark-all-files)
                                     files)))))))
-(add-hook 'me/mold-after-hook #'me/set-dired-self-for-playground)
+(add-hook 'me/mold-after-hook #'me/set-dired-self-for-playground) ;; the order is important: keep before me/set-self-mold-data
 
 (defun me/set-self-mold-data ()
   "Set `mold-data'."
