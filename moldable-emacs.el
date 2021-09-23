@@ -55,6 +55,7 @@
        poll-time))))
 
 (defun async-map (fn els &optional post-fn poll-time timeout) ;; TODO maybe I can just use this https://github.com/chuntaro/emacs-promise
+  "Run FN async on elements ELS. Optionally define a POST-FN to run on the results of apply FN on ELS. Optionally define a POLL-TIME to look for results and a TIMEOUT to fail."
   (let* ((start (current-time))
          (futures (mapcar
                    (lambda (el)
@@ -84,6 +85,7 @@
     (pp-display-expression object (or buffer (current-buffer)))))
 
 (defun me/make-org-table (headlines objects)
+  "Make an Org Table with OBJECTS formats and HEADLINES."
   (concat
    (concat "| " (s-join " | " (-map #'car headlines))  " | \n")
    (concat "|-" (format (s-repeat (- (length headlines) 1) "-+-")) "-| \n")
@@ -106,6 +108,7 @@
 
 
 (defun me/insert-string-table (table-string)
+  "Insert TABLE-STRING in buffer. Make sure table is well indented."
   (insert table-string)
   (save-excursion
     (search-backward "|" nil nil 2) ;; count 2 to avoid an extra (empty) row at the bottom
@@ -127,8 +130,12 @@
   (should
    (equal (me/alist-to-plist '(("A" "b") (1 2) (3 4))) '((:A 1 :b 2) (:A 3 :b 4)))))
 
-(defun me/org-table-to-plist (table-string)
+;; (ert-deftest me/alist-to-plist_convert-alist-to-plist+1 ()
+;;   (should
+;;    (equal (me/alist-to-plist '(("A" . "b") (1 . 2) (3 . 4))) '((:A 1 :b 2) (:A 3 :b 4)))))
 
+(defun me/org-table-to-plist (table-string)
+  "Make TABLE-STRING a plist."
   (with-temp-buffer
     (save-excursion (insert table-string))
     (org-table-transpose-table-at-point)
@@ -141,9 +148,9 @@
   (let* ((plist (me/org-table-to-plist table-string))
          (keys (-filter 'symbolp plist)))
     (--> keys
-      (--map (-map (lambda (x) (list it (substring-no-properties x))) (plist-get plist it)) it)
-      (apply '-zip it)
-      (-map '-flatten it))))
+         (--map (-map (lambda (x) (list it (substring-no-properties x))) (plist-get plist it)) it)
+         (apply '-zip it)
+         (-map '-flatten it))))
 
 (defun me/flat-org-table-to-string (flat-org-table)
   (me/make-org-table
@@ -166,7 +173,7 @@
           (me/org-table-to-flat-plist it))))))
 
 (defun me/all-flat-org-tables (&optional buffer)
-  "Find first org table. Optionally in FILE."
+  "Find first org table. Optionally in BUFFER."
   (ignore-errors
     (with-current-buffer (or buffer (current-buffer)) ;; TODO remove org links in table!
       (save-excursion
@@ -176,11 +183,10 @@
                   (goto-char (- (org-table-end) 1)))
             (setq result
                   (cons (--> (org-table-to-lisp)
-                          (orgtbl-to-orgtbl it nil)
-                          (me/org-table-to-flat-plist it))
+                             (orgtbl-to-orgtbl it nil)
+                             (me/org-table-to-flat-plist it))
                         result)))
           result)))))
-
 
 
 (defun me/by-type (type tree)
@@ -222,19 +228,20 @@
         (reverse acc)))))
 
 (defun me/mold-treesitter-file (path)
+  "Obtain treesitter nodes for file at PATH."
   (with-file path
-   (tree-sitter-mode 1)
-   (me/mold-treesitter-to-parse-tree))
-  )
+             (tree-sitter-mode 1)
+             (me/mold-treesitter-to-parse-tree)))
 
 (defun nodes-with-duplication (self)
+  "Find nodes that are duplicated for SELF."
   (-remove
    'null
    (--map
-    (-flatten ; do not need enclosing list
+    (-flatten                           ; do not need enclosing list
      (let ((-compare-fn (lambda (a b) (string= (plist-get a :text) (plist-get b :text)))) ;; this is for making -distinct apply on the :text property
            (nodes-for-single-type (cdr it)))
-       (--reduce-from ; find duplicate
+       (--reduce-from  ; find duplicate
         (-remove-first ; by removing only the first matching node text
          (lambda (x) (string= (plist-get x :text) (plist-get it :text)))
          acc)
@@ -255,7 +262,7 @@
 (defvar me/mold-before-mold-runs-hook nil "Hooks to run before the chosen mold runs.")
 
 (defun me/usable-mold (&optional molds buffer)
-  "Returns the usable molds among the `me/available-molds' for the `current-buffer'. Optionally you can pass a list of MOLDS and a BUFFER to filter the usable ones."
+  "Return the usable molds among the `me/available-molds' for the `current-buffer'. Optionally you can pass a list of MOLDS and a BUFFER to filter the usable ones."
   (let ((molds (or molds me/available-molds))
         (buffer (or buffer (current-buffer))))
     (with-current-buffer buffer
@@ -533,30 +540,37 @@ This should simplify the testing and documentation of molds.")
 
 (defmacro me/given (given &rest body)
   "Setup according to GIVEN and run BODY."
-  (let* ((given (eval given))
-         (type (plist-get  given :type))
-         (name (plist-get given :name))
-         (mode (plist-get given :mode))
-         (contents (if (eq mode 'image-mode)
-                       (with-temp-buffer
-                         (insert-file-contents-literally (plist-get given :contents))
-                         (buffer-substring-no-properties (point-min) (point-max)))
-                     (plist-get given :contents))))
-    (if (equal type 'buffer)
-        `(with-temp-buffer
-           (rename-buffer ,name)
-           (insert ,contents)
-           (,(if mode mode 'fundamental-mode))
-           ,@body)
-      `(with-temp-file ,name
-         (insert ,contents) ;; TODO this does not work for images: it seems there are coding system issues
-         (,(if mode mode 'fundamental-mode))
-         ,@body))))
+  `(let* ((given (eval ',given))
+          (type (plist-get  given :type))
+          (name (plist-get given :name))
+          (mode (plist-get given :mode))
+          (body ',body)
+          (contents (if (eq mode 'image-mode)
+                        (with-temp-buffer
+                          (insert-file-contents-literally (plist-get given :contents))
+                          (buffer-substring-no-properties (point-min) (point-max)))
+                      (plist-get given :contents))))
+     (eval (if (equal type 'buffer)
+               `(with-temp-buffer
+                  (rename-buffer ,name)
+                  (insert ,contents)
+                  (,(if mode mode 'fundamental-mode))
+                  ,@body)
+             `(with-temp-file ,name
+                (insert ,contents) ;; TODO this does not work for images: it seems there are coding system issues
+                (,(if mode mode 'fundamental-mode))
+                ,@body)))))
 
 (ert-deftest me/given_valid-with-buffer ()
   (should
    (equal
     (me/given '(:type buffer :name "some.txt" :contents "bla" :mode emacs-lisp-mode) (format "%s %s" (buffer-name) major-mode))
+    "some.txt emacs-lisp-mode")))
+
+(ert-deftest me/given_valid-with-buffer-param ()
+  (should
+   (equal
+    (let ((x '(:type buffer :name "some.txt" :contents "bla" :mode emacs-lisp-mode))) (me/given x (format "%s %s" (buffer-name) major-mode)))
     "some.txt emacs-lisp-mode")))
 
 (defun me/check-then-clause (then)
@@ -573,24 +587,27 @@ This should simplify the testing and documentation of molds.")
 
 (defun me/check-example (example run-fn)
   "Run RUN-FN in the EXAMPLE."
-  (let* ((start (plist-get example :given))
+  (let* ((beg (plist-get example :given))
          (end (plist-get example :then)))
-    (me/given start
+    (me/given beg
               (goto-char (point-min))
-              (with-current-buffer (funcall run-fn)
-                (me/check-then-clause end)))))
+              (funcall run-fn)
+              (me/check-then-clause end)
+              (kill-buffer))))
 
 (defun me/test-example (example run-fn)
   "Test RUN-FN in the EXAMPLE."
-  (plist-get (me/check-example example run-fn) :success))
-
+  (let ((result (plist-get (me/check-example example run-fn) :success)))
+    (if result
+        result
+      (message "Issues: %s" (plist-get (me/check-example example run-fn) :issues)))))
 
 (defun me/test-mold-examples (mold)
   "Check that all MOLD's examples are working."
   (--reduce
    (and it acc)
    (--map
-    (me/test-example it (lambda () (set-buffer (funcall (plist-get mold :then)))))
+    (me/test-example it (lambda () (me/mold-run-then mold)))
     (plist-get mold :examples))))
 
 ;; (me/test-mold-examples (me/find-mold "Playground"))
@@ -1173,6 +1190,7 @@ a string (node -> string)."
      me/notes)))
 
 (defun me/filter-notes-by-mode (mode)
+  "Filter notes by MODE."
   (--filter
    (ignore-errors (equal mode (plist-get (plist-get (plist-get it :given) :node) :mode)))
    me/notes))
@@ -1200,21 +1218,21 @@ a string (node -> string)."
 (defun me/usable-molds-requiring-deps ()
   "Find molds that require dependencies to run."
   (--filter
-   (let ((given-cond (nth 2 (plist-get it :given))))
-     (ignore-errors (and
-       (> (length given-cond) 1)
-       (eq (car given-cond) 'and)
-       (eval (cons 'and (--remove
-                         (or
-                          (-contains? it 'executable-find)
-                          (-contains? it 'me/require))
-                         (cdr given-cond))))
-       )))
+   (let ((given-cond (me/get-in it '(:given :fn))))
+     (ignore-errors
+       (and
+        (> (length given-cond) 1)
+        (eq (car given-cond) 'and)
+        (eval (cons 'and (--remove
+                          (or
+                           (-contains? it 'executable-find)
+                           (-contains? it 'me/require))
+                          (cdr given-cond)))))))
    me/available-molds))
 
 (defun me/find-missing-dependencies-for-mold (mold)
   "List unmet dependencies by MOLD."
-  (let ((given-cond (nth 2 (plist-get mold :given))))
+  (let ((given-cond (me/get-in mold '(:given :fn)))) ;; TODO this will break if I add other keywords than :fn
     (list
      :key (plist-get mold :key)
      :missing-dependencies
@@ -1222,17 +1240,16 @@ a string (node -> string)."
       (ignore-errors (> (length given-cond) 1))
       (eq (car given-cond) 'and)
       (--> (cdr given-cond)
-        (--filter
-         (or
-          (and
-           (-contains? it 'executable-find)
-           (not (eval it)))
-          (and
-           (-contains? it 'me/require)
-           (not (eval it)))
-          )
-         it)
-        )))))
+           (--filter
+            (or
+             (and
+              (-contains? it 'executable-find)
+              (not (eval it)))
+             (and
+              (-contains? it 'me/require)
+              (not (eval it)))
+             )
+            it))))))
 
 (defun me/find-missing-dependencies-for-molds (molds)
   "List unmet dependencies by MOLDS."

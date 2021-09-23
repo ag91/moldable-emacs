@@ -26,7 +26,11 @@ in the local variable `self'."
  :examples ((
              :name "Empty file"
              :given (:type file :name "/tmp/test.txt" :mode text-mode :contents "")
-             :then (:type buffer :name "Playground" :mode emacs-lisp-mode :contents ""))))
+             :then (:type buffer :name "Playground" :mode emacs-lisp-mode :contents ";; Tips:
+;;    Use `self' to access the mold context.
+;;    You can access the previous mold context through `mold-data'.
+
+"))))
 
 (me/register-mold-1
  :key "Query"
@@ -47,8 +51,7 @@ in the local variable `self'."
  :key "WhatMoldsCanIUse?"
  :given (:fn t)
  :then (:fn
-        (let* ((buffername (buffer-name))
-               (molds (me/usable-mold))
+        (let* ((molds (me/usable-molds-1))
                (missing-deps-molds
                 (--filter
                  (plist-get it :missing-dependencies)
