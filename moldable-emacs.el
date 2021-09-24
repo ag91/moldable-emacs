@@ -629,8 +629,7 @@ This should simplify the testing and documentation of molds.")
      start-contents
      end-name
      end-buffer-or-file
-     end-contents
-     )))
+     end-contents)))
 
 (ert-deftest me/example-to-docstring_produce-doc-string ()
   (should
@@ -655,33 +654,33 @@ some new contents
 
     )))
 
+(defun me/mold-doc (mold-key)
+  "Produce structured doc for a mold identified by MOLD-KEY."
+  (--> mold-key
+       me/find-mold
+       (list
+        :title
+        (format "Documentation about %s mold" (plist-get it :key))
+        :documentation
+        (concat (plist-get it :docs)
+                (let ((examples (plist-get it :examples)))
+                  (when (> (length examples) 0)
+                    (me/example-to-docstring (car examples))))))))
+
 (defun me/mold-docs ()
   "Propose a list of available views for the current context."
   (interactive)
-  (let* ((molds (me/usable-mold))
+  (let* ((molds (me/usable-molds-1))
          (keys (--map (plist-get it :key) molds)))
     (--> keys
-      (completing-read
-       "Pick the view you need:"
-       it)
-      (-find
-       (lambda (x)
-         (string=
-          (plist-get x :key)
-          it))
-       molds)
-      (list
-       :title
-       (format "Documentation about %s mold" (plist-get it :key))
-       :documentation
-       (concat (plist-get it :docs)
-               (let ((examples (plist-get it :examples)))
-                 (when (> (length examples) 0)
-                   (me/example-to-docstring (car examples))))))
-      (progn
-        (switch-to-buffer (get-buffer-create (plist-get it :title)))
-        (erase-buffer)
-        (insert (plist-get it :documentation))))))
+         (completing-read
+          "Pick the view you need:"
+          it)
+         me/mold-doc
+         (progn                         ;; TODO this is a bit poor. Maybe use an Org Mode file?
+           (switch-to-buffer (get-buffer-create (plist-get it :title)))
+           (erase-buffer)
+           (insert (plist-get it :documentation))))))
 
 (defun me/show-example (example run-fn)
   "Run RUN-FN in the EXAMPLE."

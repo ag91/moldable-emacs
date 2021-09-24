@@ -161,3 +161,11 @@ https://ag91.github.io/blog/2021/09/05/moldable-emacs-taking-lispy-notes-that-ar
 :END:
 
 https://ag91.github.io/blog/2021/09/19/moldable-emacs-making-molds-a-little-easier-to-write/
+
+*** Extend molds via hooks
+:PROPERTIES:
+:CREATED:  [2021-09-24 Fri 23:51]
+:ID:       dfb3ceec-80f1-4d73-abf4-7a31ec422d86
+:END:
+
+https://ag91.github.io/blog/2021/09/23/moldable-emacs-extending-the-playground-powers-via-hooks-to-include-dired

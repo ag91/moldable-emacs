@@ -54,7 +54,6 @@ following in your lein project.clj
 `:test2junit-output-dir "target/test-reports"
   :profiles {:dev {:plugins [[test2junit "1.4.2"]]}}`")
 
-
 (me/register-mold-1
  :key "CSVToBarChart"
  :given (:fn
@@ -72,7 +71,8 @@ following in your lein project.clj
             (display-pixel-width)
             (display-pixel-height)
             "/tmp/somefile.csv"))
-          (insert "Placeholder buffer..."))))
+          (insert "Placeholder buffer...")))
+ :docs "Make a bar chart out of a csv buffer.")
 
 (me/register-mold-1
  :key "CSVToLineChart"
@@ -90,19 +90,22 @@ following in your lein project.clj
             (display-pixel-width)
             (display-pixel-height)
             "/tmp/somefile.csv"))
-          (insert "Placeholder buffer..."))))
+          (insert "Placeholder buffer...")))
+ :docs "Make a line chart out of a csv buffer.")
 
 (me/register-mold-by-key
  "FirstOrgTableToLineChart"
  (me/mold-compose-1
   (me/mold-compose-1 "FirstOrgTable"  "OrgTableToCSV")
-  "CSVToLineChart"))
+  "CSVToLineChart"
+  '((:docs "Make a line chart out of an Org table."))))
 
 (me/register-mold-by-key
  "FirstOrgTableToBarChart"
  (me/mold-compose-1
   (me/mold-compose-1 "FirstOrgTable"  "OrgTableToCSV")
-  "CSVToBarChart"))
+  "CSVToBarChart"
+  '((:docs "Make a bar chart out of an Org table."))))
 
 (defun me/find-children (node tree)
   "Find children of NODE in TREE."
@@ -180,7 +183,8 @@ following in your lein project.clj
                  (lambda (s) (me/highlight-function-length s))))
                )
              complexities)
-            ))))
+            )))
+ :docs "Show a table showing code complexity for the functions in the buffer.")
 
 ;; TODO make mold that let you open a note, this should add a warning if the note is outdated (i.e., the position cannot be found anymore)
 (defun me/structure-to-dot-string (structure)
@@ -253,7 +257,8 @@ following in your lein project.clj
           (with-current-buffer buffername
             (erase-buffer)
             (insert (me/diagram-to-dot-string diagram))
-            (setq-local self tables)))))
+            (setq-local self tables))))
+ :docs "Convert Org tables to Graphviz dot format.")
 
 (me/register-mold-1 ;; https://orgmode.org/worg/org-tutorials/org-dot-diagrams.html
  :key "DotToPicture"
@@ -264,12 +269,13 @@ following in your lein project.clj
  :then (:fn
         (find-file-other-window (me/dot-string-to-picture (buffer-substring-no-properties (point-min) (point-max))))
         (switch-to-buffer buffername)
-        (kill-buffer-and-window)))
+        (kill-buffer-and-window))
+ :docs "Convert Graphviz dot buffer to an graph image.")
 
 (me/register-mold-by-key
  "OrgTablesToDotPicture"
- (me/mold-compose-1 "OrgTablesToDot" "DotToPicture"))
-
+ (me/mold-compose-1 "OrgTablesToDot" "DotToPicture"
+                    '((:docs "Make a graph image out of Org tables representing a graph."))))
 
 (me/register-mold-1
  :key "Image To Text"

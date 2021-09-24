@@ -45,7 +45,9 @@ in the local variable `self'."
             (emacs-lisp-mode)
             (erase-buffer)
             (setq-local self sexps)
-            (me/print-to-buffer sexps)))))
+            (me/print-to-buffer sexps))))
+ :docs "Evaluate an Elisp expression in the current buffer and the result will appear in a new Elisp buffer. Useful to run Elisp on the fly without a Playground."
+ :examples ((:given (:type file :name "/tmp/example" :mode fundamental-mode :contents "") :then (:type buffer :name "Query" :mode emacs-lisp-mode :contents "\"Just evaluating a string: anything you evaluate in this mold appears here\""))))
 
 (me/register-mold-1
  :key "WhatMoldsCanIUse?"
@@ -69,7 +71,9 @@ in the local variable `self'."
                  (lambda (obj) (plist-get obj :key))
                  :handler
                  (lambda (s)
-                   (me/make-elisp-file-link  "Start!" (format "(me/mold-demo (me/find-mold \"%s\"))" s) "elisp"))))
+                   (if (plist-get (me/find-mold s) :examples)
+                       (me/make-elisp-file-link  "Start!" (format "(me/mold-demo (me/find-mold \"%s\"))" s) "elisp")
+                     "Not available."))))
                ("Documentation" .
                 (:extractor
                  (lambda (obj) (or (plist-get obj :docs) "Not available."))
@@ -258,7 +262,12 @@ in the local variable `self'."
           (with-current-buffer buffername
             (erase-buffer)
             (me/print-to-buffer (mapcar 'list sentences)) ;; TODO I need to do keep the position, or allow editing in place, no?
-            ))))
+            )))
+ :docs "Create a list of sentences for a text buffer."
+ :examples ((:given (:type buffer :name "SentencesAsTree" :mode emacs-lisp-mode :contents "((\"Some sentence\")
+ (\"Some other sentence\")
+ (\"Some more\"))
+"))))
 
 (me/register-mold-1
  :key "ElispAsTree"
@@ -279,6 +288,7 @@ in the local variable `self'."
 
 (me/register-mold-1
  :key "TreeOfDuplicates"
+ :docs "Find the duplicate nodes in your Elisp buffer."
  :given (:fn (and (eq major-mode 'emacs-lisp-mode)))
  :then (:fn
         (let* ((self (ignore-errors
@@ -291,7 +301,17 @@ in the local variable `self'."
             (erase-buffer)
             (emacs-lisp-mode)
             (setq-local self duplicated-tree)
-            (me/print-to-buffer duplicated-tree)))))
+            (me/print-to-buffer duplicated-tree))))
+ :examples ((:given (:type buffer :name "CodeAsTree" :mode emacs-lisp-mode :contents "((:type declaration :text \"include a;\" :begin 1 :end 11 :buffer \"my.cc\" :buffer-file \"/tmp/my.cc\")
+ (:type type_identifier :text \"include\" :begin 1 :end 8 :buffer \"my.cc\" :buffer-file \"/tmp/my.cc\")
+ (:type identifier :text \"a\" :begin 9 :end 10 :buffer \"my.cc\" :buffer-file \"/tmp/my.cc\")
+ (:type \";\" :text \";\" :begin 10 :end 11 :buffer \"my.cc\" :buffer-file \"/tmp/my.cc\")
+ (:type declaration :text \"include b;\" :begin 12 :end 22 :buffer \"my.cc\" :buffer-file \"/tmp/my.cc\")
+ (:type type_identifier :text \"include\" :begin 12 :end 19 :buffer \"my.cc\" :buffer-file \"/tmp/my.cc\")
+ (:type identifier :text \"b\" :begin 20 :end 21 :buffer \"my.cc\" :buffer-file \"/tmp/my.cc\")
+ (:type \";\" :text \";\" :begin 21 :end 22 :buffer \"my.cc\" :buffer-file \"/tmp/my.cc\"))
+") :then (:type buffer :name "TreeOfDuplicates" :mode emacs-lisp-mode :contents "((:type type_identifier :text \"include\" :begin 12 :end 19 :buffer \"my.cc\" :buffer-file \"/tmp/my.cc\"))
+"))))
 
 (me/register-mold-1
  :key "EvalSexp"
@@ -365,10 +385,15 @@ in the local variable `self'."
             (erase-buffer)
             (org-mode)
             (setq-local org-confirm-elisp-link-function nil)
-            (insert text)))))
+            (insert text))))
+ :docs "Transform a flatten tree of nodes into a Org mode list."
+ :examples ((:given (:type buffer :name "TreeOfDuplicates" :mode emacs-lisp-mode :contents "((:type type_identifier :text \"include\" :begin 12 :end 19 :buffer \"my.cc\" :buffer-file \"/tmp/my.cc\"))
+") :then (:type buffer :name "TreeToOrgTodos" :mode org-mode :contents "* Todo list [/]
+- [ ] [[elisp:(progn (find-file-other-window \"/tmp/my.cc\") (goto-char 12))][include]]"))))
 
 (me/register-mold-1
  :key "Stats"
+ :docs "View some generic buffer stats like reading time and most frequent words. It specializes for source code."
  :given (:fn 't)
  :then (:fn ;; TODO deliver this in org-mode buffer because later I can interpret that in a tree and run new molds on it!
         (let* ((old-buffer (buffer-name))
@@ -585,7 +610,8 @@ in the local variable `self'."
             (mark-whole-buffer)
             (call-interactively #'org-table-create-or-convert-from-region)
             (goto-char (point-min))
-            (setq-local self (org-table-to-lisp))))))
+            (setq-local self (org-table-to-lisp)))))
+ :docs "Transform a CSV buffer in an Org table.")
 
 (me/register-mold-1
  :key "Annotate"
@@ -629,7 +655,8 @@ in the local variable `self'."
                   (setq-local self note)
                   (me/store-note note)
                   (message "Note stored!"))))
-            (setq-local self note)))))
+            (setq-local self note))))
+ :docs "Take a note with moldable-emacs.")
 
 (me/register-mold-1
  :key "ShowNotesByBuffer"
@@ -727,22 +754,26 @@ in the local variable `self'."
           (erase-buffer)
           (emacs-lisp-mode)
           (me/print-to-buffer notes)
-          (setq-local self notes))))
+          (setq-local self notes)))
+ :docs "Show all notes stored as an Elisp list.")
 
 (me/register-mold-by-key "AnnotateWithOrg"
-                         (me/mold-compose-1 "Annotate" "NoteToOrg"))
+                         (me/mold-compose-1 "Annotate" "NoteToOrg"
+                                            '((:docs "Take a note and edit it in the Org format."))))
 
 (me/register-mold-by-key "ShowNotesByProjectInOrg"
-                         (me/mold-compose-1 "ShowNotesByProject" "NotesToOrg"))
+                         (me/mold-compose-1 "ShowNotesByProject" "NotesToOrg"
+                                            '((:docs "Show only notes relevant to the current project in the Org format."))))
 
 (me/register-mold-by-key "ShowNotesByBufferInOrg"
-                         (me/mold-compose-1 "ShowNotesByBuffer" "NotesToOrg"))
+                         (me/mold-compose-1 "ShowNotesByBuffer" "NotesToOrg" '((:docs "Show only notes relevant to the current buffer in the Org format."))))
 
 (me/register-mold-by-key "ShowNotesByModeInOrg"
-                         (me/mold-compose-1 "ShowNotesByMode" "NotesToOrg"))
+                         (me/mold-compose-1 "ShowNotesByMode" "NotesToOrg" '((:docs "Show only notes relevant to the mode in the Org format."))))
 
 (me/register-mold-by-key "ShowAllNotesInOrg"
-                         (me/mold-compose-1 "ShowAllNotes" "NotesToOrg"))
+                         (me/mold-compose-1 "ShowAllNotes" "NotesToOrg"
+                                            '((:docs "Show all the notes in the Org format."))))
 
 (me/register-mold-1
  :key "NodeAtPointToPlayground"
@@ -768,8 +799,7 @@ in the local variable `self'."
              :given
              (:type file :name "/tmp/test.el" :mode emacs-lisp-mode :contents "(list 1 2 3)")
              :then
-             (:type buffer :name "Node at point" :mode emacs-lisp-mode :contents "(list 1 2 3)\n"))
-            ))
+             (:type buffer :name "Node at point" :mode emacs-lisp-mode :contents "(list 1 2 3)\n"))))
 
 (me/register-mold-1
  :key "Evaluate Arithmetic Expression"
