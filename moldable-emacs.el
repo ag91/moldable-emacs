@@ -993,17 +993,17 @@ Excludes the heading and any child subtrees."
 
 (defun me-require (dependency)
   "Try to require DEPENDENCY, and just give nil if not found."
-  (ignore-errors (require dependency)))
+  (require dependency nil t))
 
 (defun me-mold-insert-name ()
   "Insert a mold name at point."
   (interactive)
   (--> me-available-molds
-    (--map (plist-get it :key) it)
-    (completing-read
-     "Insert at point the following mold name:"
-     it)
-    insert))
+       (--map (plist-get it :key) it)
+       (completing-read
+        "Insert at point the following mold name:"
+        it)
+       insert))
 
 
 ;; taken from: https://emacs.stackexchange.com/questions/13514/how-to-obtain-the-statistic-of-the-the-frequency-of-words-in-a-buffer

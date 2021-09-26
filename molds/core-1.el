@@ -862,7 +862,7 @@ in the local variable `self'."
           (with-current-buffer buffername
             (emacs-lisp-mode)
             (erase-buffer)
-            (me-print-to-buffer )
+            (me-print-to-buffer stats)
             (setq-local self stats))))
  :docs "You can see how long did the mold take to evaluate the given clause."
  :examples nil)
