@@ -1,11 +1,11 @@
-(me/register-mold-1
+(me-register-mold-1
  :key "Playground"
  :given (:fn 't)
  :then (:fn
         (let ((tree (or ;; TODO I need to revisit this: has the code tree always precedence?
                      (ignore-errors
-                       (me/mold-treesitter-to-parse-tree))
-                     (ignore-errors (me/org-to-flatten-tree (current-buffer)))
+                       (me-mold-treesitter-to-parse-tree))
+                     (ignore-errors (me-org-to-flatten-tree (current-buffer)))
                      (ignore-errors
                        (save-excursion
                          (goto-char (point-min))
@@ -18,7 +18,7 @@
             (goto-char (point-max))
             (setq-local self tree))))
  ;; TODO experimental for auto-completion: how can I make molds easy to autocomplete?
- :actions (me/by-type identity)
+ :actions (me-by-type identity)
  :docs "You can write any Elisp here.
 Then you can evaluate with `EvalSexp'.
 This mold saves structured data of the previous buffer
@@ -32,7 +32,7 @@ in the local variable `self'."
 
 "))))
 
-(me/register-mold-1
+(me-register-mold-1
  :key "Query"
  :given (:fn 't)
  :then (:fn
@@ -45,34 +45,34 @@ in the local variable `self'."
             (emacs-lisp-mode)
             (erase-buffer)
             (setq-local self sexps)
-            (me/print-to-buffer sexps))))
+            (me-print-to-buffer sexps))))
  :docs "Evaluate an Elisp expression in the current buffer and the result will appear in a new Elisp buffer. Useful to run Elisp on the fly without a Playground."
  :examples ((:given (:type file :name "/tmp/example" :mode fundamental-mode :contents "") :then (:type buffer :name "Query" :mode emacs-lisp-mode :contents "\"Just evaluating a string: anything you evaluate in this mold appears here\""))))
 
-(me/register-mold-1
+(me-register-mold-1
  :key "WhatMoldsCanIUse?"
  :given (:fn t)
  :then (:fn
-        (let* ((molds (me/usable-molds-1))
+        (let* ((molds (me-usable-molds-1))
                (missing-deps-molds
                 (--filter
                  (plist-get it :missing-dependencies)
-                 (me/find-missing-dependencies-for-molds (me/usable-molds-requiring-deps)))))
+                 (me-find-missing-dependencies-for-molds (me-usable-molds-requiring-deps)))))
           (with-current-buffer buffername
             (erase-buffer)
             (org-mode)
             (insert "* Molds you can use now.\n\n")
-            (me/insert-org-table
+            (me-insert-org-table
              `(("Mold" .
                 (:extractor
-                 (lambda (obj) (me/make-elisp-navigation-link (plist-get obj :key) (plist-get obj :origin)))))
+                 (lambda (obj) (me-make-elisp-navigation-link (plist-get obj :key) (plist-get obj :origin)))))
                ("Demo" .
                 (:extractor
                  (lambda (obj) (plist-get obj :key))
                  :handler
                  (lambda (s)
-                   (if (plist-get (me/find-mold s) :examples)
-                       (me/make-elisp-file-link  "Start!" (format "(me/mold-demo (me/find-mold \"%s\"))" s) "elisp")
+                   (if (plist-get (me-find-mold s) :examples)
+                       (me-make-elisp-file-link  "Start!" (format "(me-mold-demo (me-find-mold \"%s\"))" s) "elisp")
                      "Not available."))))
                ("Documentation" .
                 (:extractor
@@ -82,19 +82,19 @@ in the local variable `self'."
              molds)
             (when missing-deps-molds
               (insert "\n\n\n** Molds you could use by installing some extra dependencies.\n\n")
-              (me/insert-org-table
+              (me-insert-org-table
                `(("Mold" .
                   (:extractor
-                   (lambda (obj) (me/make-elisp-navigation-link (plist-get obj :key) (plist-get (me/find-mold (plist-get obj :key)) :origin)))))
+                   (lambda (obj) (me-make-elisp-navigation-link (plist-get obj :key) (plist-get (me-find-mold (plist-get obj :key)) :origin)))))
                  ("Demo" .
                   (:extractor
                    (lambda (obj) (plist-get obj :key))
                    :handler
                    (lambda (s)
-                     (me/make-elisp-file-link  "Start!" (format "(me/mold-demo (me/find-mold \"%s\"))" s) "elisp"))))
+                     (me-make-elisp-file-link  "Start!" (format "(me-mold-demo (me-find-mold \"%s\"))" s) "elisp"))))
                  ("Documentation" .
                   (:extractor
-                   (lambda (obj) (or (plist-get (me/find-mold (plist-get obj :key)) :docs) "Not available."))
+                   (lambda (obj) (or (plist-get (me-find-mold (plist-get obj :key)) :docs) "Not available."))
                    :handler
                    (lambda (s) (car (s-split "\n" s)))))
                  ("Required Dependencies" .
@@ -102,27 +102,27 @@ in the local variable `self'."
                    (lambda (obj) (--> (plist-get obj :missing-dependencies)
                                       (--map
                                        (concat
-                                        (when (equal (nth 0 it) 'me/require) "emacs ")
+                                        (when (equal (nth 0 it) 'me-require) "emacs ")
                                         (pp-to-string (nth 1 it)))
                                        it)
                                       (s-join ", " it)))
                    :handler
-                   (lambda (s) (me/make-elisp-file-link s (format "//duckduckgo.com/?q=%s" s) "https")))))
+                   (lambda (s) (me-make-elisp-file-link s (format "//duckduckgo.com/?q=%s" s) "https")))))
                missing-deps-molds))
             (setq-local self molds))))
  :docs "You can see examples and demos of the molds you can use."
  :examples nil)
 
-(me/register-mold-1
+(me-register-mold-1
  :key "CodeAsTree"
  :given (:fn (and
-              (me/require 'tree-sitter)
+              (me-require 'tree-sitter)
               (seq-contains-p minor-mode-list 'tree-sitter-mode)))
  :then (:fn
-        (let* ((tree (me/mold-treesitter-to-parse-tree)))
+        (let* ((tree (me-mold-treesitter-to-parse-tree)))
           (with-current-buffer buffername
             (erase-buffer)
-            (me/print-to-buffer tree) ;; TODO I need to do keep the position, or allow editing in place, no?
+            (me-print-to-buffer tree) ;; TODO I need to do keep the position, or allow editing in place, no?
             (pp-buffer)
             (emacs-lisp-mode))))
  :docs "You get a flattened tree of all parsed elements. You can transform this to extract information with the Playground mold."
@@ -134,17 +134,17 @@ in the local variable `self'."
              (:type buffer :name "m/tree" :mode emacs-lisp-mode :contents "((:type object :text \"{\n  \\\"a\\\": 1,\n  \\\"b\\\": [1,2]\n}\" :begin 1 :end 27 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"{\" :text \"{\" :begin 1 :end 2 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type pair :text \"\\\"a\\\": 1\" :begin 5 :end 11 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type string :text \"\\\"a\\\"\" :begin 5 :end 8 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 5 :end 6 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type string_content :text \"a\" :begin 6 :end 7 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 7 :end 8 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \":\" :text \":\" :begin 8 :end 9 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type number :text \"1\" :begin 10 :end 11 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \",\" :text \",\" :begin 11 :end 12 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type pair :text \"\\\"b\\\": [1,2]\" :begin 15 :end 25 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type string :text \"\\\"b\\\"\" :begin 15 :end 18 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 15 :end 16 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type string_content :text \"b\" :begin 16 :end 17 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 17 :end 18 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \":\" :text \":\" :begin 18 :end 19 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type array :text \"[1,2]\" :begin 20 :end 25 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"[\" :text \"[\" :begin 20 :end 21 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type number :text \"1\" :begin 21 :end 22 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \",\" :text \",\" :begin 22 :end 23 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type number :text \"2\" :begin 23 :end 24 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"]\" :text \"]\" :begin 24 :end 25 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"}\" :text \"}\" :begin 26 :end 27 :buffer \"test.json\" :buffer-file \"/tmp/test.json\"))\n"))
             ))
 
-(me/register-mold-1
+(me-register-mold-1
  :key "NodeAtPointToTree"
  :given (:fn (and
-              (me/require 'tree-sitter)
+              (me-require 'tree-sitter)
               (ignore-errors (tree-sitter-node-at-point))))
  :then (:fn
-        (let* ((tree (me/mold-treesitter-to-parse-tree (tree-sitter-node-at-point))))
+        (let* ((tree (me-mold-treesitter-to-parse-tree (tree-sitter-node-at-point))))
           (with-current-buffer buffername
             (erase-buffer)
             (emacs-lisp-mode)
-            (me/print-to-buffer tree)
+            (me-print-to-buffer tree)
             (setq self tree)
             (current-buffer))))
  :docs "You can obtain the code flattened tree only for the node at point. This is a more focused view than `CodeToTree.'"
@@ -156,7 +156,7 @@ in the local variable `self'."
              (:type buffer :name "m/tree" :mode emacs-lisp-mode :contents "((:type string :text \"\\\"a\\\"\" :begin 5 :end 8 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 5 :end 6 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type string_content :text \"a\" :begin 6 :end 7 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 7 :end 8 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \":\" :text \":\" :begin 8 :end 9 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type number :text \"1\" :begin 10 :end 11 :buffer \"test.json\" :buffer-file \"/tmp/test.json\"))\n"))
             ))
 
-(me/register-mold-1
+(me-register-mold-1
  :key "ElispListToOrgTable"
  :let ((l (list-at-point)))
  :given (:fn (ignore-errors
@@ -173,12 +173,12 @@ in the local variable `self'."
                  (--all? (equal (-filter #'symbolp (car l)) (-filter #'symbolp it)) l)))))
  :then (:fn
         (let* ((list (if (ignore-errors (length (car l)))
-                         (me/alist-to-plist l)
-                       (me/alist-to-plist (-map #'-cons-to-list l)))))
+                         (me-alist-to-plist l)
+                       (me-alist-to-plist (-map #'-cons-to-list l)))))
           (with-current-buffer buffername
             (org-mode)
             (erase-buffer)
-            (me/insert-flat-org-table list)
+            (me-insert-flat-org-table list)
             (setq-local self list))))
  :docs "You can produce an Org Table of the plist, list or alist _starting_ at point."
  :examples ((
@@ -200,9 +200,9 @@ in the local variable `self'."
              :then
              (:type buffer :name "Org Table for list starting for (:index 1 :value 3)" :mode org-mode :contents "| index | value |\n|-------+-------|\n|     1 |     3 |\n|     2 |     9 |\n|     3 |    27 |\n|       |       |\n"))))
 
-(me/register-mold-1
+(me-register-mold-1
  :key "OrgTableToElispPList"
- :let ((list (me/first-org-table)))
+ :let ((list (me-first-org-table)))
  :given (:fn (and
               (eq major-mode 'org-mode)
               list))
@@ -210,7 +210,7 @@ in the local variable `self'."
         (with-current-buffer buffername
           (emacs-lisp-mode)
           (erase-buffer)
-          (me/print-to-buffer list)
+          (me-print-to-buffer list)
           (setq-local self list)))
  :docs "You can transform an Org Table to a plist."
  :examples ((
@@ -221,36 +221,36 @@ in the local variable `self'."
              (:type buffer :name "Org Table for list starting for (:bla \"bla\" :some 1)" :mode emacs-lisp-mode :contents "((:bla \"\\\"bla\\\"\" :some \"1\")\n (:bla \"\\\"blo\\\"\" :some \"2\"))\n"))
             ))
 
-(me/register-mold-1
+(me-register-mold-1
  :key "XMLToTree"
  :given (:fn (or
               (eq major-mode 'html-mode)
               (eq major-mode 'nxml-mode)))
- :when (:fn (me/buffer-changed-while-the-mold-is-on-p (buffer-name)))
+ :when (:fn (me-buffer-changed-while-the-mold-is-on-p (buffer-name)))
  :then (:fn
         (let* ((tree (libxml-parse-html-region (point-min) (point-max))))
           (with-current-buffer buffername
             (emacs-lisp-mode)
             (erase-buffer)
-            (me/print-to-buffer tree)
+            (me-print-to-buffer tree)
             (goto-char (point-min))))))
 
 ;;; CONTINUE...
 ;; TODO maybe add parent as well? There is not this information in the org-ql node.
-(me/register-mold-1
+(me-register-mold-1
  :key "OrgAsTree"
  :given (:fn (and
               (eq major-mode 'org-mode)
-              (me/require 'org-ql)))
+              (me-require 'org-ql)))
  :then (:fn
-        (let* ((tree (me/org-to-flatten-tree (current-buffer))))
+        (let* ((tree (me-org-to-flatten-tree (current-buffer))))
           (with-current-buffer buffername
             (emacs-lisp-mode)
             (erase-buffer)
-            (me/print-to-buffer tree)
+            (me-print-to-buffer tree)
             (setq-local self tree)))))
 
-(me/register-mold-1
+(me-register-mold-1
  :key "SentencesAsTree"
  :given (:fn (and (eq major-mode 'text-mode)))
  :then (:fn
@@ -261,7 +261,7 @@ in the local variable `self'."
                  't)))
           (with-current-buffer buffername
             (erase-buffer)
-            (me/print-to-buffer (mapcar 'list sentences)) ;; TODO I need to do keep the position, or allow editing in place, no?
+            (me-print-to-buffer (mapcar 'list sentences)) ;; TODO I need to do keep the position, or allow editing in place, no?
             )))
  :docs "Create a list of sentences for a text buffer."
  :examples ((:given (:type buffer :name "SentencesAsTree" :mode emacs-lisp-mode :contents "((\"Some sentence\")
@@ -269,7 +269,7 @@ in the local variable `self'."
  (\"Some more\"))
 "))))
 
-(me/register-mold-1
+(me-register-mold-1
  :key "ElispAsTree"
  :given (:fn (eq major-mode 'emacs-lisp-mode))
  :then (:fn
@@ -283,10 +283,10 @@ in the local variable `self'."
           (with-current-buffer buffername
             (emacs-lisp-mode)
             (erase-buffer)
-            (me/print-to-buffer (reverse sexps))
+            (me-print-to-buffer (reverse sexps))
             (setq-local self sexps)))))
 
-(me/register-mold-1
+(me-register-mold-1
  :key "TreeOfDuplicates"
  :docs "Find the duplicate nodes in your Elisp buffer."
  :given (:fn (and (eq major-mode 'emacs-lisp-mode)))
@@ -301,7 +301,7 @@ in the local variable `self'."
             (erase-buffer)
             (emacs-lisp-mode)
             (setq-local self duplicated-tree)
-            (me/print-to-buffer duplicated-tree))))
+            (me-print-to-buffer duplicated-tree))))
  :examples ((:given (:type buffer :name "CodeAsTree" :mode emacs-lisp-mode :contents "((:type declaration :text \"include a;\" :begin 1 :end 11 :buffer \"my.cc\" :buffer-file \"/tmp/my.cc\")
  (:type type_identifier :text \"include\" :begin 1 :end 8 :buffer \"my.cc\" :buffer-file \"/tmp/my.cc\")
  (:type identifier :text \"a\" :begin 9 :end 10 :buffer \"my.cc\" :buffer-file \"/tmp/my.cc\")
@@ -313,7 +313,7 @@ in the local variable `self'."
 ") :then (:type buffer :name "TreeOfDuplicates" :mode emacs-lisp-mode :contents "((:type type_identifier :text \"include\" :begin 12 :end 19 :buffer \"my.cc\" :buffer-file \"/tmp/my.cc\"))
 "))))
 
-(me/register-mold-1
+(me-register-mold-1
  :key "EvalSexp"
  :let ((tree (or (ignore-errors (eval (list-at-point))) (list-at-point))))
  :given (:fn (eq major-mode 'emacs-lisp-mode))
@@ -328,14 +328,14 @@ in the local variable `self'."
           (with-current-buffer buffername
             (emacs-lisp-mode)
             (erase-buffer)
-            (me/print-to-buffer tree)
+            (me-print-to-buffer tree)
             (setq-local self tree))))
  :docs "You can evaluate a lisp expression after point and produce a new buffer with the result."
  :examples ((
              :name "Simple addition"
              :given (
                      :type file
-                     :name "/home/andrea/someElispBuffer"
+                     :name "/home-andrea/someElispBuffer"
                      :mode emacs-lisp-mode
                      :contents "(+ 1 2)")
              :then (
@@ -344,7 +344,7 @@ in the local variable `self'."
                     :mode emacs-lisp-mode
                     :contents "3"))))
 
-(me/register-mold-1
+(me-register-mold-1
  :key "GotoNodeBuffer"
  :let ((l (list-at-point))
        (buffername (plist-get l :buffer)))
@@ -359,7 +359,7 @@ in the local variable `self'."
           (goto-char (plist-get l :begin))
           (switch-to-buffer old-buffer))))
 
-(me/register-mold-1
+(me-register-mold-1
  :key "TreeToOrgTodos"
  :given (:fn (and
               (eq major-mode 'emacs-lisp-mode)))
@@ -391,7 +391,7 @@ in the local variable `self'."
 ") :then (:type buffer :name "TreeToOrgTodos" :mode org-mode :contents "* Todo list [/]
 - [ ] [[elisp:(progn (find-file-other-window \"/tmp/my.cc\") (goto-char 12))][include]]"))))
 
-(me/register-mold-1
+(me-register-mold-1
  :key "Stats"
  :docs "View some generic buffer stats like reading time and most frequent words. It specializes for source code."
  :given (:fn 't)
@@ -399,19 +399,19 @@ in the local variable `self'."
         (let* ((old-buffer (buffer-name))
                (buffer (get-buffer-create "Statistics"))
                (buffersize (buffer-size))
-               (self (me/mold-treesitter-to-parse-tree))
+               (self (me-mold-treesitter-to-parse-tree))
                (contents (buffer-substring-no-properties (point-min) (point-max)))
                (lines (count-lines-page))
                (words (call-interactively 'count-words))
-               (book-pages (me/get-book-pages contents))
-               (reading-time (me/get-reading-time contents))
-               (word-analysis (--filter (> (length (car it)) 2) (me/word-stats contents)))
+               (book-pages (me-get-book-pages contents))
+               (reading-time (me-get-reading-time contents))
+               (word-analysis (--filter (> (length (car it)) 2) (me-word-stats contents)))
                (word-analysis-stats (-concat (-take 3 word-analysis) (reverse (-take 3 (reverse word-analysis)))))
-               (funs (when self (length (me/by-type 'function_definition self))))
-               (methods (when self (length (me/by-type 'method_declaration self))))
+               (funs (when self (length (me-by-type 'function_definition self))))
+               (methods (when self (length (me-by-type 'method_declaration self))))
                (ifs (when self (length (--filter (or (eq (plist-get it :type) 'if_expression) (eq (plist-get it :type) 'if_statement)) self))))
                (classes (when self (length (--filter (or (eq (plist-get it :type) 'class_definition) (eq (plist-get it :type) 'class_declaration)) self))))
-               (comments (when self (length (me/by-type 'comment self)))))
+               (comments (when self (length (me-by-type 'comment self)))))
           (with-current-buffer buffername
             (erase-buffer)
             (org-mode)
@@ -443,14 +443,14 @@ in the local variable `self'."
                       (--map
                        (cons (car it) (-map (lambda (x) (plist-get x :text)) (cdr it)))
                        (--group-by (plist-get it :type) self))))
-                (me/require 'tree-sitter-query)
-                (me/insert-treesitter-follow-overlay
+                (me-require 'tree-sitter-query)
+                (me-insert-treesitter-follow-overlay
                  nodes-with-duplication
                  (lambda (node)
                    (let ((type (plist-get node :type))
                          (texts (--map
                                  (ignore-errors (plist-get it :text))
-                                 (me/by-type type nodes-with-duplication))))
+                                 (me-by-type type nodes-with-duplication))))
                      (format
                       "%s: %s/%s\n"
                       type
@@ -468,7 +468,7 @@ in the local variable `self'."
              (:type buffer :name "Statistics" :mode org-mode :contents "* Generic Stats\n\n- Reading time: 0 minutes \n- Page has 1 line (0 + 1)\n- Buffer has 1 line, 7 words, and 34 characters.\n- Average book pages for this text: 0\n\n- Buffer size in KiloBytes: 158\n\n- Up to three most and least used words:\n\n  1   | file\n  1   | little\n  1   | test\n  1   | test\n  1   | test!\n  1   | this\n\n\n"))
             ))
 
-(me/register-mold-1
+(me-register-mold-1
  :key "JsonAsTree"
  :given (:fn (eq major-mode 'json-mode)) ;; TODO or region contains json
  :then (:fn
@@ -480,11 +480,11 @@ in the local variable `self'."
                    (json-read)))))
           (with-current-buffer buffername
             (erase-buffer)
-            (me/print-to-buffer json)
+            (me-print-to-buffer json)
             (emacs-lisp-mode)
             (setq self json)))))
 
-(me/register-mold-1
+(me-register-mold-1
  :key "JsonAsPlist"
  :given (:fn (eq major-mode 'json-mode)) ;; TODO or region contains json
  :then (:fn
@@ -497,10 +497,10 @@ in the local variable `self'."
           (with-current-buffer buffername
             (erase-buffer)
             (emacs-lisp-mode)
-            (me/print-to-buffer json)
+            (me-print-to-buffer json)
             (setq self json)))))
 
-(me/register-mold-1
+(me-register-mold-1
  :key "PlistToJson"
  :let ((plist (thing-at-point 'sexp t)))
  :given (:fn (and
@@ -520,9 +520,9 @@ in the local variable `self'."
             (setq self plist)
             (json-pretty-print-buffer)))))
 
-(me/register-mold-1
+(me-register-mold-1
  :key "FirstOrgTable"
- :let ((table (me/first-org-table)))
+ :let ((table (me-first-org-table)))
  :given (:fn
          (eq major-mode 'org-mode)
          table)
@@ -530,7 +530,7 @@ in the local variable `self'."
         (with-current-buffer buffername
           (erase-buffer)
           (org-mode)
-          (me/insert-flat-org-table table)
+          (me-insert-flat-org-table table)
           (goto-char (point-min))
           (setq-local self table)))
  :examples ((
@@ -557,7 +557,7 @@ in the local variable `self'."
 | 2 | 3 |"))))
 
 
-(me/register-mold-1
+(me-register-mold-1
  :key "OrgTableToCSV"
  :given (:fn (and
               (eq major-mode 'org-mode)
@@ -582,8 +582,8 @@ in the local variable `self'."
              (:type buffer :name "m/csv-from-org-table2021-07-04-18:33:27" :mode csv-mode :contents "bla,some\n\"\"\"bla\"\"\",1\n\"\"\"blo\"\"\",2"))
             ))
 
-(me/register-mold-by-key "ListToCSV"
-                         (me/mold-compose-1
+(me-register-mold-by-key "ListToCSV"
+                         (me-mold-compose-1
                           "ElispListToOrgTable"
                           "OrgTableToCSV"
                           '((:docs "You can produce a CSV from a Plist.")
@@ -598,7 +598,7 @@ in the local variable `self'."
 2,3
 4,9")))))))
 
-(me/register-mold-1
+(me-register-mold-1
  :key "CSVToOrgTable"
  :given (:fn (eq major-mode 'csv-mode))
  :then (:fn
@@ -613,7 +613,7 @@ in the local variable `self'."
             (setq-local self (org-table-to-lisp)))))
  :docs "Transform a CSV buffer in an Org table.")
 
-(me/register-mold-1
+(me-register-mold-1
  :key "Annotate"
  :given (:fn 't)
  :then (:fn
@@ -636,13 +636,13 @@ in the local variable `self'."
                                          (s-trim hash))))
                    :when nil
                    :then nil))
-               (note (me/ask-for-details-according-to-context default-note)))
+               (note (me-ask-for-details-according-to-context default-note)))
           (with-current-buffer buffername
             (erase-buffer)
             (emacs-lisp-mode)
             (insert ";; Remember to save the note with C-x C-s!\n\n\n")
-            (me/print-to-buffer note)
-            (me/override-keybiding-in-buffer
+            (me-print-to-buffer note)
+            (me-override-keybiding-in-buffer
              (kbd "C-x C-s")
              '(lambda ()
                 (interactive)
@@ -653,48 +653,48 @@ in the local variable `self'."
                            (search-forward "(")
                            (eval `',(list-at-point))))))
                   (setq-local self note)
-                  (me/store-note note)
+                  (me-store-note note)
                   (message "Note stored!"))))
             (setq-local self note))))
  :docs "Take a note with moldable-emacs.")
 
-(me/register-mold-1
+(me-register-mold-1
  :key "ShowNotesByBuffer"
- :let ((notes (me/filter-notes-by-buffer (buffer-name))))
+ :let ((notes (me-filter-notes-by-buffer (buffer-name))))
  :given (:fn (and notes))
  :then (:fn
         (with-current-buffer buffername
           (erase-buffer)
           (emacs-lisp-mode)
-          (me/print-to-buffer notes)
+          (me-print-to-buffer notes)
           (setq self notes))))
 
-(me/register-mold-1
+(me-register-mold-1
  :key "ShowNotesByProject"
- :let ((notes (me/filter-notes-by-project)))
- :given (:fn (and (me/require 'projectile) notes))
+ :let ((notes (me-filter-notes-by-project)))
+ :given (:fn (and (me-require 'projectile) notes))
  :then (:fn
         (with-current-buffer buffername
           (erase-buffer)
           (emacs-lisp-mode)
-          (me/print-to-buffer notes)
+          (me-print-to-buffer notes)
           (setq self notes))))
 
 
-(me/register-mold-1
+(me-register-mold-1
  :key "ShowNotesByMode"
- :let ((notes (me/filter-notes-by-mode major-mode)))
+ :let ((notes (me-filter-notes-by-mode major-mode)))
  :given (:fn notes)
  :then (:fn
         (with-current-buffer buffername
           (erase-buffer)
           (emacs-lisp-mode)
-          (me/print-to-buffer notes)
+          (me-print-to-buffer notes)
           (setq self notes))))
 
-(me/register-mold-1
+(me-register-mold-1
  :key "NotesToOrg"
- :let ((notes (or self (me/load-notes))))
+ :let ((notes (or self (me-load-notes))))
  :given (:fn
          (and
           ;; (s-starts-with-p "Notes" (buffer-name))
@@ -705,23 +705,23 @@ in the local variable `self'."
           (org-mode)
           (setq-local org-confirm-elisp-link-function nil)
           (insert (--reduce-from
-                   (concat acc (me/note-to-org-heading it) "\n")
+                   (concat acc (me-note-to-org-heading it) "\n")
                    ""
                    notes))
           (setq-local self notes)
-          (me/override-keybiding-in-buffer
+          (me-override-keybiding-in-buffer
            (kbd "C-x C-s")
            '(lambda ()
               (interactive)
               (--each
-                  (me/org-to-flatten-tree (current-buffer))
+                  (me-org-to-flatten-tree (current-buffer))
                 (let* ((old-note (-find (lambda (el) (equal (plist-get el :key) (plist-get it :id))) self))
                        (text (plist-get it :text))
                        (new-note (plist-put old-note :then (list :string text))))
-                  (me/store-note new-note)))
+                  (me-store-note new-note)))
               (message "Notes stored!"))))))
 
-(me/register-mold-1
+(me-register-mold-1
  :key "NoteToOrg"
  :given (:fn
          (and
@@ -733,49 +733,49 @@ in the local variable `self'."
             (org-mode)
             (setq-local org-confirm-elisp-link-function nil)
             (insert "# Remember to save the note with C-x C-s!\n\n\n")
-            (insert (me/note-to-org-heading note))
+            (insert (me-note-to-org-heading note))
             (setq self note)
-            (me/override-keybiding-in-buffer
+            (me-override-keybiding-in-buffer
              (kbd "C-x C-s")
              '(lambda ()
                 (interactive)
-                (let* ((org-node (nth 0 (me/org-to-flatten-tree (current-buffer))))
+                (let* ((org-node (nth 0 (me-org-to-flatten-tree (current-buffer))))
                        (text (plist-get org-node :text))
                        (new-note (plist-put self :then (list :string text))))
-                  (me/store-note new-note))
+                  (me-store-note new-note))
                 (message "Notes stored!")))))))
 
-(me/register-mold-1
+(me-register-mold-1
  :key "ShowAllNotes"
- :let ((notes (me/load-notes)))
+ :let ((notes (me-load-notes)))
  :given (:fn notes)
  :then (:fn
         (with-current-buffer buffername
           (erase-buffer)
           (emacs-lisp-mode)
-          (me/print-to-buffer notes)
+          (me-print-to-buffer notes)
           (setq-local self notes)))
  :docs "Show all notes stored as an Elisp list.")
 
-(me/register-mold-by-key "AnnotateWithOrg"
-                         (me/mold-compose-1 "Annotate" "NoteToOrg"
+(me-register-mold-by-key "AnnotateWithOrg"
+                         (me-mold-compose-1 "Annotate" "NoteToOrg"
                                             '((:docs "Take a note and edit it in the Org format."))))
 
-(me/register-mold-by-key "ShowNotesByProjectInOrg"
-                         (me/mold-compose-1 "ShowNotesByProject" "NotesToOrg"
+(me-register-mold-by-key "ShowNotesByProjectInOrg"
+                         (me-mold-compose-1 "ShowNotesByProject" "NotesToOrg"
                                             '((:docs "Show only notes relevant to the current project in the Org format."))))
 
-(me/register-mold-by-key "ShowNotesByBufferInOrg"
-                         (me/mold-compose-1 "ShowNotesByBuffer" "NotesToOrg" '((:docs "Show only notes relevant to the current buffer in the Org format."))))
+(me-register-mold-by-key "ShowNotesByBufferInOrg"
+                         (me-mold-compose-1 "ShowNotesByBuffer" "NotesToOrg" '((:docs "Show only notes relevant to the current buffer in the Org format."))))
 
-(me/register-mold-by-key "ShowNotesByModeInOrg"
-                         (me/mold-compose-1 "ShowNotesByMode" "NotesToOrg" '((:docs "Show only notes relevant to the mode in the Org format."))))
+(me-register-mold-by-key "ShowNotesByModeInOrg"
+                         (me-mold-compose-1 "ShowNotesByMode" "NotesToOrg" '((:docs "Show only notes relevant to the mode in the Org format."))))
 
-(me/register-mold-by-key "ShowAllNotesInOrg"
-                         (me/mold-compose-1 "ShowAllNotes" "NotesToOrg"
+(me-register-mold-by-key "ShowAllNotesInOrg"
+                         (me-mold-compose-1 "ShowAllNotes" "NotesToOrg"
                                             '((:docs "Show all the notes in the Org format."))))
 
-(me/register-mold-1
+(me-register-mold-1
  :key "NodeAtPointToPlayground"
  :let ((node (thing-at-point 'sexp)))
  :given (:fn (and
@@ -790,7 +790,7 @@ in the local variable `self'."
           (with-current-buffer buffername
             (erase-buffer)
             (emacs-lisp-mode)
-            (me/print-to-buffer node)
+            (me-print-to-buffer node)
             (setq-local self-pos node-pos)
             (setq-local self node))))
  :docs "You can move the node under point to a Playground mold."
@@ -801,14 +801,14 @@ in the local variable `self'."
              :then
              (:type buffer :name "Node at point" :mode emacs-lisp-mode :contents "(list 1 2 3)\n"))))
 
-(me/register-mold-1
+(me-register-mold-1
  :key "Evaluate Arithmetic Expression"
- :let ((expression (me/arithmetic-at-point))) ;; TODO this is naive: does not support neither square root! Actually it does: 4^1/2. Still it breaks for things like ". 1 + 2" because the expression starts with a dot...
+ :let ((expression (me-arithmetic-at-point))) ;; TODO this is naive: does not support neither square root! Actually it does: 4^1/2. Still it breaks for things like ". 1 + 2" because the expression starts with a dot...
  :given (:fn expression)
  :then (:fn
         (let* ((result (calc-eval expression))
                (tree (list :given expression :then result))
-               (colored-result (me/color-string result "green")))
+               (colored-result (me-color-string result "green")))
           (with-current-buffer buffername
             (erase-buffer)
             (insert (format "%s = %s" expression colored-result))
@@ -822,24 +822,24 @@ in the local variable `self'."
              (:type buffer :name "Evaluate 1 + 1 / 2" :mode fundamental-mode :contents "1 + 1 / 2 = 1.5"))))
 
 
-(me/register-mold-1
+(me-register-mold-1
  :key "Mold History"
- :given (:fn (and me/mold-history me/current-history-index))
+ :given (:fn (and me-mold-history me-current-history-index))
  :then (:fn
-        (let* ((history me/mold-history)
+        (let* ((history me-mold-history)
                (buffer (get-buffer-create "mold-history")))
           (with-current-buffer buffername
             (read-only-mode -1)
             (org-mode)
             (erase-buffer)
-            (me/insert-org-table
+            (me-insert-org-table
              `(("History Item" .
                 (
                  :extractor
                  (lambda (obj) (plist-get obj :buffername))
                  :handler
                  (lambda (obj)
-                   (me/make-elisp-file-link
+                   (me-make-elisp-file-link
                     obj
                     (format "(switch-to-buffer \"%s\")" obj)
                     "elisp"))
@@ -848,21 +848,21 @@ in the local variable `self'."
                 (
                  :extractor
                  (lambda (obj) (plist-get obj :date)))))
-             me/mold-history)
+             me-mold-history)
             (setq-local self history))))
  :docs "You can see the current history of the molds you used."
  :examples nil)
 
 
-(me/register-mold-1
+(me-register-mold-1
  :key "Inspect molds running time"
- :given (:fn (and me/molds-debug-on me/usable-mold-stats))
+ :given (:fn (and me-molds-debug-on me-usable-mold-stats))
  :then (:fn
-        (let* ((stats (--sort (> (plist-get it :time) (plist-get other :time)) me/usable-mold-stats)))
+        (let* ((stats (--sort (> (plist-get it :time) (plist-get other :time)) me-usable-mold-stats)))
           (with-current-buffer buffername
             (emacs-lisp-mode)
             (erase-buffer)
-            (me/print-to-buffer )
+            (me-print-to-buffer )
             (setq-local self stats))))
  :docs "You can see how long did the mold take to evaluate the given clause."
  :examples nil)

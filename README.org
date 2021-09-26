@@ -29,17 +29,17 @@ my installation configuration:
             (shell-command "cd ~/.emacs.d/lisp/moldable-emacs; git pull;")
           (shell-command "cd ~/.emacs.d/lisp/; git clone git@github.com:ag91/moldable-emacs.git"))
   :load-path "~/.emacs.d/lisp/moldable-emacs/"
-  :bind (("C-c m m" . me/mold)
-         ("C-c m f" . me/go-forward)
-         ("C-c m b" . me/go-back)
-         ("C-c m o" . me/open-at-point)
-         ("C-c m d" . me/mold-docs)
-         ("C-c m e a" . me/mold-add-last-example)
+  :bind (("C-c m m" . me-mold)
+         ("C-c m f" . me-go-forward)
+         ("C-c m b" . me-go-back)
+         ("C-c m o" . me-open-at-point)
+         ("C-c m d" . me-mold-docs)
+         ("C-c m e a" . me-mold-add-last-example)
          )
   :config
   (require 'moldable-emacs)
-  (add-to-list 'me/files-with-molds (concat (file-name-directory (symbol-file 'me/mold)) "molds/experiments.el")) ;; TODO this is relevant only if you have private molds
-  (me/setup-molds))
+  (add-to-list 'me-files-with-molds (concat (file-name-directory (symbol-file 'me-mold)) "molds/experiments.el")) ;; TODO this is relevant only if you have private molds
+  (me-setup-molds))
 #+end_src
 
 I am working on making =moldable-emacs= itself explain which optional
