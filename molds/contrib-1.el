@@ -286,7 +286,7 @@ following in your lein project.clj
  :then (:fn
         (let* ((buffer (buffer-name))
                (img (list :img (or (buffer-file-name) buffer)))
-               (_ (async-map            ;; TODO change this when I implement :async
+               (_ (me/async-map            ;; TODO change this when I implement :async
                    `(lambda (s)
                       (shell-command-to-string
                        (format "imgclip -p '%s' --lang eng" s)))

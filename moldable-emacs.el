@@ -33,7 +33,7 @@
          (when kill-buffer-p (kill-buffer))
          (switch-to-buffer old-buffer)))))
 
-(defun async-map--finish (futures post-fn too-late-p poll-time)
+(defun me/async-map--finish (futures post-fn too-late-p poll-time)
   (if (not (some #'null (mapcar #'async-ready futures)))
       (let ((results (--map
                       (let ((buf (process-buffer it)))
@@ -49,13 +49,13 @@
       (run-with-timer
        poll-time
        nil
-       #'async-map--finish
+       #'me/async-map--finish
        futures
        post-fn
        too-late-p
        poll-time))))
 
-(defun async-map (fn els &optional post-fn poll-time timeout) ;; TODO maybe I can just use this https://github.com/chuntaro/emacs-promise
+(defun me/async-map (fn els &optional post-fn poll-time timeout) ;; TODO maybe I can just use this https://github.com/chuntaro/emacs-promise
   "Run FN async on elements ELS. Optionally define a POST-FN to run on the results of apply FN on ELS. Optionally define a POLL-TIME to look for results and a TIMEOUT to fail."
   (let* ((start (current-time))
          (futures (mapcar
@@ -66,15 +66,15 @@
                    els))
          (too-late-p
           `(lambda () (>= (time-to-seconds (time-since ',start)) (or ,timeout 300)))))
-    (async-map--finish
+    (me/async-map--finish
      futures
      (or post-fn (lambda (results)
-                   (message (format "async-map finished with the following results:\n%s" results))
+                   (message (format "me/async-map finished with the following results:\n%s" results))
                    'completed))
      too-late-p
      (or poll-time 1))))
 
-;; (async-map
+;; (me/async-map
 ;;  (lambda (x) (make-directory x 't))
 ;;  (list "/tmp/bla" "/tmp/blo" "/tmp/blu")
 ;;  (lambda (_) (message "%s" (directory-files "/tmp"))))

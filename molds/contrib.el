@@ -291,7 +291,7 @@ following in your lein project.clj
          (let* ((buffername (buffer-name))
                 (img (list :img (or (buffer-file-name) buffername)))
                 (buffer (get-buffer-create (format "Text from %s" buffername)))
-                (_ (async-map
+                (_ (me/async-map
                     `(lambda (s)
                        (shell-command-to-string
                         (format "imgclip -p '%s' --lang eng" s)))
