@@ -17,7 +17,7 @@
  :then (lambda ()
          (let* ((buffername (buffer-name))
                 (file (buffer-file-name))
-                (self (with-file
+                (self (me/with-file
                        (me/find-relative-test-report (buffer-file-name))
                        (libxml-parse-html-region (point-min) (point-max))))
                 (testcases (esxml-query-all "testcase" self))
@@ -32,9 +32,9 @@
                   (lambda (obj)
                     (message "%s" obj)
                     (--> obj
-                      cdr
-                      car
-                      (alist-get 'name it)))
+                         cdr
+                         car
+                         (alist-get 'name it)))
                   :handler
                   (lambda (s)
                     (me/make-elisp-navigation-link
@@ -43,9 +43,9 @@
                 ("Time (s)" .
                  (:extractor
                   (lambda (obj) (--> obj
-                                  cdr
-                                  car
-                                  (alist-get 'time it)))
+                                     cdr
+                                     car
+                                     (alist-get 'time it)))
                   :handler
                   (lambda (s) (me/highlight-unit-test-time s)))))
               testcases)

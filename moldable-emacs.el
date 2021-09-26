@@ -21,7 +21,7 @@
   "Load molds from `me/files-with-molds'."
   (-each me/files-with-molds #'load-file))
 
-(defmacro with-file (file &rest body)
+(defmacro me/with-file (file &rest body)
   "Open FILE, execute BODY close FILE if it was not already open."
   `(let ((old-buffer (current-buffer))
          (kill-buffer-p (not (get-file-buffer ,file))))
@@ -230,9 +230,9 @@
 
 (defun me/mold-treesitter-file (path)
   "Obtain treesitter nodes for file at PATH."
-  (with-file path
-             (tree-sitter-mode 1)
-             (me/mold-treesitter-to-parse-tree)))
+  (me/with-file path
+                (tree-sitter-mode 1)
+                (me/mold-treesitter-to-parse-tree)))
 
 (defun nodes-with-duplication (self)
   "Find nodes that are duplicated for SELF."
@@ -1270,25 +1270,25 @@ a string (node -> string)."
         (buffer (plist-get node :buffer))
         (file (plist-get node :buffer-file)))
     (if file
-        (with-file file (delete-region begin end))
-      (when (and buffer (get-buffer buffer))
-        (with-current-buffer buffer
-          (delete-region begin end))))))
+        me/with-fileh-file file (delete-region begin end))
+    (when (and buffer (get-buffer buffer))
+      (with-current-buffer buffer
+        (delete-region begin end))))))
 
 (defun me/add-node (node)
-  "Add NODE to :buffer or :buffer-file using its :begin position as an anchor."
-  (let ((begin (plist-get node :begin))
-        (text (plist-get node :text))
-        (buffer (plist-get node :buffer))
-        (file (plist-get node :buffer-file)))
-    (if file
-        (with-file file
-                   (goto-char begin)
-                   (insert text))
-      (when (and buffer (get-buffer buffer))
-        (with-current-buffer buffer
-          (goto-char begin)
-          (insert text))))))
+"Add NODE to :buffer or :buffer-file using its :begin position as an anchor."
+(let ((begin (plist-get node :begin))
+      (text (plist-get node :text))
+      (buffer (plist-get node :buffer))
+      (file (plist-get node :buffer-file)))
+  (if file
+      (wme/with-filefile
+       (goto-char begin)
+       (insert text))
+    (when (and buffer (get-buffer buffer))
+      (with-current-buffer buffer
+        (goto-char begin)
+        (insert text))))))
 
 (defun me/change-node (transition)
   "Run a TRANSITION to change a node. This must contain a :before and an :after node."
