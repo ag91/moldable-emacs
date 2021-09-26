@@ -1,6 +1,7 @@
 (require 'dash)
 (require 's)
 (require 'async)
+(require 'thunk)
 
 (defcustom me/files-with-molds
   (--map
@@ -309,9 +310,12 @@
   "Wrap BODY in a let with :let and :buffername of MOLD."
   `(funcall
     (lambda (x body)
-      (eval `(let* (,@(plist-get x :let)
-                    (buffername ,(or (plist-get x :buffername) (plist-get x :key))))
-               ,@body)))
+      (eval `(let (_)
+               (defvar buffername)
+               (let ((buffername ,(or (plist-get x :buffername) (plist-get x :key))))
+                 (thunk-let* (,@(plist-get x :let))
+                   ,@body)))
+            t))
     ,mold
     ',body))
 
@@ -332,6 +336,7 @@
                     (eval (me/get-in mold '(:given :fn)))))
 
 (defvar me/usable-mold-stats nil)
+
 
 (defun me/usable-molds-1 (&optional molds buffer)
   "Return the usable molds among the `me/available-molds' for the `current-buffer'. Optionally you can pass a list of MOLDS and a BUFFER to filter the usable ones."

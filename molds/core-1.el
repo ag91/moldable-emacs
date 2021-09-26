@@ -858,11 +858,11 @@ in the local variable `self'."
  :key "Inspect molds running time"
  :given (:fn (and me/molds-debug-on me/usable-mold-stats))
  :then (:fn
-        (let* ((stats me/usable-mold-stats))
+        (let* ((stats (--sort (> (plist-get it :time) (plist-get other :time)) me/usable-mold-stats)))
           (with-current-buffer buffername
             (emacs-lisp-mode)
             (erase-buffer)
-            (me/print-to-buffer (--sort (> (plist-get it :time) (plist-get other :time)) stats))
-            (setq-local self stats me/usable-mold-stats))))
+            (me/print-to-buffer )
+            (setq-local self stats))))
  :docs "You can see how long did the mold take to evaluate the given clause."
  :examples nil)
