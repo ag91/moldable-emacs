@@ -308,34 +308,37 @@
          switch-to-buffer-other-window)
     (run-hooks 'me-mold-after-hook)))
 
-(defmacro me-with-mold-let (mold &rest body) ;; TODO this must evaluate only once any time is called AND needs to make evaluation of bindings lazy?
-  "Wrap BODY in a let with :let and :buffername of MOLD."
+
+(defmacro me-with-mold-let (mold clause) ;; TODO this must evaluate only once any time is called AND needs to make evaluation of bindings lazy?
+  "Wrap BODY in a let with :let and :buffername of MOLD, plus add the body for CLAUSE."
   `(funcall
-    (lambda (x body)
-      (eval `(let (_)
-               (defvar buffername)
-               (let ((buffername ,(or (plist-get x :buffername) (plist-get x :key))))
-                 (thunk-let* (,@(plist-get x :let)) ;; TODO this is broken...
-                   ,@body)))
-            t))
+    (lambda (m clause)
+      (eval
+       `(progn
+          (let ((buffername (or ,(plist-get m :buffername) ,(plist-get m :key))))
+            (,(if (eq clause :then) 'let* 'thunk-let*) (,@(plist-get m :let))
+             (pcase ,clause
+               (:given ,(me-get-in m '(:given :fn)))
+               (:then (list (get-buffer-create buffername)
+                            ,(me-get-in m
+                                        '(:then :fn))
+                            (ignore-errors
+                              (switch-to-buffer-other-window
+                               (get-buffer buffername)))))))))
+       't))
     ,mold
-    ',body))
+    ,clause))
 
-;; (let ( (x '(:key "hello" :let ((a 1) (b 2)) :buffername nil)))
-;;   (me-with-mold-let x
-;;                     (+ a 1)
-;;                     (+ b 1)))
-
-;; (me-with-mold-let '(:key "hello" :let ((a 1) (b 2)) :buffername nil)
-;;                   (+ a 1)
-;;                   (+ b 1))
-
+;; (me-print-to-buffer (let ((mold (me-find-mold "PlistToJson")))
+;;                       (me-with-mold-let mold
+;;                                         :then))
+;;                     (get-buffer-create "bla"))
 
 
 (defun me-mold-run-given (mold)
   "Run MOLD :given."
   (me-with-mold-let mold
-                    (eval (me-get-in mold '(:given :fn)))))
+                    :given))
 
 (defvar me-usable-mold-stats nil)
 
@@ -365,10 +368,7 @@
 
 (defun me-mold-run-then (mold)
   "Run MOLD :then."
-  (me-with-mold-let mold
-                    (get-buffer-create buffername)
-                    (eval (me-get-in mold '(:then :fn)))
-                    (ignore-errors (switch-to-buffer-other-window (get-buffer buffername)))))
+  (me-with-mold-let mold :then))
 
 (defun me-mold-1 ()
   "Propose a list of available molds for the current context."
