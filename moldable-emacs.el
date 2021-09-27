@@ -143,7 +143,7 @@
     (let ((table (org-table-to-lisp))
           result)
       (dolist (r table result)
-        (setq result (plist-put result (intern (concat ":" (car r))) (cdr r)))))))
+        (setq result (plist-put result (intern (concat ":" (s-replace "\"" "" (car r)))) (cdr r)))))))
 
 (defun me-org-table-to-flat-plist (table-string)
   (let* ((plist (me-org-table-to-plist table-string))
@@ -163,15 +163,19 @@
 (defun me-insert-flat-org-table (flat-org-table)
   (me-insert-string-table (me-flat-org-table-to-string flat-org-table)))
 
+(defun me-org-tabletolisp-to-plist (org-table-to-lisp)
+  "Create a plist of ORG-TABLE-TO-LISP obtained by `org-table-to-lisp' fn."
+  (--> org-table-to-lisp
+       (orgtbl-to-orgtbl it nil)
+       (me-org-table-to-flat-plist it)))
+
 (defun me-first-org-table (&optional buffer)
   "Find first org table. Optionally in BUFFER."
   (ignore-errors
     (with-current-buffer (or buffer (current-buffer)) ;; TODO remove org links in table!
       (save-excursion
         (re-search-forward org-table-line-regexp nil t)
-        (--> (org-table-to-lisp)
-          (orgtbl-to-orgtbl it nil)
-          (me-org-table-to-flat-plist it))))))
+        (me-org-tabletolisp-to-plist (org-table-to-lisp))))))
 
 (defun me-all-flat-org-tables (&optional buffer)
   "Find first org table. Optionally in BUFFER."
@@ -183,9 +187,7 @@
                   (re-search-forward org-table-line-regexp nil t)
                   (goto-char (- (org-table-end) 1)))
             (setq result
-                  (cons (--> (org-table-to-lisp)
-                             (orgtbl-to-orgtbl it nil)
-                             (me-org-table-to-flat-plist it))
+                  (cons (me-org-tabletolisp-to-plist (org-table-to-lisp))
                         result)))
           result)))))
 
@@ -313,7 +315,7 @@
       (eval `(let (_)
                (defvar buffername)
                (let ((buffername ,(or (plist-get x :buffername) (plist-get x :key))))
-                 (thunk-let* (,@(plist-get x :let))
+                 (thunk-let* (,@(plist-get x :let)) ;; TODO this is broken...
                    ,@body)))
             t))
     ,mold
@@ -347,7 +349,9 @@
       (--filter
        (let* ((beginning (current-time))
               (result (save-excursion
-                        (ignore-errors (me-mold-run-given it)))) ; TODO composite molds
+                        (condition-case err
+                            (me-mold-run-given it)
+                          (error (message "me-usable-molds: error in :given of %s:\n   %s" (plist-get it :key) err))))) ; TODO composite molds
               (ending (current-time))
               (_ (when me-molds-debug-on
                    (add-to-list 'me-usable-mold-stats (list :mold (plist-get it :key)

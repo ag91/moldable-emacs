@@ -315,7 +315,6 @@ in the local variable `self'."
 
 (me-register-mold-1
  :key "EvalSexp"
- :let ((tree (or (ignore-errors (eval (list-at-point))) (list-at-point))))
  :given (:fn (eq major-mode 'emacs-lisp-mode))
  :then (:fn
         (let* ((_ (remove-overlays))
@@ -324,7 +323,8 @@ in the local variable `self'."
                     (car (thing-at-point-bounds-of-list-at-point))
                     (cdr (thing-at-point-bounds-of-list-at-point)))
                    'face
-                   'bold)))
+                   'bold))
+               (tree (or (ignore-errors (eval (list-at-point))) (list-at-point))))
           (with-current-buffer buffername
             (emacs-lisp-mode)
             (erase-buffer)
@@ -610,7 +610,7 @@ in the local variable `self'."
             (mark-whole-buffer)
             (call-interactively #'org-table-create-or-convert-from-region)
             (goto-char (point-min))
-            (setq-local self (org-table-to-lisp)))))
+            (setq-local self (me-org-tabletolisp-to-plist (org-table-to-lisp))))))
  :docs "Transform a CSV buffer in an Org table.")
 
 (me-register-mold-1
