@@ -888,7 +888,7 @@ some new contents
   "Make an Elisp Org link that navigates to a position of NAME in BUFFER-NAME."
   (let* ((pos (with-current-buffer buffer-name
                 (goto-char (point-min))
-                (search-forward (if (s-contains-p "\"" name) (prin1-to-string name) (format "%s" name))))))
+                (search-forward (if (s-contains-p "\"" name) (prin1-to-string name) name)))))
     (me-make-elisp-file-link
      name
      (format
@@ -898,6 +898,7 @@ some new contents
      "elisp")))
 
 (defun me-color-string (str color)
+  "Color STR with COLOR."
   (propertize
    str
    'display
@@ -1281,7 +1282,7 @@ a string (node -> string)."
         (buffer (plist-get node :buffer))
         (file (plist-get node :buffer-file)))
     (if file
-        me-with-fileh-file file (delete-region begin end))
+        (me-with-file file (delete-region begin end)))
     (when (and buffer (get-buffer buffer))
       (with-current-buffer buffer
         (delete-region begin end)))))
@@ -1293,7 +1294,7 @@ a string (node -> string)."
         (buffer (plist-get node :buffer))
         (file (plist-get node :buffer-file)))
     (if file
-        (wme-with-filefile
+        (me-with-file
          (goto-char begin)
          (insert text))
       (when (and buffer (get-buffer buffer))

@@ -379,20 +379,19 @@ in the local variable `self'."
                     :mode emacs-lisp-mode
                     :contents "3"))))
 
-(me-register-mold-1
- :key "GotoNodeBuffer"
- :let ((l (list-at-point))
-       (buffername (plist-get l :buffer)))
- :given (:fn (and
-              (eq major-mode 'emacs-lisp-mode)
-              (-contains-p l :buffer)))
- :buffername buffername
- :then (:fn
-        (let* ((old-buffer (current-buffer))
-               )
-          (switch-to-buffer buffername)
-          (goto-char (plist-get l :begin))
-          (switch-to-buffer old-buffer))))
+;; (me-register-mold-1
+;;  :key "GotoNodeBuffer"
+;;  :let ((l (list-at-point))
+;;        (buffername (plist-get l :buffer)))
+;;  :given (:fn (and
+;;               (eq major-mode 'emacs-lisp-mode)
+;;               (-contains-p l :buffer)))
+;;  :buffername buffername
+;;  :then (:fn
+;;         (let* ((old-buffer (current-buffer)))
+;;           (switch-to-buffer buffername)
+;;           (goto-char (plist-get l :begin))
+;;           (switch-to-buffer old-buffer))))
 
 (me-register-mold-1
  :key "TreeToOrgTodos"
@@ -729,7 +728,7 @@ in the local variable `self'."
 
 (me-register-mold-1
  :key "NotesToOrg"
- :let ((notes (or self (me-load-notes))))
+ :let ((notes (or (ignore-errors self) (me-load-notes))))
  :given (:fn
          (and
           ;; (s-starts-with-p "Notes" (buffer-name))
