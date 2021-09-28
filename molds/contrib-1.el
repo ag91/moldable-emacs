@@ -62,16 +62,17 @@ following in your lein project.clj
  :then (:fn
         (let ((table nil) ;; TODO maybe I can use org-table-convert-region to produce a org table, also maybe another mold
               (contents (buffer-substring-no-properties (point-min) (point-max))))
-          (with-temp-file "/tmp/somefile.csv"
-            (insert contents))
-          (setq-local self table)
-          (async-shell-command
-           (format
-            "graph --bar --figsize %sx%s --xtick-angle 90 %s"
-            (display-pixel-width)
-            (display-pixel-height)
-            "/tmp/somefile.csv"))
-          (insert "Placeholder buffer...")))
+          (with-current-buffer buffername
+            (with-temp-file "/tmp/somefile.csv"
+              (insert contents))
+            (setq-local self table)
+            (async-shell-command
+             (format
+              "graph --bar --figsize %sx%s --xtick-angle 90 %s"
+              (display-pixel-width)
+              (display-pixel-height)
+              "/tmp/somefile.csv"))
+            (insert "Placeholder buffer..."))))
  :docs "Make a bar chart out of a csv buffer.")
 
 (me-register-mold-1
@@ -81,16 +82,17 @@ following in your lein project.clj
  :then (:fn
         (let ((table nil) ;; TODO maybe I can use org-table-convert-region to produce a org table, also maybe another mold
               (contents (buffer-substring-no-properties (point-min) (point-max))))
-          (with-temp-file "/tmp/somefile.csv"
-            (insert contents))
-          (setq-local self table)
-          (async-shell-command
-           (format
-            "graph --figsize %sx%s --xtick-angle 90 %s"
-            (display-pixel-width)
-            (display-pixel-height)
-            "/tmp/somefile.csv"))
-          (insert "Placeholder buffer...")))
+          (with-current-buffer buffername
+            (with-temp-file "/tmp/somefile.csv"
+              (insert contents))
+            (setq-local self table)
+            (async-shell-command
+             (format
+              "graph --figsize %sx%s --xtick-angle 90 %s"
+              (display-pixel-width)
+              (display-pixel-height)
+              "/tmp/somefile.csv"))
+            (insert "Placeholder buffer..."))))
  :docs "Make a line chart out of a csv buffer.")
 
 (me-register-mold-by-key
@@ -106,6 +108,20 @@ following in your lein project.clj
   (me-mold-compose-1 "FirstOrgTable"  "OrgTableToCSV")
   "CSVToBarChart"
   '((:docs "Make a bar chart out of an Org table."))))
+
+(me-register-mold-by-key
+ "PlistToBarChart"
+ (me-mold-compose-1
+  "ElispListToOrgTable"
+  "FirstOrgTableToBarChart"
+  '((:docs "Make a bar chart out of a plist"))))
+
+(me-register-mold-by-key
+ "PlistToLineChart"
+ (me-mold-compose-1
+  "ElispListToOrgTable"
+  "FirstOrgTableToLineChart"
+  '((:docs "Make a line chart out of a plist"))))
 
 (defun me-find-children (node tree)
   "Find children of NODE in TREE."

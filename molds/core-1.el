@@ -200,6 +200,41 @@ in the local variable `self'."
              :then
              (:type buffer :name "Org Table for list starting for (:index 1 :value 3)" :mode org-mode :contents "| index | value |\n|-------+-------|\n|     1 |     3 |\n|     2 |     9 |\n|     3 |    27 |\n|       |       |\n"))))
 
+
+(me-register-mold
+ :key "CSVtoPlist"
+ :given (:fn (and (eq major-mode 'csv-mode)))
+ :then (:fn
+        (save-excursion
+          (goto-char (point-min))
+          (let* ((separator (--> (thing-at-point 'line t)
+                                 (list (list "," (length (s-split "," it)))
+                                       (list ";" (length (s-split ";" it)))
+                                       (list "\t" (length (s-split "\t" it))))
+                                 (--max-by (> (nth 1 it) (nth 1 other)) it)
+                                 car))
+                 (keys (--> (thing-at-point 'line t)
+                            (s-split separator it)
+                            (--map (intern (concat ":" (s-replace "\"" "" (s-trim it)))) it)))
+                 (plist nil)
+                 (_ (while (ignore-errors (not (next-line)))
+                      (--> (thing-at-point 'line t)
+                           (s-split separator it)
+                           (-map #'s-trim it)
+                           (-zip-lists keys it)
+                           -flatten
+                           (setq plist (cons it plist))))))
+            (with-current-buffer buffername
+              (emacs-lisp-mode)
+              (erase-buffer)
+              (me-print-to-buffer plist)
+              (setq-local self plist)))))
+ :docs "You can extract a plist from a CSV buffer."
+ :examples ((:given
+             (:type buffer :name "OrgTableToCSV" :mode csv-mode :contents "a,b,c\n1,2,3\n2,3,4")
+             :then
+             (:type buffer :name "CSVtoPlist" :mode emacs-lisp-mode :contents "((:a \"2\" :b \"3\" :c \"4\")\n (:a \"1\" :b \"2\" :c \"3\"))\n"))))
+
 (me-register-mold-1
  :key "OrgTableToElispPList"
  :let ((list (me-first-org-table)))

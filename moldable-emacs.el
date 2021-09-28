@@ -561,7 +561,7 @@ This should simplify the testing and documentation of molds.")
                       (plist-get given :contents))))
      (eval (if (equal type 'buffer)
                `(with-temp-buffer
-                  (rename-buffer ,name)
+                  (rename-buffer ,name) ;; TODO this does not work if there is a homonym buffer open!
                   (insert ,contents)
                   (,(if mode mode 'fundamental-mode))
                   ,@body)
@@ -983,7 +983,7 @@ Excludes the heading and any child subtrees."
     (find-file (plist-get (me-find-mold me-last-used-mold) :origin))
     (goto-char (point-min))
     (search-forward (format ":key \"%s\"" me-last-used-mold))
-    (let* ((result (me-check-example me-last-example (plist-get (me-find-mold me-last-used-mold) :then)))
+    (let* ((result (me-check-example me-last-example (me-get-in (me-find-mold me-last-used-mold) '(:then :fn))))
            (pass (plist-get result :success))
            (issues (plist-get result :issues)))
       (unless pass
@@ -994,6 +994,13 @@ Excludes the heading and any child subtrees."
     (message "You have the example of the last run of this mold in the kill ring: use it!")
     ;; TODO make this smarter
     ))
+
+(defun me-insert-last-example ()
+  "Insert `me-last-example' at point."
+  (interactive)
+  (if me-last-example
+      (insert (pp-to-string me-last-example))
+    (message "Sorry, no example available in `me-last-example'!")))
 
 (defun me-require (dependency)
   "Try to require DEPENDENCY, and just give nil if not found."
