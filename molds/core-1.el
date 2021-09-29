@@ -706,7 +706,7 @@ in the local variable `self'."
 (me-register-mold-1
  :key "ShowNotesByProject"
  :let ((notes (me-filter-notes-by-project)))
- :given (:fn (and (me-require 'projectile) notes))
+ :given (:fn (and (me-require 'projectile) (ignore-errors (vc-root-dir)) notes))
  :then (:fn
         (with-current-buffer buffername
           (erase-buffer)
