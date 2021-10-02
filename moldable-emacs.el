@@ -309,25 +309,26 @@
     (run-hooks 'me-mold-after-hook)))
 
 
-(defmacro me-with-mold-let (mold clause) ;; TODO this must evaluate only once any time is called AND needs to make evaluation of bindings lazy?
+(defmacro me-with-mold-let (mold &rest clause) ;; TODO this must evaluate only once any time is called AND needs to make evaluation of bindings lazy?
   "Wrap BODY in a let with :let and :buffername of MOLD, plus add the body for CLAUSE."
   `(funcall
     (lambda (m clause)
       (eval
        `(progn
           (let ((buffername (or ,(plist-get m :buffername) ,(plist-get m :key))))
-            (,(if (eq clause :then) 'let* 'thunk-let*) (,@(plist-get m :let))
-             (pcase ,clause
-               (:given ,(me-get-in m '(:given :fn)))
-               (:then (list (get-buffer-create buffername)
-                            ,(me-get-in m
-                                        '(:then :fn))
-                            (ignore-errors
-                              (switch-to-buffer-other-window
-                               (get-buffer buffername)))))))))
+            (,(if (ignore-errors (eq (car clause) :then)) 'let* 'thunk-let*) (,@(plist-get m :let))
+             (pcase ',clause
+               ('(:given) ,(me-get-in m '(:given :fn)))
+               ('(:then) (list (get-buffer-create buffername)
+                               ,(me-get-in m
+                                           '(:then :fn))
+                               (ignore-errors
+                                 (switch-to-buffer-other-window
+                                  (get-buffer buffername)))))
+               (_ ,@clause)))))
        't))
     ,mold
-    ,clause))
+    ',clause))
 
 ;; (me-print-to-buffer (let ((mold (me-find-mold "PlistToJson")))
 ;;                       (me-with-mold-let mold
@@ -632,7 +633,7 @@ This should simplify the testing and documentation of molds.")
          (end-name (plist-get end :name))
          (end-contents (plist-get end :contents)))
     (format
-     "Given the \"%s\" %s with the following contents:\n\n----------\n\n%s\n\n----------\n\nThe mold returns the \"%s\" %s with the following contents:\n\n----------\n\n%s\n\n----------"
+     "\n\nGiven the \"%s\" %s with the following contents:\n\n----------\n\n%s\n\n----------\n\nThe mold returns the \"%s\" %s with the following contents:\n\n----------\n\n%s\n\n----------"
      start-name
      start-buffer-or-file
      start-contents
@@ -645,7 +646,9 @@ This should simplify the testing and documentation of molds.")
    (string=
     (me-example-to-docstring '(:given (:type buffer :name "somebuffer" :contents "some contents") :then (:type file :name "/tmp/somefile.txt" :contents "some new contents")))
 
-    "Given the \"somebuffer\" buffer with the following contents:
+    "
+
+Given the \"somebuffer\" buffer with the following contents:
 
 ----------
 
@@ -1233,17 +1236,25 @@ a string (node -> string)."
 
 (defun me-usable-molds-requiring-deps ()
   "Find molds that require dependencies to run."
-  (--filter
-   (let ((given-cond (me-get-in it '(:given :fn))))
+  (--remove
+   (let ((mold it)
+         (given-cond (me-get-in it '(:given :fn))))
      (ignore-errors
        (and
         (> (length given-cond) 1)
         (eq (car given-cond) 'and)
-        (eval (cons 'and (--remove
-                          (or
-                           (-contains? it 'executable-find)
-                           (-contains? it 'me-require))
-                          (cdr given-cond)))))))
+        (me-with-mold-let mold
+                          (eval (cons 'and (--remove
+                                            (or
+                                             (and
+                                              (seqp it)
+                                              (-contains? it 'executable-find)
+                                              (message "h3 %s" (plist-get mold :key)))
+                                             (and
+                                              (seqp it)
+                                              (-contains? it 'me-require)
+                                              (message "h4 %s" (plist-get mold :key))))
+                                            (cdr given-cond))))))))
    me-available-molds))
 
 (defun me-find-missing-dependencies-for-mold (mold)
@@ -1253,17 +1264,24 @@ a string (node -> string)."
      :key (plist-get mold :key)
      :missing-dependencies
      (and
+      (message "0 %s" given-cond)
       (ignore-errors (> (length given-cond) 1))
+      (message "1")
       (eq (car given-cond) 'and)
+      (message "2")
       (--> (cdr given-cond)
            (--filter
             (or
              (and
+              (seqp it)
               (-contains? it 'executable-find)
-              (not (eval it)))
+              (me-with-mold-let mold (not (eval it)))
+              (message "3"))
              (and
+              (seqp it)
               (-contains? it 'me-require)
-              (not (eval it)))
+              (me-with-mold-let mold (not (eval it)))
+              (message "4"))
              )
             it))))))
 
