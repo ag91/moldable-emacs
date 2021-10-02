@@ -169,3 +169,11 @@ https://ag91.github.io/blog/2021/09/19/moldable-emacs-making-molds-a-little-easi
 :END:
 
 https://ag91.github.io/blog/2021/09/23/moldable-emacs-extending-the-playground-powers-via-hooks-to-include-dired
+
+*** Check which molds you can use and demo them!
+:PROPERTIES:
+:CREATED:  [2021-10-02 Sat 01:55]
+:ID:       65d29893-3b52-47ec-a1c7-aa5b47f893e7
+:END:
+
+https://ag91.github.io/blog/2021/10/02/moldable-emacs-molds-need-examples-too/
