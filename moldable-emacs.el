@@ -309,6 +309,35 @@
     (run-hooks 'me-mold-after-hook)))
 
 
+
+(defun me-interpret-given (mold)
+  "Interpret MOLD :given clause into a sexp to run."
+  (me-get-in mold '(:given :fn)))
+
+(defun me-interpret-then (mold)
+  "Interpret MOLD :then clause into a sexp to run."
+  (let ((then (plist-get mold :then)))
+    (cond
+     ((ignore-errors (car (plist-get then :async)))
+      `(let ((_ (async-let ,(plist-get then :async)
+                  (progn
+                    ,(plist-get then :fn)
+                    (message "lol %s" (list (buffer-name) (ignore-errors buffername)))
+                    (ignore-errors
+                      (switch-to-buffer-other-window
+                       (get-buffer buffername)))))))
+         (get-buffer-create buffername)
+         (with-current-buffer buffername
+           (erase-buffer)
+           (insert (format "Loading %s contents..." ,(plist-get mold :key))))))
+     ((-contains-p then :fn)
+      `(progn
+         (get-buffer-create buffername)
+         ,(plist-get then :fn)
+         (ignore-errors
+           (switch-to-buffer-other-window
+            (get-buffer buffername))))))))
+
 (defmacro me-with-mold-let (mold &rest clause) ;; TODO this must evaluate only once any time is called AND needs to make evaluation of bindings lazy?
   "Wrap BODY in a let with :let and :buffername of MOLD, plus add the body for CLAUSE."
   `(funcall
@@ -318,13 +347,8 @@
           (let ((buffername (or ,(plist-get m :buffername) ,(plist-get m :key))))
             (,(if (ignore-errors (eq (car clause) :then)) 'let* 'thunk-let*) (,@(plist-get m :let))
              (pcase ',clause
-               ('(:given) ,(me-get-in m '(:given :fn)))
-               ('(:then) (list (get-buffer-create buffername)
-                               ,(me-get-in m
-                                           '(:then :fn))
-                               (ignore-errors
-                                 (switch-to-buffer-other-window
-                                  (get-buffer buffername)))))
+               ('(:given) ,(me-interpret-given m))
+               ('(:then) ,(me-interpret-then m))
                (_ ,@clause)))))
        't))
     ,mold
