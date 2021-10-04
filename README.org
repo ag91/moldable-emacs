@@ -14,7 +14,7 @@ TODO: I will detail dependencies and more information in a later change.
 changes ahead! So avoid to build upon this prototype for now!!*
 
 
-** TODO Installation
+** Installation
 :PROPERTIES:
 :CREATED:  [2021-06-23 Wed 00:09]
 :ID:       b68dfda8-54d1-498c-b6f1-fdc52eb21889
@@ -46,7 +46,7 @@ I am working on making =moldable-emacs= itself explain which optional
 and external dependencies you may need for what, but it is still work
 in progress. For now an incomplete list from the top of my mind.
 
-*** TODO Emacs Dependencies
+*** Emacs Dependencies
 :PROPERTIES:
 :CREATED:  [2021-06-23 Wed 00:10]
 :END:
@@ -56,16 +56,19 @@ This package requires:
 - dash.el
 - s.el
 - async.el
-- ??? maybe I forgot something ???
+- thunk.el
 
 
 Optionally:
 
-- esxml.el
 - emacs-tree-sitter.el
+
+  you can get more functionality if you install tree-sitter's grammars
+  as well.
+- esxml.el
 - code-compass.el
 - org-ql
-- ??? 
+- ... (check these via the mold "WhatMoldsCanIUse?")
 
 
 *** TODO (Optional) External Dependencies
@@ -77,6 +80,16 @@ Optionally:
 - graphviz
 - imgclip
 - ???
+
+
+** Tutorials
+:PROPERTIES:
+:CREATED:  [2021-10-04 Mon 21:40]
+:ID:       ed317af9-902e-4048-a74f-035ce8af58bf
+:END:
+
+You should be able to access tutorials via the "Show Tutorials" mold.
+Or you can look in [[tutorials/]].
 
 ** Further info
 :PROPERTIES:

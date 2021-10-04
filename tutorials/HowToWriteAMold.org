@@ -1,0 +1,30 @@
+* TODO How to write a mold
+:PROPERTIES:
+:CREATED:  [2021-10-04 Mon 22:15]
+:END:
+
+** TODO The basics of a mold
+:PROPERTIES:
+:CREATED:  [2021-10-04 Mon 22:15]
+:END:
+
+** TODO The hello mold
+:PROPERTIES:
+:CREATED:  [2021-10-04 Mon 22:16]
+:END:
+
+** TODO Composition
+:PROPERTIES:
+:CREATED:  [2021-10-04 Mon 22:16]
+:END:
+
+*** TODO Refresher: The world mold
+:PROPERTIES:
+:CREATED:  [2021-10-04 Mon 22:16]
+:ID:       3ce6612d-40c4-4f22-bcbc-b86c0d5012e3
+:END:
+
+*** TODO The hello world mold
+:PROPERTIES:
+:CREATED:  [2021-10-04 Mon 22:16]
+:END:

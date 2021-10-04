@@ -1,0 +1,99 @@
+* Listing current Emacs buffers and showing their size in bar chart
+:PROPERTIES:
+:CREATED:  [2021-10-04 Mon 21:40]
+:ID:       1ac97a69-2709-4218-a0ed-22d9ae1a675a
+:END:
+
+** Prerequisites
+:PROPERTIES:
+:CREATED:  [2021-10-04 Mon 21:41]
+:END:
+
+You will only need =graph-cli= for the bar chart generation. This is
+easy to install: =pip install graph-cli=.
+
+** Aim
+:PROPERTIES:
+:CREATED:  [2021-10-04 Mon 21:43]
+:END:
+
+We want to find out how the sizes of our buffers relate to each
+other... in a glimpse. It is boring to compare numbers, but a bar
+chart would be ideal.
+
+** Let's do it
+:PROPERTIES:
+:CREATED:  [2021-10-04 Mon 21:45]
+:END:
+
+1) invoke M-x and type =me/mold=
+
+   This is the command that let you access the molds that can be useful in this context.
+2) type "Playground"
+
+   This is a "jolly" mold: it is always available and it is a buffer
+   where you can evaluate Elisp. It always tries to set a =self=
+   variable according to the context.
+3) hit return
+
+   A new buffer called "Playground" should open.
+4) Insert the following Elisp in the buffer:
+
+   #+begin_src elisp
+   (--map
+    (list :buffer (buffer-name it) :size (buffer-size it))
+    (buffer-list))
+   #+end_src
+
+   This creates a =plist= with the buffers name and its size.
+5) move the cursor on the first open parenthesis
+6) invoke M-x and type =me/mold=
+7) type "EvalSexp" and hit return
+
+   You should see a buffer "EvalSexp" with a =plist= containing all
+   your open buffers and sizes.
+8) move at the beginning of the buffer (the useful shortcut is =M-<=)
+9) invoke M-x and type =me/mold=
+10) type "PlistToBarChart" and hit return
+
+    "PlistToBarChart" is a composition of many molds: you will find
+    many mold buffers open in your Emacs. That is by design (in case
+    you wanted to inspect/modify the intermediate molds)
+    
+11) You should see a bar chart with all your buffers sizes!
+
+** Mini discussion
+
+Once you familiarize with the =me-mold= command, step (4) is the one
+that requires your brain. Indeed, =me-mold= is contextual, so it takes
+away most of the toll of deciding what to use. The code you need to
+write is minimal. By combining existing molds (and step (4)) you
+manage to reuse useful functionality for the problem you are facing,
+spending minimum time on integration of old molds. Indeed, in this
+realistic tutorial you used the following molds (I found useful to
+implement -- you may find out others!):
+
+1. Playground
+2. EvalSexp
+3. PlistToBarChart
+
+   which really is the composition of:
+
+   1. ElispListToOrgTable
+
+   2. FirstOrgTableToBarChart
+
+      which really is the composition of:
+
+      1. FirstOrgTable
+
+      2. OrgTableToCSV
+
+      3. CSVToBarChart
+
+Basically you used 8 molds, which let you focus on the 3 lines of
+custom Lisp you needed to solve our problem. Isn't that cool?
+
+Again, if you were to prefer a different kind of chart, you just need
+to change a composition. See the tutorial about writing a mold for that.
+
