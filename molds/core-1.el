@@ -903,3 +903,25 @@ It specializes for source code."
             (setq-local self stats))))
  :docs "You can see how long did the mold take to evaluate the given clause."
  :examples nil)
+
+
+(me-register-mold-1
+ :key "Show Tutorials"
+ :given (:fn (not me-i-know-what-i-am-doing))
+ :then (:fn
+        (let ((tutorials (--> (symbol-file 'me-mold)
+                              (file-name-directory it)
+                              (concat it "/tutorials")
+                              (directory-files it t)
+                              (--filter (equal (file-name-extension it) "org") it))))
+          (with-current-buffer buffername
+            (org-mode)
+            (erase-buffer)
+            (insert "#+TITLE: Moldable Emacs Tutorials\n\n")
+            (--each tutorials
+              (insert-file-contents-literally it))
+            (goto-char (point-min))
+            (call-interactively #'outline-hide-sublevels)
+            (setq-local self tutorials))))
+ :docs "You can consult `moldable-emacs' tutorials."
+ :examples nil)

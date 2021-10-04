@@ -3,6 +3,10 @@
 (require 'async)
 (require 'thunk)
 
+(defcustom me-i-know-what-i-am-doing
+  nil
+  "Set this to t if don't need to see tutorials.")
+
 (defcustom me-files-with-molds
   (--map
    (concat
