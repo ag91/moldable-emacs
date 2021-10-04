@@ -268,51 +268,6 @@
 
 (defvar me-mold-before-mold-runs-hook nil "Hooks to run before the chosen mold runs.")
 
-(defun me-usable-mold (&optional molds buffer)
-  "Return the usable molds among the `me-available-molds' for the `current-buffer'. Optionally you can pass a list of MOLDS and a BUFFER to filter the usable ones."
-  (let ((molds (or molds me-available-molds))
-        (buffer (or buffer (current-buffer))))
-    (with-current-buffer buffer
-      (--filter
-       (save-excursion
-         (funcall (plist-get it :given))) ;; TODO run this in parallel when time goes over 100ms (time goes already over for org-table condition when there are many org tables in the same file - I got over 2 seconds wait for 5 tables mostly empty!!!)
-       molds))))
-
-(defun me-mold ()
-  "Propose a list of available molds for the current context."
-  (interactive)
-  (run-hooks 'me-mold-before-hook)
-  (let* ((beginning (current-time))
-         (molds (me-usable-mold))
-         (keys (--map (plist-get it :key) molds))
-         (ending (current-time))
-         (_ (when me-molds-debug-on (message "Finding molds took %s seconds in total." (time-to-seconds
-                                                                                        (time-subtract
-                                                                                         ending
-                                                                                         beginning))))))
-    (--> keys
-         (completing-read
-          "Pick the mold you need:"
-          it)
-         (-find
-          (lambda (x)
-            (string=
-             (plist-get x :key)
-             it))
-          molds)
-         (funcall
-          (lambda (mold)
-            (--each
-                me-mold-before-mold-runs-hook
-              (funcall it mold))
-            mold)
-          it)
-         (plist-get it :then)
-         funcall
-         switch-to-buffer-other-window)
-    (run-hooks 'me-mold-after-hook)))
-
-
 
 (defun me-interpret-given (mold)
   "Interpret MOLD :given clause into a sexp to run."
@@ -372,7 +327,7 @@
 (defvar me-usable-mold-stats nil)
 
 
-(defun me-usable-molds-1 (&optional molds buffer)
+(defun me-usable-molds (&optional molds buffer)
   "Return the usable molds among the `me-available-molds' for the `current-buffer'. Optionally you can pass a list of MOLDS and a BUFFER to filter the usable ones."
   (let ((_ (setq me-usable-mold-stats nil))
         (molds (or molds me-available-molds))
@@ -399,12 +354,12 @@
   "Run MOLD :then."
   (me-with-mold-let mold :then))
 
-(defun me-mold-1 ()
+(defun me-mold ()
   "Propose a list of available molds for the current context."
   (interactive)
   (run-hooks 'me-mold-before-hook)
   (let* ((beginning (current-time))
-         (molds (me-usable-molds-1))
+         (molds (me-usable-molds))
          (keys (--map (plist-get it :key) molds))
          (ending (current-time))
          (_ (when me-molds-debug-on
@@ -432,7 +387,7 @@
          me-mold-run-then)
     (run-hooks 'me-mold-after-hook)))
 
-(defun me-mold-compose-molds-1 (mold1 mold2)
+(defun me-mold-compose-molds (mold1 mold2)
   "Compose MOLD1 and MOLD2 in a new mold."
   `(
     :key ,(format
@@ -447,12 +402,12 @@
                   (switch-to-buffer buffername)
                   (kill-buffer-and-window)))))
 
-(defun me-mold-compose-1 (m1 m2 &optional props)
+(defun me-mold-compose (m1 m2 &optional props)
   "Compose M1 and M2 in a single mold. Add PROPS (e.g.,  `(:docs \"...\" :examples nil)') to it."
   (let ((mold1 (if (stringp m1) (me-find-mold m1) m1))
         (mold2 (if (stringp m2) (me-find-mold m2) m2)))
     (if (and mold1 mold2)
-        (let ((result (me-mold-compose-molds-1 mold1 mold2)))
+        (let ((result (me-mold-compose-molds mold1 mold2)))
           (--each props
             (plist-put result (nth 0 it) (nth 1 it)))
           result)
@@ -710,7 +665,7 @@ some new contents
 (defun me-mold-docs ()
   "Propose a list of available views for the current context."
   (interactive)
-  (let* ((molds (me-usable-molds-1))
+  (let* ((molds (me-usable-molds))
          (keys (--map (plist-get it :key) molds)))
     (--> keys
          (completing-read
@@ -858,11 +813,8 @@ some new contents
        (ignore-errors (search-forward (concat "\"" key "\"")))))
    me-files-with-molds))
 
-(defmacro me-register-mold (&rest mold) ;; TODO I should validate molds somehow, not just assign them! Also use hashmap?
-  (--each me-before-register-mold-hook (funcall it mold))
-  `(me-add-to-available-molds ',mold))
 
-(defmacro me-register-mold-1 (&rest mold)
+(defmacro me-register-mold (&rest mold)
   "Register MOLD."
   (--each me-before-register-mold-hook (funcall it mold))
   `(me-add-to-available-molds ',mold))
@@ -972,34 +924,8 @@ Excludes the heading and any child subtrees."
          (org-ql-query :select 'element :from (list buffername))))
 
 (defun me-register-mold-by-key (key mold)
-  "Register composition MOLD with "
+  "Register composition MOLD with KEY."
   (me-add-to-available-molds (plist-put mold :key key)))
-
-(defun me-mold-compose-molds (mold1 mold2)
-  `(
-    :key ,(format
-           "CompositionOf%sAnd%s"
-           (plist-get mold1 :key)
-           (plist-get mold2 :key))
-    :given ,(plist-get mold1 :given) ;; TODO I can do better than this: I want to join the :given of the composed molds. This will be useful to list dependencies.
-    :then (lambda ()
-            (when (funcall ,(plist-get mold1 :given))
-              (switch-to-buffer (funcall ,(plist-get mold1 :then)))
-              (when (funcall ,(plist-get mold2 :given))
-                (switch-to-buffer
-                 (funcall ,(plist-get mold2 :then))))))))
-
-(defun me-mold-compose (m1 m2 &optional props)
-  "Compose M1 and M2 in a single mold. Add PROPS (e.g.,  `(:docs \"...\" :examples nil)') to it."
-  (let ((mold1 (if (stringp m1) (me-find-mold m1) m1))
-        (mold2 (if (stringp m2) (me-find-mold m2) m2)))
-    (if (and mold1 mold2)
-        (let ((result (me-mold-compose-molds mold1 mold2)))
-          (--each props
-            (plist-put result (nth 0 it) (nth 1 it)))
-          result)
-      (error (format "Could not find molds, check out: %s." (list m1 m2))))))
-
 
 (defvar me-last-used-mold nil "Keep the `:key' of last used mold.")
 
