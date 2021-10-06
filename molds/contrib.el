@@ -296,90 +296,32 @@ following in your lein project.clj
 (me-register-mold
  :key "Image To Text"
  :docs "Extracts text from the image using `imageclip'."
+ :let ((file-name (buffer-file-name))
+       (buf-name (buffer-name)))
  :given (:fn (and
               (eq major-mode 'image-mode)
               (executable-find "imgclip")))
- :then (:fn
-        (let* ((buffer (buffer-name))
-               (img (list :img (or (buffer-file-name) buffer)))
-               (_ (me-async-map            ;; TODO change this when I implement :async
-                   `(lambda (s)
-                      (shell-command-to-string
-                       (format "imgclip -p '%s' --lang eng" s)))
-                   (list (or (buffer-file-name)
-                             ;; otherwise store the open image in /tmp for imgclip to work on a file
-                             (let ((path (concat "/tmp/" buffer)))
-                               (write-region (point-min) (point-max) path)
-                               path)))
-                   `(lambda (_)
-                      (with-current-buffer ,buffername
-                        (erase-buffer)
-                        (clipboard-yank)
-                        (plist-put self :text (buffer-substring-no-properties (point-min) (point-max))))))))
-          (with-current-buffer buffername
-            (erase-buffer)
-            (setq-local self img)
-            (insert "Loading text from image..."))))
+ :then
+ (
+  :async ((_ (shell-command-to-string
+              (format "imgclip -p '%s' --lang eng"
+                      (or file-name
+                          ;; otherwise store the open image in /tmp for imgclip to work on a file
+                          (let ((path (concat "/tmp/" buf-name)))
+                            (write-region (point-min) (point-max) path)
+                            path))))))
+  :fn (let* ((img (list :img (or (buffer-file-name) (buffer-name)))))
+        (with-current-buffer buffername
+          (erase-buffer)
+          (clipboard-yank)
+          (setq-local self img)
+          (plist-put self :text (buffer-substring-no-properties (point-min) (point-max))))))
  :examples ((:name "Initial Loading"
                    :given
                    (:type file :name "/tmp/my.jpg" :mode image-mode :contents "/home-andrea/.emacs.d/lisp/moldable-emacs/resources/my.jpg")
                    :then
                    (:type buffer :name "Text from my.jpg" :mode fundamental-mode :contents "Loading text from image..."))))
 
-;; (me-register-mold
-;;  :key "Image To Text"
-;;  :docs "Extracts text from the image using `imageclip'."
-;;  :given (:fn (and
-;;               (eq major-mode 'image-mode)
-;;               (executable-find "imgclip")))
-;;  :then (
-;;         :async ((_ (shell-command-to-string
-;;                     (format "imgclip -p '%s' --lang eng" ;; TODO buffer-file-name and buffer-name cannot work because the context is the async *emacs* buffer!
-;;                             (or (buffer-file-name)
-;;                                 ;; otherwise store the open image in /tmp for imgclip to work on a file
-;;                                 (let ((path (concat "/tmp/" (buffer-name))))
-;;                                   (write-region (point-min) (point-max) path)
-;;                                   path))))))
-;;         :fn
-;;         (let* ((img (list :img (or (buffer-file-name) (buffer-name)))))
-;;           (with-current-buffer buffername
-;;             (message "hiiii %s" (list buffername img))
-;;             (erase-buffer)
-;;             (clipboard-yank)
-;;             (setq-local self img)
-;;             (plist-put self :text (buffer-substring-no-properties (point-min) (point-max))))))
-;;  :examples ((:name "Initial Loading"
-;;                    :given
-;;                    (:type file :name "/tmp/my.jpg" :mode image-mode :contents "/home-andrea/.emacs.d/lisp/moldable-emacs/resources/my.jpg")
-;;                    :then
-;;                    (:type buffer :name "Text from my.jpg" :mode fundamental-mode :contents "Loading text from image..."))))
-(me-register-mold
- :key "Image To Text"
- :docs "Extracts text from the image using `imageclip'."
- :given (:fn (and
-              (eq major-mode 'image-mode)
-              (executable-find "imgclip")))
- :then (
-        :async ((_ (shell-command-to-string
-                    (format "imgclip -p '%s' --lang eng" ;; TODO buffer-file-name and buffer-name cannot work because the context is the async *emacs* buffer!
-                            (or (buffer-file-name)
-                                ;; otherwise store the open image in /tmp for imgclip to work on a file
-                                (let ((path (concat "/tmp/" (buffer-name))))
-                                  (write-region (point-min) (point-max) path)
-                                  path))))))
-        :fn
-        (let* ((img (list :img (or (buffer-file-name) (buffer-name)))))
-          (with-current-buffer buffername
-            (message "hiiii %s" (list buffername img))
-            (erase-buffer)
-            (clipboard-yank)
-            (setq-local self img)
-            (plist-put self :text (buffer-substring-no-properties (point-min) (point-max))))))
- :examples ((:name "Initial Loading"
-                   :given
-                   (:type file :name "/tmp/my.jpg" :mode image-mode :contents "/home-andrea/.emacs.d/lisp/moldable-emacs/resources/my.jpg")
-                   :then
-                   (:type buffer :name "Text from my.jpg" :mode fundamental-mode :contents "Loading text from image..."))))
 (me-register-mold
  :key "List Files To Edit After This"
  :let ((bufferfile (buffer-file-name)))
