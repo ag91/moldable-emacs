@@ -281,7 +281,7 @@ following in your lein project.clj
  :given (:fn (and
               (executable-find "dot")
               (eq major-mode 'fundamental-mode)
-              (s-starts-with-p "dot-" (buffer-name))))
+              (s-contains-p "dot-" (buffer-name))))
  :then (:fn
         (find-file-other-window (me-dot-string-to-picture (buffer-substring-no-properties (point-min) (point-max))))
         (switch-to-buffer buffername)
@@ -355,7 +355,7 @@ following in your lein project.clj
  :given (:fn
          (and
           (me-require 'code-compass)
-          (s-starts-with-p "Files To Edit After " (buffer-name))
+          (s-contains-p "Files To Edit After " (buffer-name))
           self
           old-file))
  :then (:fn

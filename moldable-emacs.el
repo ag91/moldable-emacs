@@ -303,7 +303,7 @@
     (lambda (m clause)
       (eval
        `(progn
-          (let ((buffername (or ,(plist-get m :buffername) ,(plist-get m :key))))
+          (let ((buffername (concat "*moldable-emacs-" (or ,(plist-get m :buffername) ,(plist-get m :key)) "*")))
             (,(if (ignore-errors (eq (car clause) :then)) 'let* 'thunk-let*) (,@(plist-get m :let))
              (pcase ',clause
                ('(:given) ,(me-interpret-given m))

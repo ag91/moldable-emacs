@@ -733,9 +733,7 @@ It specializes for source code."
  :key "NotesToOrg"
  :let ((notes (or (ignore-errors self) (me-load-notes))))
  :given (:fn
-         (and
-          ;; (s-starts-with-p "Notes" (buffer-name))
-          notes))
+         notes)
  :then (:fn
         (with-current-buffer buffername
           (erase-buffer)
@@ -762,7 +760,7 @@ It specializes for source code."
  :key "NoteToOrg"
  :given (:fn
          (and
-          (s-starts-with-p "Annotate" (buffer-name))))
+          (s-contains-p "Annotate" (buffer-name))))
  :then (:fn
         (let ((note self))
           (with-current-buffer buffername
