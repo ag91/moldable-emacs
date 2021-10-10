@@ -131,13 +131,6 @@
       (--map (-flatten (-zip-lists keys it)) (cdr alist))
     alist))
 
-(ert-deftest me-alist-to-plist_convert-alist-to-plist ()
-  (should
-   (equal (me-alist-to-plist '(("A" "b") (1 2) (3 4))) '((:A 1 :b 2) (:A 3 :b 4)))))
-
-;; (ert-deftest me-alist-to-plist_convert-alist-to-plist+1 ()
-;;   (should
-;;    (equal (me-alist-to-plist '(("A" . "b") (1 . 2) (3 . 4))) '((:A 1 :b 2) (:A 3 :b 4)))))
 
 (defun me-org-table-to-plist (table-string)
   "Make TABLE-STRING a plist."
@@ -554,17 +547,7 @@ This should simplify the testing and documentation of molds.")
                 (,(if mode mode 'fundamental-mode))
                 ,@body)))))
 
-(ert-deftest me-given_valid-with-buffer ()
-  (should
-   (equal
-    (me-given '(:type buffer :name "some.txt" :contents "bla" :mode emacs-lisp-mode) (format "%s %s" (buffer-name) major-mode))
-    "some.txt emacs-lisp-mode")))
 
-(ert-deftest me-given_valid-with-buffer-param ()
-  (should
-   (equal
-    (let ((x '(:type buffer :name "some.txt" :contents "bla" :mode emacs-lisp-mode))) (me-given x (format "%s %s" (buffer-name) major-mode)))
-    "some.txt emacs-lisp-mode")))
 
 (defun me-check-then-clause (then)
   (let* ((contents (list
@@ -624,30 +607,7 @@ This should simplify the testing and documentation of molds.")
      end-buffer-or-file
      end-contents)))
 
-(ert-deftest me-example-to-docstring_produce-doc-string ()
-  (should
-   (string=
-    (me-example-to-docstring '(:given (:type buffer :name "somebuffer" :contents "some contents") :then (:type file :name "/tmp/somefile.txt" :contents "some new contents")))
 
-    "
-
-Given the \"somebuffer\" buffer with the following contents:
-
-----------
-
-some contents
-
-----------
-
-The mold returns the \"/tmp/somefile.txt\" file with the following contents:
-
-----------
-
-some new contents
-
-----------"
-
-    )))
 
 (defun me-mold-doc (mold-key)
   "Produce structured doc for a mold identified by MOLD-KEY."
@@ -820,18 +780,6 @@ some new contents
      (--each me-before-register-mold-hook (funcall it ',mold))
      (me-add-to-available-molds ',mold)))
 
-(ert-deftest me-register-mold_new-mold () ;; TODO use this as a documentation mold example??
-  (let ((me-available-molds nil))
-    (me-register-mold
-     :key "bla"
-     :description "bla"
-     :given (lambda () 't)
-     :then (lambda () 't))
-    (should
-     (string=
-      (plist-get (car me-available-molds) :key)
-      "bla"))))
-
 (defun me-find-relative-test-report (filepath)
   ;; TODO refactor a bit for supporting Clojure with https://github.com/ruedigergad/test2junit
   (let* ((_report-directory (concat (locate-dominating-file (file-name-directory filepath) "target") "target/test-reports"))
@@ -845,11 +793,11 @@ some new contents
               (s-replace "_test" "-test" _filename)
             _filename)))
     (--> report-directory
-      directory-files
-      (--find
-       (s-ends-with-p (concat filename ".xml") it)
-       it)
-      (concat report-directory "/" it))))
+         directory-files
+         (--find
+          (s-ends-with-p (concat filename ".xml") it)
+          it)
+         (concat report-directory "/" it))))
 
 (defun me-make-elisp-file-link (description target &optional link-type)
   (format "[[%s:%s][%s]]" (or link-type "file") target description))
