@@ -433,3 +433,42 @@ following in your lein project.clj
             (setq-local self plist))))
  :docs "You can parse EDN format as an Elisp object."
  :examples nil)
+
+
+(me-register-mold
+ :key "Playground Clojure"
+ :given (:fn (and (me-require 'clojure-mode)))
+ :then (:fn
+        (let* ((tree (ignore-errors self)))
+          (with-current-buffer buffername
+            (clojure-mode)
+            (erase-buffer)
+            (insert ";; Tips:\n;;    Use `self' to access the mold context.\n;;    You can access the previous mold context through `mold-data'.\n\n")
+            (setq-local self tree))))
+ :docs "You can play around with code in Clojure."
+ :examples ((:given
+             (:type buffer :name "example.txt" :mode text-mode :contents "")
+             :then
+             (:type buffer :name "*moldable-emacs-Playground Clojure*" :mode clojure-mode :contents ";; Tips:\n;;    Use `self' to access the mold context.\n;;    You can access the previous mold context through `mold-data'.\n\n"))
+            ))
+
+(me-register-mold
+ :key "Eval With Clojure"
+ :given (:fn (and (me-require 'clojure-mode)
+                  (me-require 'cider-mode)
+                  (cider-connected-p)))
+ :then (:fn
+        (let* ((tree (ignore-errors (--> (cider-last-sexp)
+                                         (cider-nrepl-sync-request:eval it)
+                                         (nrepl-dict-get it "value")))))
+          (with-current-buffer buffername
+            (clojure-mode)
+            (erase-buffer)
+            (insert tree)
+            (setq-local self tree))))
+ :docs "You can evaluate the *last* Clojure expression."
+ :examples ((:given
+             (:type buffer :name "*moldable-emacs-Playground Clojure*" :mode clojure-mode :contents ";; Tips:\n;;    Use `self' to access the mold context.\n;;    You can access the previous mold context through `mold-data'.\n\n(identity {:a 1})")
+             :then
+             (:type buffer :name "*moldable-emacs-Eval With Clojure*" :mode clojure-mode :contents "{:a 1}"))
+            ))
