@@ -274,7 +274,6 @@
       `(let ((_ (async-let ,(plist-get then :async)
                   (progn
                     ,(plist-get then :fn)
-                    (message "lol %s" (list (buffer-name) (ignore-errors buffername)))
                     (ignore-errors
                       (switch-to-buffer-other-window
                        (get-buffer buffername)))))))
@@ -282,6 +281,14 @@
          (with-current-buffer buffername
            (erase-buffer)
            (insert (format "Loading %s contents..." ,(plist-get mold :key))))))
+     ((ignore-errors (car (plist-get then :no-async)))
+      `(let* ,(plist-get then :no-async)
+         (progn
+           (get-buffer-create buffername)
+           ,(plist-get then :fn)
+           (ignore-errors
+             (switch-to-buffer-other-window
+              (get-buffer buffername))))))
      ((-contains-p then :fn)
       `(progn
          (get-buffer-create buffername)
@@ -1151,12 +1158,10 @@ a string (node -> string)."
                                             (or
                                              (and
                                               (seqp it)
-                                              (-contains? it 'executable-find)
-                                              (message "h3 %s" (plist-get mold :key)))
+                                              (-contains? it 'executable-find))
                                              (and
                                               (seqp it)
-                                              (-contains? it 'me-require)
-                                              (message "h4 %s" (plist-get mold :key))))
+                                              (-contains? it 'me-require)))
                                             (cdr given-cond))))))))
    me-available-molds))
 
@@ -1167,24 +1172,19 @@ a string (node -> string)."
      :key (plist-get mold :key)
      :missing-dependencies
      (and
-      (message "0 %s" given-cond)
       (ignore-errors (> (length given-cond) 1))
-      (message "1")
       (eq (car given-cond) 'and)
-      (message "2")
       (--> (cdr given-cond)
            (--filter
             (or
              (and
               (seqp it)
               (-contains? it 'executable-find)
-              (me-with-mold-let mold (not (eval it)))
-              (message "3"))
+              (me-with-mold-let mold (not (eval it))))
              (and
               (seqp it)
               (-contains? it 'me-require)
-              (me-with-mold-let mold (not (eval it)))
-              (message "4"))
+              (me-with-mold-let mold (not (eval it))))
              )
             it))))))
 
