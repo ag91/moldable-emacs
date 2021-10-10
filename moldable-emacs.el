@@ -126,11 +126,12 @@
 
 (defun me-alist-to-plist (alist)
   "Convert ALIST to a `plist'."
-  (if-let* ((_ (ignore-errors (= (length (car alist)) (length (-filter #'stringp (car alist))))))
-            (keys (--map (intern (concat ":" it)) (car alist))))
-      (--map (-flatten (-zip-lists keys it)) (cdr alist))
-    alist))
-
+  (let ((keys (ignore-errors
+                (and (= (length (car alist)) (length (-filter #'stringp (car alist))))
+                     (--map (intern (concat ":" it)) (car alist))))))
+    (if keys
+        (--map (-flatten (-zip-lists keys it)) (cdr alist))
+      alist)))
 
 (defun me-org-table-to-plist (table-string)
   "Make TABLE-STRING a plist."
