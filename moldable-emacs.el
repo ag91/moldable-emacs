@@ -816,8 +816,9 @@ some new contents
 
 (defmacro me-register-mold (&rest mold)
   "Register MOLD."
-  (--each me-before-register-mold-hook (funcall it mold))
-  `(me-add-to-available-molds ',mold))
+  `(progn
+     (--each me-before-register-mold-hook (funcall it ',mold))
+     (me-add-to-available-molds ',mold)))
 
 (ert-deftest me-register-mold_new-mold () ;; TODO use this as a documentation mold example??
   (let ((me-available-molds nil))
