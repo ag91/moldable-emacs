@@ -58,3 +58,7 @@ some new contents
      (string=
       (plist-get (car me-available-molds) :key)
       "bla"))))
+
+(ert-deftest me-focus-on-consistent-keys_return-only-shared-key-values ()
+  (should
+   (equal (me-focus-on-consistent-keys '((:a 1 :b 1 :c 1) (:a 2 :c 2))) '((:a 1 :c 1) (:a 2 :c 2)))))

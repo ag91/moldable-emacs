@@ -1278,4 +1278,9 @@ For example, (me-get-in '(:a (:b (:c 1))) '(:a :b :c)) yields 1."
 
 ;; (me-plist-focus '(:a a :b b :c c) '(:a :c))
 
+(defun me-focus-on-consistent-keys (list-of-plist)
+  "Focus on common keys of LIST-OF-PLIST. For example ((:a 1 :b 1 :c 1) (:a 2 :c 2)) becomes ((:a 1 :c 1) (:a 2 :c 2)). This is useful for plotting."
+  (let ((keys (-reduce '-intersection (--map (-filter 'symbolp it) list-of-plist)))) ;; TODO
+    (--map (me-plist-focus it keys) list-of-plist)))
+
 (provide 'moldable-emacs)

@@ -63,6 +63,7 @@ following in your lein project.clj
         (let ((table nil) ;; TODO maybe I can use org-table-convert-region to produce a org table, also maybe another mold
               (contents (buffer-substring-no-properties (point-min) (point-max))))
           (with-current-buffer buffername
+            (erase-buffer)
             (with-temp-file "/tmp/somefile.csv"
               (insert contents))
             (setq-local self table)
@@ -83,6 +84,7 @@ following in your lein project.clj
         (let ((table nil) ;; TODO maybe I can use org-table-convert-region to produce a org table, also maybe another mold
               (contents (buffer-substring-no-properties (point-min) (point-max))))
           (with-current-buffer buffername
+            (erase-buffer)
             (with-temp-file "/tmp/somefile.csv"
               (insert contents))
             (setq-local self table)
