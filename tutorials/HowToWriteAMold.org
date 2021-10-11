@@ -3,15 +3,82 @@
 :CREATED:  [2021-10-04 Mon 22:15]
 :END:
 
-** TODO The basics of a mold
+This tutorial should teach you the basics of writing molds.
+
+** The basics of a mold
 :PROPERTIES:
 :CREATED:  [2021-10-04 Mon 22:15]
+:ID:       94d71322-fec6-4e36-96dc-bd8230069b56
 :END:
 
-** TODO The hello mold
+A mold aims to be a micro view that tells a micro story. For example,
+"given a csv buffer then I will show its columns". Micro stories have
+micro-sense. The more you compose, the bigger and more meaningful the
+story.
+
+Anyway, you define a mold as a =plist=. A mold requires three keys:
+
+- =:key= :: the identifier of molds.
+  (The naming conventions are still to develop, I will update this later.)
+- =:given= :: the pre-condition for the mold to be usable. This is typically a function.
+- =:then= :: the post-condition of the mold. This is also typically a function.
+
+The other keys are cool, but for another tutorial!
+
+Now we shall try to write a hello-world mold. We will do in two step
+to learn how to write very small molds for maximum composition (which
+is the power of moldable-emacs).
+
+** The hello mold
 :PROPERTIES:
 :CREATED:  [2021-10-04 Mon 22:16]
+:ID:       3ba298fe-2312-48af-b2eb-d0114fd37ecc
 :END:
+
+The first bit of a hello-world mold is something that says hello.
+
+Let's design! We want our hello mold to only greet files. So, our
+pre-condition is that a buffer must have a file. The mold should
+display a new buffer with "hello <filename>".
+
+Let's write it!
+
+#+begin_src elisp
+(me-register-mold
+ :key "To Hello" ;; the :key clause
+ :given (:fn (and (buffer-file-name))) ;; the :given clause
+ :then (:fn  ;; the :then clause
+        (let* ((file buffer-file-name)) ;; the scope here is in the original buffer you called the mold from
+          (with-current-buffer buffername ;; `buffername' is available by default
+            (emacs-lisp-mode)
+            (erase-buffer)
+            (insert (format "Hello %s!" file))
+            (setq-local self file)))) ;; always set the `self' variable!
+ :docs "You can let the mold say hello to a file")
+#+end_src
+
+As you can see we used all the keys we learned about. We even used an
+extra one: =:docs= which describes in more detail what the mold does.
+
+Note that you need to use =:fn= to provide =:given= and =:then= a
+function (body). Also =self= is very useful to set to an useful value.
+
+Now, evaluate the Org Mode block above (=C-c C-c= on the block). If
+you are following this from the tutorial mold, then you will see you
+cannot use your mold.
+
+Instead jump to a file and run it! You should see a new buffer pop up
+starting by "Hello".
+
+A few steps you can take from there:
+
+1. allow the mold to work with buffers as well (i.e., change
+   buffer-file-name -> buffer-name), and test it works for buffers
+2. in the resulting buffer use =M-:= and type "self" and see what happens
+3. change =(setq-local self file)= to =(setq-local self '(:lol
+   "lol"))= and see what happens if you repeat the step above
+4. instead of using =M-:=, invoke =M-x me-mold=, type "Query", select
+   the mold and finally type "self".
 
 ** TODO Composition
 :PROPERTIES:
