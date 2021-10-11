@@ -205,7 +205,7 @@ You can transform this to extract information with the Playground mold."
 
 (me-register-mold
  :key "CSVtoPlist"
- :given (:fn (and (eq major-mode 'csv-mode)))
+ :given (:fn (and (me-require 'csv-mode) (eq major-mode 'csv-mode)))
  :then (:fn
         (save-excursion
           (goto-char (point-min))
@@ -598,6 +598,7 @@ It specializes for source code."
  :key "OrgTableToCSV"
  :given (:fn (and
               (eq major-mode 'org-mode)
+              (me-require 'csv-mode)
               (s-contains-p "org" (buffer-name) t)
               (s-contains-p "table" (buffer-name) t)))
  :then (:fn

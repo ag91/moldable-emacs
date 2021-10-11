@@ -9,8 +9,10 @@
 :CREATED:  [2021-10-04 Mon 21:41]
 :END:
 
-You will only need =graph-cli= for the bar chart generation. This is
-easy to install: =pip install graph-cli=.
+You will need =csv-mode= (=M-x package-install csv-mode=) and
+=graph-cli= for the bar chart generation. This is easy to install:
+=pip install graph-cli=. Also make sure to have followed the setup in
+the README: in particular =(me-setup-molds)= makes molds available.
 
 ** Aim
 :PROPERTIES:
@@ -24,9 +26,10 @@ chart would be ideal.
 ** Let's do it
 :PROPERTIES:
 :CREATED:  [2021-10-04 Mon 21:45]
+:ID:       62190bd1-5cc5-43ba-a517-c445d454e5fc
 :END:
 
-1) invoke M-x and type =me/mold=
+1) invoke M-x and type =me-mold=
 
    This is the command that let you access the molds that can be useful in this context.
 2) type "Playground"
@@ -47,13 +50,13 @@ chart would be ideal.
 
    This creates a =plist= with the buffers name and its size.
 5) move the cursor on the first open parenthesis
-6) invoke M-x and type =me/mold=
+6) invoke M-x and type =me-mold=
 7) type "EvalSexp" and hit return
 
    You should see a buffer "EvalSexp" with a =plist= containing all
    your open buffers and sizes.
 8) move at the beginning of the buffer (the useful shortcut is =M-<=)
-9) invoke M-x and type =me/mold=
+9) invoke M-x and type =me-mold=
 10) type "PlistToBarChart" and hit return
 
     "PlistToBarChart" is a composition of many molds: you will find

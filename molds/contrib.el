@@ -58,6 +58,7 @@ following in your lein project.clj
  :key "CSVToBarChart"
  :given (:fn
          (and (executable-find "graph")
+              (me-require 'csv-mode)
               (eq major-mode 'csv-mode)))
  :then (:fn
         (let ((table nil) ;; TODO maybe I can use org-table-convert-region to produce a org table, also maybe another mold
@@ -79,6 +80,7 @@ following in your lein project.clj
 (me-register-mold
  :key "CSVToLineChart"
  :given (:fn (and (executable-find "graph")
+                  (me-require 'csv-mode)
                   (eq major-mode 'csv-mode)))
  :then (:fn
         (let ((table nil) ;; TODO maybe I can use org-table-convert-region to produce a org table, also maybe another mold
