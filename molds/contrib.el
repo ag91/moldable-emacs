@@ -143,18 +143,39 @@ following in your lein project.clj
         (equal (plist-get it :type) type)
         it)))
 
+(defun me-clojure-function-macro-nodes (clojure-flattened-tree)
+  "Filter only functions and macros from CLOJURE-FLATTENED-TREE."
+  (--> clojure-flattened-tree
+       (me-by-type 'list_lit it)
+       (--filter (or
+                  (s-starts-with-p "(defmacro" (plist-get it :text))
+                  (s-starts-with-p "(defn" (plist-get it :text)))
+                 it)))
+
 (defun me-functions-complexity (tree complexity-fn)
+  "Calculate complexity of functions in TREE by using COMPLEXITY-FN."
   (--> tree
-       (me-by-type 'function_definition it)
+       (if-let ((clj-fns (me-clojure-function-macro-nodes it)))
+           clj-fns
+         (me-by-type 'function_definition it))
        (--map
         (let ((text (plist-get it :text)))
           (list
-           :identifier (plist-get (me-find-child-with-type 'identifier it tree) :text)
+           :identifier (plist-get
+                        (or (me-find-child-with-type 'identifier it tree)
+                            (me-find-child-with-type ; clojure hack: find the name of the fn, but avoid to pick the defn/defmacro sym_lit
+                             'sym_lit it
+                             (--remove (and (or (equal "defn" (plist-get it :text))
+                                                (equal "defmacro" (plist-get it :text)))
+                                            (eq 'sym_lit (plist-get it :type)))
+                                       tree)))
+                        :text)
            :complexity (funcall complexity-fn text) ;; TODO this is a dependency on code-compass!
            :node it))
         it)))
 
 (defun me-highlight-function-complexity (complexity)
+  "Highlight with color COMPLEXITY. This specifies ad-hoc thresholds."
   (let* ((str (format "%s" complexity))
          (color (cond
                  ((>= complexity 12) "red") ;; TODO numbers at random!
@@ -172,41 +193,43 @@ following in your lein project.clj
 
 (me-register-mold
  :key "FunctionsComplexity"
- :let ((tree (me-mold-treesitter-to-parse-tree)))
+ :let ((complexities
+        (ignore-errors (me-functions-complexity
+                        (me-mold-treesitter-to-parse-tree)
+                        #'c/calculate-complexity-stats))))
  :given (:fn (and
               (me-require 'code-compass)
               (me-require 'tree-sitter)
               (not (eq major-mode 'json-mode))
               (not (eq major-mode 'csv-mode))
               (not (eq major-mode 'yaml-mode))
-              (ignore-errors (me-by-type 'function_definition tree))))
+              complexities))
  :then (:fn
-        (let* ((complexities (me-functions-complexity tree #'c/calculate-complexity-stats)))
-          (with-current-buffer buffername
-            (erase-buffer)
-            (org-mode)
-            (setq-local self tree)
-            (me-insert-org-table
-             `(("Function" .
-                (:extractor
-                 (lambda (obj) obj)
-                 :handler
-                 (lambda (obj) (me-make-elisp-navigation-link
-                                (plist-get obj :identifier)
-                                (plist-get (plist-get obj :node) :buffer-file)))))
-               ("Complexity" .
-                (:extractor
-                 (lambda (obj) (alist-get 'total (plist-get obj :complexity)))
-                 :handler
-                 (lambda (s) (me-highlight-function-complexity s))))
-               ("Length" .
-                (:extractor
-                 (lambda (obj) (alist-get 'n-lines (plist-get obj :complexity)))
-                 :handler
-                 (lambda (s) (me-highlight-function-length s))))
-               )
-             complexities)
-            )))
+        (with-current-buffer buffername
+          (erase-buffer)
+          (org-mode)
+          (setq-local self complexities)
+          (me-insert-org-table
+           `(("Function" .
+              (:extractor
+               (lambda (obj) obj)
+               :handler
+               (lambda (obj) (me-make-elisp-navigation-link
+                              (plist-get obj :identifier)
+                              (plist-get (plist-get obj :node) :buffer-file)))))
+             ("Complexity" .
+              (:extractor
+               (lambda (obj) (alist-get 'total (plist-get obj :complexity)))
+               :handler
+               (lambda (s) (me-highlight-function-complexity s))))
+             ("Length" .
+              (:extractor
+               (lambda (obj) (alist-get 'n-lines (plist-get obj :complexity)))
+               :handler
+               (lambda (s) (me-highlight-function-length s))))
+             )
+           complexities)
+          ))
  :docs "Show a table showing code complexity for the functions in the buffer.")
 
 ;; TODO make mold that let you open a note, this should add a warning if the note is outdated (i.e., the position cannot be found anymore)
