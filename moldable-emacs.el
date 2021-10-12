@@ -433,7 +433,7 @@
 (defun me-set-dired-self-for-playground ()
   "Set Playground `self' to dired list of files."
   (when (and
-         (equal me-last-used-mold "Playground")
+         (s-starts-with-p "Playground" me-last-used-mold)
          (ignore-errors mold-data)
          (eq (plist-get mold-data :old-mode) 'dired-mode))
     (setq-local self (with-current-buffer (plist-get mold-data :old-buffer)

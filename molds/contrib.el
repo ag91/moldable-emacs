@@ -176,6 +176,9 @@ following in your lein project.clj
  :given (:fn (and
               (me-require 'code-compass)
               (me-require 'tree-sitter)
+              (not (eq major-mode 'json-mode))
+              (not (eq major-mode 'csv-mode))
+              (not (eq major-mode 'yaml-mode))
               (ignore-errors (me-by-type 'function_definition tree))))
  :then (:fn
         (let* ((complexities (me-functions-complexity tree #'c/calculate-complexity-stats)))
