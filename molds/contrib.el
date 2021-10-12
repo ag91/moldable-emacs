@@ -451,6 +451,9 @@ following in your lein project.clj
             (clojure-mode)
             (erase-buffer)
             (insert ";; Tips:\n;;    Use `self' to access the mold context.\n;;    You can access the previous mold context through `mold-data'.\n\n")
+            (ignore-errors
+              (when (cider-connected-p) (cider-nrepl-sync-request:eval (format "(def self '%s)" (let ((x self)) (with-temp-buffer (me-print-to-buffer x)
+                                                                                                                                  (buffer-string)))))))
             (setq-local self tree))))
  :docs "You can play around with code in Clojure."
  :examples ((:given
@@ -462,7 +465,7 @@ following in your lein project.clj
 (me-register-mold
  :key "Eval With Clojure"
  :given (:fn (and (me-require 'clojure-mode)
-                  (me-require 'cider-mode)
+                  (me-require 'cider)
                   (cider-connected-p)))
  :then (:fn
         (let* ((tree (ignore-errors (--> (cider-last-sexp)
