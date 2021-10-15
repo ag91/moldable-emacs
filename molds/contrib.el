@@ -506,3 +506,32 @@ following in your lein project.clj
              :then
              (:type buffer :name "*moldable-emacs-Eval With Clojure*" :mode clojure-mode :contents "{:a 1}"))
             ))
+
+
+(defvar me-lighthouse-url-to-audit nil "This is a variable to set for setting the Audit mold. Useful for looping.")
+
+(me-register-mold
+ :key "Audit with Lighthouse"
+ :let ((url (or me-lighthouse-url-to-audit (thing-at-point-url-at-point))))
+ :given (:fn (and
+              url
+              (me-require 'json)
+              (executable-find "lighthouse") ;; npm i -g lighthouse
+              (or (executable-find "chromium")
+                  (executable-find "chrome")
+                  (file-exists-p "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"))))
+ :then (
+        :async ((_ (shell-command (format "lighthouse %s --quiet --chrome-flags=--headless --output json --output-path /tmp/audit.json" url)))
+                (_ (while (not (file-exists-p "/tmp/audit.json")) (sleep-for 1.5))))
+        :fn (let* ((plist (with-temp-buffer
+                            (insert-file-contents-literally "/tmp/audit.json")
+                            (goto-char (point-min))
+                            (json-read))))
+              (with-current-buffer buffername
+                (emacs-lisp-mode)
+                (erase-buffer)
+                (me-print-to-buffer plist)
+                (setq-local self plist)
+                (delete-file "/tmp/audit.json"))))
+ :docs "You can audit a url with Lighthouse."
+ :examples nil)
