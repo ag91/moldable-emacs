@@ -1283,4 +1283,11 @@ For example, (me-get-in '(:a (:b (:c 1))) '(:a :b :c)) yields 1."
   (let ((keys (-reduce '-intersection (--map (-filter 'symbolp it) list-of-plist)))) ;; TODO
     (--map (me-plist-focus it keys) list-of-plist)))
 
+(defun me-get-region ()
+  "Get the active region's string."
+  (when (region-active-p)
+    (buffer-substring-no-properties
+     (caar (region-bounds))
+     (cdar (region-bounds)))))
+
 (provide 'moldable-emacs)

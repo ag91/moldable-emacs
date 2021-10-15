@@ -311,7 +311,7 @@ following in your lein project.clj
  :given (:fn (and
               (executable-find "dot")
               (eq major-mode 'fundamental-mode)
-              (s-contains-p "dot-" (buffer-name))))
+              (s-contains-p " Dot" (buffer-name))))
  :then (:fn
         (find-file-other-window (me-dot-string-to-picture (buffer-substring-no-properties (point-min) (point-max))))
         (switch-to-buffer buffername)
@@ -535,3 +535,42 @@ following in your lein project.clj
                 (delete-file "/tmp/audit.json"))))
  :docs "You can audit a url with Lighthouse."
  :examples nil)
+
+
+(me-register-mold
+ :key "List To Dot" ;; TODO this could be merged with the OrgTablesToDot
+ :let ((text (or
+              (me-get-region)
+              (thing-at-point 'paragraph))))
+ :given (:fn (and text))
+ :then (:fn
+        (let* ((diagram (--> text
+                             (s-replace-all
+                              '(("\"" . "")
+                                ("\n" . " "))
+                              it)
+                             (s-split " .) " it t)
+                             (--map (--> it
+                                         (s-split " " it t)
+                                         (-take 5 it)
+                                         (s-join " " it))
+                                    it)
+                             (--map (list :key (concat "node" (substring (sha1 it) 0 10)) :label it) it)
+                             (list
+                              :structure '((:key rankdir :option TD))
+                              :nodes it
+                              :edges (--map
+                                      (list :from (plist-get (nth 0 it) :key)
+                                            :to (plist-get (nth 1 it) :key)
+                                            :label "")
+                                      (-partition-in-steps 2 1 it))))))
+          (with-current-buffer buffername
+            (erase-buffer)
+            (insert (me-diagram-to-dot-string diagram))
+            (setq-local self diagram))))
+ :docs "You can transform a bullet list like '1) some 2) any' into a dot graph."
+ :examples ((:given
+             (:type buffer :name "example.txt" :mode text-mode :contents "1) something\n2) something else")
+             :then
+             (:type buffer :name "*moldable-emacs-List To Dot*" :mode fundamental-mode :contents "digraph {\nrankdir=TD;\nnode6c378c7e65 [label=\"1) something\" shape=\"\" style=\"filled\" fillcolor=\"\"]\nnode637828c03a [label=\"something else\" shape=\"\" style=\"filled\" fillcolor=\"\"]\nnode6c378c7e65 -> node637828c03a [taillabel=\"\"]\n}\n"))
+            ))
