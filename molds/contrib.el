@@ -498,6 +498,7 @@ following in your lein project.clj
             (clojure-mode)
             (erase-buffer)
             (insert tree)
+            (pp-buffer)
             (setq-local self tree))))
  :docs "You can evaluate the *last* Clojure expression."
  :examples ((:given

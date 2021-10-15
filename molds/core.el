@@ -354,14 +354,18 @@ You can transform this to extract information with the Playground mold."
  :key "EvalSexp"
  :given (:fn (eq major-mode 'emacs-lisp-mode))
  :then (:fn
-        (let* ((_ (remove-overlays))
+        (let* ((orig-point (point))
+               (tree (progn (unless (list-at-point)
+                              (progn (goto-char (point-min)) (search-forward "(" nil t)))
+                            (or (ignore-errors (eval (list-at-point))) (list-at-point))))
+               (_ (remove-overlays))
                (_ (overlay-put
                    (make-overlay
                     (car (thing-at-point-bounds-of-list-at-point))
                     (cdr (thing-at-point-bounds-of-list-at-point)))
                    'face
                    'bold))
-               (tree (or (ignore-errors (eval (list-at-point))) (list-at-point))))
+               (_ (goto-char orig-point)))
           (with-current-buffer buffername
             (emacs-lisp-mode)
             (erase-buffer)
