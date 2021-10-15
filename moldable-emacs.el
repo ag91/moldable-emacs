@@ -83,6 +83,30 @@
 ;;  (list "/tmp/bla" "/tmp/blo" "/tmp/blu")
 ;;  (lambda (_) (message "%s" (directory-files "/tmp"))))
 
+(defun me-pmap (fn els &optional poll-time timeout) ;; TODO maybe I can just use this https://github.com/chuntaro/emacs-promise
+  "Run FN in parallel on elements ELS. Optionally define a POST-FN to run on the results of apply FN on ELS. Optionally define a POLL-TIME to look for results and a TIMEOUT to fail."
+  (let* ((start (current-time))
+         (futures (mapcar
+                   (lambda (el)
+                     (async-start `(lambda ()
+                                     (setq load-path ',load-path)
+                                     (funcall ,fn ,el))))
+                   els))
+         (too-late-p
+          `(lambda () (>= (time-to-seconds (time-since ',start)) (or ,timeout 300)))))
+    (while (some #'null (mapcar #'async-ready futures))
+      (when (funcall too-late-p) (error "me-pmap has waited too long: timed out"))
+      (sleep-for (or poll-time 0.2)))
+    (--map
+     (let ((buf (process-buffer it)))
+       (with-current-buffer buf
+         (async-handle-result
+          #'identity
+          async-callback-value
+          (current-buffer))))
+     futures)))
+
+
 (defun me-print-to-buffer (object &optional buffer)
   "Print OBJECT in BUFFER without truncation."
   (let ((print-length nil)
