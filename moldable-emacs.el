@@ -90,7 +90,7 @@
                    (lambda (el)
                      (async-start `(lambda ()
                                      (setq load-path ',load-path)
-                                     (funcall ,fn ,el))))
+                                     (funcall ,fn (if ,(seqp el) ',el ,el)))))
                    els))
          (too-late-p
           `(lambda () (>= (time-to-seconds (time-since ',start)) (or ,timeout 300)))))
@@ -750,8 +750,7 @@ This should simplify the testing and documentation of molds.")
   (unless (equal (plist-get (-last-item me-mold-history) :buffername)
                  (buffer-name))
     (setq me-mold-history
-          (concatenate
-           'list
+          (append
            (-take me-current-history-index me-mold-history)
            (list (list :buffername (buffer-name) :date (format-time-string "%FT%T%z")))))
     (setq me-current-history-index (length me-mold-history))))
@@ -790,7 +789,7 @@ This should simplify the testing and documentation of molds.")
 (defun me-add-to-available-molds (mold)
   "Add MOLD to `me-available-molds' and so usable by `me-mold'."
   (let ((-compare-fn (lambda (x y) (equal (plist-get x :key) (plist-get y :key))))
-        (mold (concatenate 'list mold (list :origin (me-find-origin-file-of-mold (plist-get mold :key))))))
+        (mold (append mold (list :origin (me-find-origin-file-of-mold (plist-get mold :key))))))
     (setq me-available-molds
           (-distinct (add-to-list 'me-available-molds mold)))))
 
@@ -895,8 +894,7 @@ Excludes the heading and any child subtrees."
           contents)))))
 
 (defun me-org-to-flatten-tree (buffername)
-  (--map (concatenate
-          'list
+  (--map (append
           (list :type 'org)
           (plist-put (cadr it) :title nil)
           `(:buffer ,(buffer-name))
