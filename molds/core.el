@@ -917,28 +917,35 @@ It specializes for source code."
                               (concat it "/tutorials")
                               (directory-files it t)
                               (--filter (equal (file-name-extension it) "org") it)))
-              ;; (blogs (ignore-errors
-              ;;          (me-pmap
-              ;;           (lambda (url)
-              ;;             (with-current-buffer (url-retrieve-synchronously (concat "https://raw.githubusercontent.com/ag91/ag91.github.io/source/blog/" url))
-              ;;               (goto-char url-http-end-of-headers)
-              ;;               (delete-region (point-min) (point))
-              ;;               (delete-region (point-min) (- (search-forward "\n* " nil t) 2))
-              ;;               (buffer-substring-no-properties (point-min) (point-max))))
-              ;;           (list
-              ;;            "MoldableEmacsVision.org"
-              ;;            "MoldableDired.org"
-              ;;            ;; TODO add others
-              ;;            ))))
+              (blogs (me-pmap
+                      `(lambda (url)
+                         (with-current-buffer (url-retrieve-synchronously (concat "https://raw.githubusercontent.com/ag91/ag91.github.io/source/blog/" url))
+                           (goto-char url-http-end-of-headers)
+                           (delete-region (point-min) (point))
+                           (let ((title (progn (goto-char (point-min))
+                                               (next-line) ; for some reason I am a line too early
+                                               (string-trim (nth 1 (split-string (thing-at-point 'line t) "TITLE:"))))))
+                             (delete-region (point-min) (- (search-forward "\n* " nil t) 2))
+                             (list :title title :contents (buffer-substring-no-properties (point-min) (point-max))))))
+                      (list
+                       "MoldableEmacsVision.org"
+                       "MoldableDired.org"
+                       ;; TODO add others
+                       )))
               )
           (with-current-buffer buffername
             (org-mode)
             (erase-buffer)
             (insert "#+TITLE: Moldable Emacs Tutorials\n\n")
             (--each tutorials
-              (insert-file-contents-literally it))
-            ;; (--each blogs
-            ;;   (insert-file-contents-literally it))
+              (insert-file-contents-literally it)
+              (goto-char (point-max)))
+            (when blogs (insert "\n\n* Blogs\n\n"))
+            (--each blogs
+              (insert (concat "** " (plist-get it :title) "\n\n"))
+              (insert (s-replace "* " "*** " (plist-get it :contents)))
+              (insert "\n\n")
+              (goto-char (point-max)))
             (goto-char (point-min))
             (call-interactively #'outline-hide-sublevels)
             (setq-local self tutorials))))
