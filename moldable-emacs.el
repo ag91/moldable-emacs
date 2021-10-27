@@ -543,13 +543,13 @@ This should simplify the testing and documentation of molds.")
 
 (defun me-warn-on-run-if-no-example (mold)
   "Emit warning if MOLD has no examples."
-  (unless (plist-get mold :examples)
+  (unless (or (not me-molds-debug-on) (plist-get mold :examples))
     (warn "Mold %s has no examples! Would you mind to add one?\nYou can use TODO now to add the last usage as an example.\n"
           (plist-get mold :key))))
 
 (defun me-warn-on-run-if-no-docs (mold)
   "Emit warning if MOLD has no examples."
-  (unless (plist-get mold :docs)
+  (unless (or (not me-molds-debug-on) (plist-get mold :docs))
     (warn "Mold %s has no docs! Would you mind to add a line to tell what it is for?\n"
           (plist-get mold :key))))
 
