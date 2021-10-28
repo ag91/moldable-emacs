@@ -612,8 +612,7 @@ It specializes for source code."
             (csv-mode)
             (insert (orgtbl-to-csv table nil))
             (goto-char (point-min))
-            (while (eq (org-next-link) 't)
-              (ag/org-replace-link-by-link-description))
+            (me-replace-org-links-with-descriptions)
             (setq-local self table))))
  :docs "You can make a CSV out of an Org Table."
  :examples ((

@@ -1312,4 +1312,31 @@ For example, (me-get-in '(:a (:b (:c 1))) '(:a :b :c)) yields 1."
      (caar (region-bounds))
      (cdar (region-bounds)))))
 
+;; https://emacs.stackexchange.com/questions/10707/in-org-mode-how-to-remove-a-link
+(defun me-org-replace-link-by-link-description ()
+  "Remove the link part of an org-mode link at point and keep only the description"
+  (interactive)
+  (let ((elem (org-element-context)))
+    (if (eq (car elem) 'link)
+        (let* ((content-begin (org-element-property :contents-begin elem))
+               (content-end  (org-element-property :contents-end elem))
+               (link-begin (org-element-property :begin elem))
+               (link-end (org-element-property :end elem)))
+          (if (and content-begin content-end)
+              (let ((content (buffer-substring-no-properties content-begin content-end)))
+                (delete-region link-begin link-end)
+                (insert content)))))))
+
+(defun me-replace-org-links-with-descriptions (&optional text)
+  "Remove org links in place unless TEXT is passed."
+  (if text
+      (with-temp-buffer
+        (org-mode)
+        (insert text)
+        (goto-char (point-min))
+        (me-replace-org-links-with-descriptions)
+        (buffer-substring-no-properties (point-min) (point-max)))
+    (while (eq (org-next-link) 't)
+      (me-org-replace-link-by-link-description))))
+
 (provide 'moldable-emacs)

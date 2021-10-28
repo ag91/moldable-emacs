@@ -545,6 +545,7 @@ following in your lein project.clj
  :given (:fn (and text))
  :then (:fn
         (let* ((diagram (--> text
+                             me-replace-org-links-with-descriptions
                              (s-replace-all
                               '(("\"" . "")
                                 ("\n" . " "))
