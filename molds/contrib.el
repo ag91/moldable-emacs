@@ -549,7 +549,7 @@ following in your lein project.clj
                               '(("\"" . "")
                                 ("\n" . " "))
                               it)
-                             (s-split " .) " it t)
+                             (s-split ".) " it t)
                              (--map (--> it
                                          (s-split " " it t)
                                          (-take 5 it)
@@ -574,3 +574,7 @@ following in your lein project.clj
              :then
              (:type buffer :name "*moldable-emacs-List To Dot*" :mode fundamental-mode :contents "digraph {\nrankdir=TD;\nnode6c378c7e65 [label=\"1) something\" shape=\"\" style=\"filled\" fillcolor=\"\"]\nnode637828c03a [label=\"something else\" shape=\"\" style=\"filled\" fillcolor=\"\"]\nnode6c378c7e65 -> node637828c03a [taillabel=\"\"]\n}\n"))
             ))
+
+(me-register-mold-by-key
+ "List To Picture"
+ (me-mold-compose "List To Dot"  "DotToPicture"))
