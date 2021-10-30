@@ -198,3 +198,18 @@ https://ag91.github.io/blog/2021/10/02/moldable-emacs-molds-need-examples-too/
 :END:
 
 https://ag91.github.io/blog/2021/10/15/moldable-emacs-moldable-tutorials/
+
+*** Stats mold
+:PROPERTIES:
+:CREATED:  [2021-10-30 Sat 16:16]
+:END:
+
+https://ag91.github.io/blog/2021/10/22/moldable-emacs-how-to-get-useful-info-about-a-buffer-without-reading-it/
+
+*** JavaScript and Parenscript Mold with Nyxt
+:PROPERTIES:
+:CREATED:  [2021-10-30 Sat 16:17]
+:ID:       04a7d91a-b061-4800-ae91-01309b0f58f7
+:END:
+
+https://ag91.github.io/blog/2021/10/29/emacs-with-nyxt-capturing-youtube-links-at-time-and-molding-nyxt-with-js/

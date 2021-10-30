@@ -579,3 +579,89 @@ following in your lein project.clj
 (me-register-mold-by-key
  "List To Picture"
  (me-mold-compose "List To Dot"  "DotToPicture"))
+
+
+(me-register-mold
+ :key "Playground JS with Nyxt"
+ :given (:fn (and
+              (me-require 'emacs-with-nyxt)
+              (emacs-with-nyxt-connected-p)
+              (emacs-with-nyxt-send-sexps '(find-mode (current-buffer) 'web-mode))))
+ :then (:fn
+        (let* ((tree (ignore-errors self)))
+          (with-current-buffer buffername
+            (js-mode)
+            (erase-buffer)
+            (setq-local self tree))))
+ :docs "You can write some JS to evaluate with Eval JS with Nyxt."
+ :examples nil)
+
+(me-register-mold
+ :key "Eval JS with Nyxt"
+ :given (:fn (and
+              (eq major-mode 'js-mode)
+              (me-require 'emacs-with-nyxt)
+              (emacs-with-nyxt-connected-p)
+              (emacs-with-nyxt-send-sexps '(find-mode (current-buffer) 'web-mode))))
+ :then (:fn
+        (let* ((result (--> (buffer-substring-no-properties (point-min) (point-max))
+                            (emacs-with-nyxt-send-sexps `(ffi-buffer-evaluate-javascript (current-buffer) ,it))
+                            (string-reverse it)
+                            (s-split " ," it)
+                            (-drop 1 it)
+                            (s-join " ," it)
+                            (string-reverse it)
+                            (read it))))
+          (with-current-buffer buffername
+            (emacs-lisp-mode)
+            (erase-buffer)
+            (me-print-to-buffer result)
+            (setq-local self result))))
+ :docs "You can evaluate some JS in the current buffer of Nyxt."
+ :examples nil)
+
+(me-register-mold
+ :key "Playground Parenscript with Nyxt"
+ :given (:fn (and
+              (me-require 'emacs-with-nyxt)
+              (emacs-with-nyxt-connected-p)
+              (emacs-with-nyxt-send-sexps '(find-mode (current-buffer) 'web-mode))))
+ :then (:fn
+        (let* ((tree (ignore-errors self)))
+          (with-current-buffer buffername
+            (lisp-mode)
+            (if (eq cl-ide 'sly)
+                (sly-mode)
+              (slime-mode))
+            (erase-buffer)
+            (insert "(ps:ps\n\n;;write your Parenscript here\n\n)")
+            (setq-local self tree))))
+ :docs "You can write some Parenscript to evaluate with Eval Common Lisp with Nyxt."
+ :examples nil)
+
+(me-register-mold
+ :key "Eval Parenscript with Nyxt"
+ :let ((tree (progn (unless (list-at-point)
+                      (progn (goto-char (point-min)) (search-forward "(" nil t)))
+                    (or (ignore-errors (eval (list-at-point))) (list-at-point)))))
+ :given (:fn (and
+              (eq major-mode 'lisp-mode)
+              (me-require 'emacs-with-nyxt)
+              (emacs-with-nyxt-connected-p)
+              (emacs-with-nyxt-send-sexps '(find-mode (current-buffer) 'web-mode))
+              tree))
+ :then (:fn
+        (let* ((result (--> (emacs-with-nyxt-send-sexps `(ffi-buffer-evaluate-javascript (current-buffer) ,tree))
+                            (string-reverse it)
+                            (s-split " ," it)
+                            (-drop 1 it)
+                            (s-join " ," it)
+                            (string-reverse it)
+                            (read it))))
+          (with-current-buffer buffername
+            (emacs-lisp-mode)
+            (erase-buffer)
+            (me-print-to-buffer result)
+            (setq-local self result))))
+ :docs "You can evaluate some Parenscript in the current buffer of Nyxt."
+ :examples nil)
