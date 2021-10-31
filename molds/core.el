@@ -66,7 +66,7 @@ Useful to run Elisp on the fly without a Playground."
             (me-insert-org-table
              `(("Mold" .
                 (:extractor
-                 (lambda (obj) (me-make-elisp-navigation-link (plist-get obj :key) (plist-get obj :origin)))))
+                 (lambda (obj) (ignore-errors (me-make-elisp-navigation-link (plist-get obj :key) (plist-get obj :origin))))))
                ("Demo" .
                 (:extractor
                  (lambda (obj) (plist-get obj :key))

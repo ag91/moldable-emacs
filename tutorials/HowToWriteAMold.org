@@ -1,6 +1,7 @@
-* TODO How to write a mold
+* How to write a mold
 :PROPERTIES:
 :CREATED:  [2021-10-04 Mon 22:15]
+:ID:       6c3d30f3-03ea-42e9-b962-f3fd136ed1e0
 :END:
 
 This tutorial should teach you the basics of writing molds.
@@ -50,7 +51,6 @@ Let's write it!
  :then (:fn  ;; the :then clause
         (let* ((file buffer-file-name)) ;; the scope here is in the original buffer you called the mold from
           (with-current-buffer buffername ;; `buffername' is available by default
-            (emacs-lisp-mode)
             (erase-buffer)
             (insert (format "Hello %s!" file))
             (setq-local self file)))) ;; always set the `self' variable!
@@ -80,18 +80,89 @@ A few steps you can take from there:
 4. instead of using =M-:=, invoke =M-x me-mold=, type "Query", select
    the mold and finally type "self".
 
-** TODO Composition
+** Composition
 :PROPERTIES:
 :CREATED:  [2021-10-04 Mon 22:16]
 :END:
 
-*** TODO Refresher: The world mold
+As mentioned above, the secret power of molds is composition! When you
+produce a view of something via a mold, that view opens new molding
+options. For example, say you manage to take text and extract a table
+of data from it, now all the molds that operate on table are available
+for a further transformation (table->json, table->graph-cli, etc...)
+
+I will show next another mold that you can use after the "To Hello"
+one and how to quickly produce a mold that compose the two.
+
+*** Refresher: The world mold
 :PROPERTIES:
 :CREATED:  [2021-10-04 Mon 22:16]
 :ID:       3ce6612d-40c4-4f22-bcbc-b86c0d5012e3
 :END:
 
-*** TODO The hello world mold
+Let's complete the message produced by the "To Hello" mold above with
+"world <filename>!". So if we are in a file =text.txt=, applying first
+"To Hello" and then "To World" shall result in a buffer containing
+"Hello world test.txt!".
+
+The mold is pretty easy to write if we rely on =self=:
+
+#+begin_src elisp
+(me-register-mold
+ :key "To World" ;; the :key clause
+ :given (:fn (and  ;; the :given clause
+                  (ignore-errors (equal "To Hello" (plist-get mold-data :old-mold)))))  ;; mold-data contains the data about the previous mold run
+ :then (:fn  ;; the :then clause
+        (let* ((file self)) ;; the scope here is in the original buffer you called the mold from, so the "To Hello" buffer!
+          (with-current-buffer buffername ;; `buffername' is available by default
+            (erase-buffer)
+            (insert (format "Hello world %s!" file))
+            (setq-local self file)))) ;; always set the `self' variable!
+ :docs "You can let the mold say hello world to a file")
+#+end_src
+
+Note that the =:given= precondition uses =mold-data=. Any mold that
+you run sets this variable to give context about the previous run.
+Here we use the =:old-mold= attribute to find out we used "To Hello"
+to produce this view. We want "To World" to work only after "To
+Hello". I added =ignore-errors= to handle the cases where we didn't
+run a mold before.
+
+We then use =self= to get the value of the original file, because we
+rely on "To Hello" setting it.
+
+After evaluating the Elisp code above, try to run "To Hello" on a file
+buffer and immediately after run "To World". If you do so:
+congratulations! You have just composed molds!
+
+*** The hello world mold
 :PROPERTIES:
 :CREATED:  [2021-10-04 Mon 22:16]
+:ID:       0293b96b-7e1a-4d8b-9b07-db5a95986334
 :END:
+
+Finally a trick. When you find that you keep repeating a combination
+of molds, you may have to establish a composition. This way you can
+call a single mold to run multiple molds in a sequence.
+
+The code is simple:
+
+#+begin_src elisp
+(me-register-mold-by-key
+ "To Hello World"
+ (me-mold-compose
+  "To Hello"
+  "To World"
+  '((:docs "You can let the mold say hello world to a file"))))
+#+end_src
+
+You are registering a new mold. Note that you can add properties as
+=:docs= and =:examples= in the third parameter of =me-mold-compose=.
+
+If evaluate the above you can call the new mold directly. This will
+generate two buffers because it is just doing the composition for you.
+
+You can compose more than one mold! Check out the code of
+"FirstOrgTableToLineChart" to see how that looks like. (Final
+challenge to you: to view the code, run =M-x me-mold= in this buffer,
+select "WhatMoldsCanIUse?" and open its code via the link)

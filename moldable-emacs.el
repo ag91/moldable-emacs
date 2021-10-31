@@ -909,6 +909,8 @@ Excludes the heading and any child subtrees."
 (defvar me-last-used-mold nil "Keep the `:key' of last used mold.")
 
 (defun me-set-last-mold (mold)
+  "Set last used MOLD."
+  (ignore-errors (plist-put mold-data :mold (plist-get mold :key))) ;; TODO remove me-set-last-mold and just set mold-data with `me-mold-before-mold-runs-hook'
   (setq me-last-used-mold (plist-get mold :key)))
 
 (add-hook 'me-mold-before-mold-runs-hook #'me-set-last-mold)
