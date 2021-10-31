@@ -1341,4 +1341,20 @@ For example, (me-get-in '(:a (:b (:c 1))) '(:a :b :c)) yields 1."
     (while (eq (org-next-link) 't)
       (me-org-replace-link-by-link-description))))
 
+(defmacro me-with-url-contents (url &rest body)
+  "Retrieve URL contents and run BODY in buffer."
+  `(with-current-buffer (url-retrieve-synchronously ,url)
+     (goto-char url-http-end-of-headers)
+     (delete-region (point-min) (point))
+     ,@body))
+
+(defun me-get-json-from-url (url)
+  "Retrieve json from URL as a plist."
+  (me-with-url-contents url
+                        (save-excursion
+                          (let ((json-object-type 'plist)
+                                (json-array-type 'list))
+                            (goto-char (point-min))
+                            (json-read)))))
+
 (provide 'moldable-emacs)
