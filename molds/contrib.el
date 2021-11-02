@@ -409,7 +409,7 @@ following in your lein project.clj
  :then (:fn
         (let* ((test-file
                 (concat (projectile-project-root) matching-test))
-               (test-file-tree (me-mold-treesitter-file test-file))
+               (test-file-tree (funcall (me-mold-treesitter-file test-file)))
                (funct (list-at-point))
                (function-name
                 (--> funct

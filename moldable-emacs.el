@@ -254,9 +254,9 @@
 
 (defun me-mold-treesitter-file (path)
   "Obtain treesitter nodes for file at PATH."
-  (me-with-file path
-                (tree-sitter-mode 1)
-                (me-mold-treesitter-to-parse-tree)))
+  `(lambda () (me-with-file ,path
+                            (tree-sitter-mode 1)
+                            (me-mold-treesitter-to-parse-tree))))
 
 (defun nodes-with-duplication (self)
   "Find nodes that are duplicated for SELF."
