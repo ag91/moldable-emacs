@@ -42,9 +42,19 @@ my installation configuration:
   (me-setup-molds))
 #+end_src
 
+If you are using =Doom Emacs= slightly modify this:
+
+#+begin_src elisp :noeval
+(use-package! moldable-emacs
+  ...
+  (me-setup-molds))
+(add-load-path! "~/.emacs.d/lisp/moldable-emacs/molds")
+#+end_src
+
 I am working on making =moldable-emacs= itself explain which optional
 and external dependencies you may need for what, but it is still work
 in progress. For now an incomplete list from the top of my mind.
+
 
 *** Emacs Dependencies
 :PROPERTIES:
