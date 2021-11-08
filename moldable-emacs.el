@@ -252,11 +252,34 @@
         (funcall fn root)
         (reverse acc)))))
 
-(defun me-mold-treesitter-file (path)
-  "Obtain treesitter nodes for file at PATH."
-  `(lambda () (me-with-file ,path
-                            (tree-sitter-mode 1)
-                            (me-mold-treesitter-to-parse-tree))))
+(defun me-extension-to-major-mode (extension)
+  "Find major-mode for EXTENSION. E.g., \".scala\" => scala-mode"
+  (cdr (--find (s-match (car it) extension) auto-mode-alist)))
+
+(defun me-major-mode-to-tree-sitter-grammar (major-mode)
+  "Find emacs-tree-sitter grammar for MAJOR-MODE."
+  (alist-get major-mode tree-sitter-major-mode-language-alist))
+
+(defun me-extension-to-tree-sitter-grammar (extension)
+  "Find emacs-tree-sitter grammar for EXTENSION."
+  (--> extension
+       me-extension-to-major-mode
+       me-major-mode-to-tree-sitter-grammar))
+
+
+(defun me-filepath-to-flattened-tree (file)
+  "Return the flattened tree for FILE."
+  (when-let ((grammar (me-extension-to-tree-sitter-grammar (file-name-extension file t))))
+    (with-temp-buffer
+      (insert-file-contents-literally file)
+      (let ((buffer-file-name file)
+            (tree-sitter-language (tree-sitter-require grammar))
+            (tree-sitter-parser (tsc-make-parser)))
+        (tsc-set-language tree-sitter-parser tree-sitter-language)
+        (--> (tsc--without-restriction
+               (tsc-parse-chunks tree-sitter-parser #'tsc--buffer-input nil))
+             tsc-root-node
+             me-mold-treesitter-to-parse-tree)))))
 
 (defun nodes-with-duplication (self)
   "Find nodes that are duplicated for SELF."

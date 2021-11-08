@@ -51,8 +51,8 @@
 For Clojure support, you need to use https://github.com/ruedigergad/test2junit and have the
 following in your lein project.clj
 
-`:test2junit-output-dir "target/test-reports"
-  :profiles {:dev {:plugins [[test2junit "1.4.2"]]}}`")
+`:test2junit-output-dir \"target/test-reports\"
+  :profiles {:dev {:plugins [[test2junit \"1.4.2\"]]}}`")
 
 (me-register-mold
  :key "CSVToBarChart"
@@ -409,7 +409,7 @@ following in your lein project.clj
  :then (:fn
         (let* ((test-file
                 (concat (projectile-project-root) matching-test))
-               (test-file-tree (funcall (me-mold-treesitter-file test-file)))
+               (test-file-tree (me-filepath-to-flattened-tree test-file))
                (funct (list-at-point))
                (function-name
                 (--> funct
