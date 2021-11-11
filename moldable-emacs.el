@@ -25,6 +25,16 @@
   "Load molds from `me-files-with-molds'."
   (-each me-files-with-molds #'load-file))
 
+(defun me-get-in (plist keys)
+  "Navigate PLIST's KEYS in sequence.
+
+For example, (me-get-in '(:a (:b (:c 1))) '(:a :b :c)) yields 1."
+  (ignore-errors
+    (--reduce-from
+     (plist-get acc it)
+     plist
+     keys)))
+
 (defmacro me-with-file (file &rest body)
   "Open FILE, execute BODY close FILE if it was not already open."
   `(let ((old-buffer (current-buffer))
@@ -1161,10 +1171,9 @@ a string (node -> string)."
 
 (defun me-filter-notes-by-project ()
   "Gather notes by project."
-  (let ((files (-map #'file-name-nondirectory (when (projectile-project-root) (projectile-current-project-files)))))
-    (--filter
-     (ignore-errors (-contains-p files (file-name-nondirectory (plist-get (plist-get (plist-get it :given) :node) :buffer))))
-     me-notes)))
+  (--filter
+   (ignore-errors (s-starts-with-p (projectile-root-bottom-up default-directory) (expand-file-name (me-get-in it '(:given :node :buffer-file)))))
+   me-notes))
 
 (defun me-filter-notes-by-mode (mode)
   "Filter notes by MODE."
@@ -1308,16 +1317,6 @@ a string (node -> string)."
              result))
      hash-table)
     result))
-
-(defun me-get-in (plist keys)
-  "Navigate PLIST's KEYS in sequence.
-
-For example, (me-get-in '(:a (:b (:c 1))) '(:a :b :c)) yields 1."
-  (ignore-errors
-    (--reduce-from
-     (plist-get acc it)
-     plist
-     keys)))
 
 (defun me-plist-focus (plist keys)
   "Focus only on KEYS of PLIST. For example, (me-plist-focus '(:a a :b b :c c) '(:a :c)) => '(:a a :c c)."

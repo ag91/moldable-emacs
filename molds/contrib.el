@@ -487,12 +487,16 @@ following in your lein project.clj
 
 (me-register-mold
  :key "Eval With Clojure"
- :given (:fn (and (me-require 'clojure-mode)
+ :given (:fn (and (or (eq major-mode 'clojure-mode)
+                      (eq major-mode 'clojurec-mode)
+                      (eq major-mode 'clojurescript-mode))
+                  (me-require 'clojure-mode)
                   (me-require 'cider)
                   (cider-connected-p)))
  :then (:fn
         (let* ((tree (ignore-errors (--> (cider-last-sexp)
-                                         (cider-nrepl-sync-request:eval it)
+                                         (cider-nrepl-sync-request:eval it ;; (ignore-errors (cider-current-ns))
+                                                                        )
                                          (nrepl-dict-get it "value")))))
           (with-current-buffer buffername
             (clojure-mode)
@@ -504,8 +508,7 @@ following in your lein project.clj
  :examples ((:given
              (:type buffer :name "*moldable-emacs-Playground Clojure*" :mode clojure-mode :contents ";; Tips:\n;;    Use `self' to access the mold context.\n;;    You can access the previous mold context through `mold-data'.\n\n(identity {:a 1})")
              :then
-             (:type buffer :name "*moldable-emacs-Eval With Clojure*" :mode clojure-mode :contents "{:a 1}"))
-            ))
+             (:type buffer :name "*moldable-emacs-Eval With Clojure*" :mode clojure-mode :contents "{:a 1}"))))
 
 
 (defvar me-lighthouse-url-to-audit nil "This is a variable to set for setting the Audit mold. Useful for looping.")
@@ -623,8 +626,8 @@ following in your lein project.clj
 (me-register-mold
  :key "Playground Parenscript with Nyxt"
  :given (:fn (and
-              (me-require 'emacs-with-nyxt)
               (emacs-with-nyxt-connected-p)
+              (me-require 'emacs-with-nyxt)
               (emacs-with-nyxt-send-sexps '(find-mode (current-buffer) 'web-mode))))
  :then (:fn
         (let* ((tree (ignore-errors self)))
