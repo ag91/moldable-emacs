@@ -1379,4 +1379,64 @@ a string (node -> string)."
                             (goto-char (point-min))
                             (json-read)))))
 
+(defun me-clj-var-p (node)
+  "Check if flattened tree NODE is a Clojure function."
+  (and
+   (eq 'list_lit (plist-get node :type))
+   (s-starts-with-p "(def " (plist-get node :text))))
+
+(defun me-clj-fn-p (node)
+  "Check if flattened tree NODE is a Clojure function."
+  (and
+   (eq 'list_lit (plist-get node :type))
+   (s-starts-with-p "(defn " (plist-get node :text))))
+
+(defun me-clj-atom-p (node)
+  "Check if flattened tree NODE is a Clojure atom."
+  (and
+   (eq 'list_lit (plist-get node :type))
+   (s-starts-with-p "(def " (plist-get node :text))
+   (s-contains-p "atom" (plist-get node :text))))
+
+(defun me-clj-require-p (node)
+  "Check if flattened tree NODE is a Clojure :require."
+  (and
+   (eq 'list_lit (plist-get node :type))
+   (s-starts-with-p "(:require" (plist-get node :text))))
+
+(defun me-clj-datomic-query-p (node)
+  "Check if flattened tree NODE contains a Datomic query."
+  (and
+   (eq 'quoting_lit (plist-get node :type))
+   (s-contains-p ":where" (plist-get node :text))))
+
+
+
+(defun me-project-to-nodes (dir &optional file-extension)
+  "Produce categories of nodes for project DIR. Optionally filter for files with FILE-EXTENSION."
+  (-->  (--> (projectile-project-files dir)
+             (if file-extension
+                 (--filter
+                  (equal file-extension
+                         (file-name-extension it))
+                  it)
+               it)
+             (--map (ignore-errors  (me-filepath-to-flattened-tree (let ((default-directory dir)) (expand-file-name it)))) it))
+
+        (list
+         :fns
+         (-non-nil (--map (-filter 'me-clj-fn-p it) it))
+         :datomic-queries
+         (-non-nil (--map (-filter 'me-clj-datomic-query-p it) it))
+         :vars
+         (-non-nil (--map (-filter 'me-clj-var-p it) it))
+         :atoms
+         (-non-nil (--map (-filter 'me-clj-atom-p it) it))
+         :requires
+         (-non-nil (--map (-filter 'me-clj-require-p it) it)))))
+
+;; (--> (me-project-to-nodes "/home/andrea/workspace/fy-core/" "clj")
+;;      (--map (or (ignore-errors (length it)) it) it))
+
+
 (provide 'moldable-emacs)
