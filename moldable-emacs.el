@@ -1412,7 +1412,7 @@ a string (node -> string)."
 
 
 
-(defun me-project-to-nodes (dir &optional file-extension)
+(defun me-project-to-nodes (dir &optional file-extension) ; TODO this works for Clojure now, I need to bind the predicates according to the extension/grammar instead. If 'python `me-node-fn-p' should behave differently than me-clj-fn-p
   "Produce categories of nodes for project DIR. Optionally filter for files with FILE-EXTENSION."
   (-->  (--> (projectile-project-files dir)
              (if file-extension

@@ -626,7 +626,7 @@ following in your lein project.clj
 (me-register-mold
  :key "Playground Parenscript with Nyxt"
  :given (:fn (and
-              (emacs-with-nyxt-connected-p)
+              (ignore-errors (emacs-with-nyxt-connected-p))
               (me-require 'emacs-with-nyxt)
               (emacs-with-nyxt-send-sexps '(find-mode (current-buffer) 'web-mode))))
  :then (:fn
