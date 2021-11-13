@@ -62,3 +62,46 @@ some new contents
 (ert-deftest me-focus-on-consistent-keys_return-only-shared-key-values ()
   (should
    (equal (me-focus-on-consistent-keys '((:a 1 :b 1 :c 1) (:a 2 :c 2))) '((:a 1 :c 1) (:a 2 :c 2)))))
+
+(ert-deftest me-mold-treesitter-to-parse-tree_buffers ()
+  ;; buffer is visiting a file
+  (let ((tf (make-temp-file "moldable-emacs" )))
+    (with-temp-file tf
+      (insert "int i=0;"))
+
+    (unwind-protect
+        (with-temp-buffer
+          (insert-file-contents tf t)
+          (java-mode)
+          (tree-sitter-mode)
+          (let ((bn (buffer-name))
+                (bfn (buffer-file-name)))
+            (should
+             (equal (me-mold-treesitter-to-parse-tree)
+                    `((:type local_variable_declaration :text "int i=0;" :begin 1 :end 9 :buffer ,bn :buffer-file ,bfn)
+                      (:type integral_type :text "int" :begin 1 :end 4 :buffer ,bn :buffer-file ,bfn)
+                      (:type "int" :text "int" :begin 1 :end 4 :buffer ,bn :buffer-file ,bfn)
+                      (:type variable_declarator :text "i=0" :begin 5 :end 8 :buffer ,bn :buffer-file ,bfn)
+                      (:type identifier :text "i" :begin 5 :end 6 :buffer ,bn :buffer-file ,bfn)
+                      (:type "=" :text "=" :begin 6 :end 7 :buffer ,bn :buffer-file ,bfn)
+                      (:type decimal_integer_literal :text "0" :begin 7 :end 8 :buffer ,bn :buffer-file ,bfn)
+                      (:type ";" :text ";" :begin 8 :end 9 :buffer ,bn :buffer-file ,bfn))))))
+      (delete-file tf)))
+
+  ;; buffer is not visiting a file
+  (with-temp-buffer
+    (insert "int i=0;")
+    (java-mode)
+    (tree-sitter-mode)
+    (let ((bn (buffer-name)))
+      (should
+       (equal (me-mold-treesitter-to-parse-tree)
+              `((:type local_variable_declaration :text "int i=0;" :begin 1 :end 9 :buffer ,bn :buffer-file nil)
+                (:type integral_type :text "int" :begin 1 :end 4 :buffer ,bn :buffer-file nil)
+                (:type "int" :text "int" :begin 1 :end 4 :buffer ,bn :buffer-file nil)
+                (:type variable_declarator :text "i=0" :begin 5 :end 8 :buffer ,bn :buffer-file nil)
+                (:type identifier :text "i" :begin 5 :end 6 :buffer ,bn :buffer-file nil)
+                (:type "=" :text "=" :begin 6 :end 7 :buffer ,bn :buffer-file nil)
+                (:type decimal_integer_literal :text "0" :begin 7 :end 8 :buffer ,bn :buffer-file nil)
+                (:type ";" :text ";" :begin 8 :end 9 :buffer ,bn :buffer-file nil))))))
+  )
