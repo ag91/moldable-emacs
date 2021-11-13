@@ -2,6 +2,7 @@
 (require 's)
 (require 'async)
 (require 'thunk)
+(require 'cl-lib)
 
 (defcustom me-i-know-what-i-am-doing
   nil
@@ -243,23 +244,25 @@ For example, (me-get-in '(:a (:b (:c 1))) '(:a :b :c)) yields 1."
                node
                (ignore-errors (tsc-root-node tree-sitter-tree)))))
     (when root
-      (let* ((fn
-              (lambda (node)
-                (tsc-mapc-children
-                 (lambda (n)
-                   (setq acc (cons
-                              (list
-                               :type (tsc-node-type n)
-                               :text (tsc-node-text n)
-                               :begin (tsc-node-start-position n)
-                               :end (tsc-node-end-position n)
-                               :buffer (buffer-name)
-                               :buffer-file (s-replace (getenv "HOME") "~" (buffer-file-name)))
-                              acc))
-                   (funcall fn n))
-                 node))))
+      (cl-labels ((fn (node)
+                      (tsc-mapc-children
+                       (lambda (n)
+                         (setq acc (cons
+                                    (list
+                                     :type (tsc-node-type n)
+                                     :text (tsc-node-text n)
+                                     :begin (tsc-node-start-position n)
+                                     :end (tsc-node-end-position n)
+                                     :buffer (buffer-name)
+                                     :buffer-file (when buffer-file-name
+                                                    (s-replace (getenv "HOME") "~"
+                                                               buffer-file-name))
+                                     )
+                                    acc))
+                         (fn n))
+                       node)))
         (setq-local acc nil)
-        (funcall fn root)
+        (fn root)
         (reverse acc)))))
 
 (defun me-extension-to-major-mode (extension)
