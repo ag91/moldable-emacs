@@ -91,6 +91,14 @@ Optionally:
 - imgclip
 - ???
 
+*** Testing
+
+Install the [[https://github.com/doublep/eldev][Elisp Development Tool (Eldev)]] and run
+
+#+begin_src shell
+  eldev test
+#+end_src
+
 
 ** Tutorials
 :PROPERTIES:
