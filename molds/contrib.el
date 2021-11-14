@@ -381,7 +381,7 @@ following in your lein project.clj
 
 (me-register-mold
  :key "Files To Edit As Org Todos"
- :let ((old-file (plist-get mold-data :old-file)))
+ :let ((old-file (plist-get (ignore-errors mold-data) :old-file)))
  :given (:fn
          (and
           (me-require 'code-compass)

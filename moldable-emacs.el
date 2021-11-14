@@ -365,7 +365,12 @@ For example, (me-get-in '(:a (:b (:c 1))) '(:a :b :c)) yields 1."
       (eval
        `(progn
           (let ((buffername (concat "*moldable-emacs-" (or ,(plist-get m :buffername) ,(plist-get m :key)) "*")))
-            (,(if (ignore-errors (eq (car clause) :then)) 'let* 'thunk-let*) (,@(plist-get m :let))
+            (,(if (ignore-errors (eq (car clause) :then))
+                  'let*
+                'let*
+                ;; 'thunk-let* ; TODO for some strange reason, it seems that a mold with (:let ((1 ..) (2 ..) (3 ..))) ends up with (:let ((1 ..))) if I use thunk-let* here
+                )
+             (,@(plist-get m :let))
              (pcase ',clause
                ('(:given) ,(me-interpret-given m))
                ('(:then) ,(me-interpret-then m))
@@ -382,6 +387,7 @@ For example, (me-get-in '(:a (:b (:c 1))) '(:a :b :c)) yields 1."
 
 (defun me-mold-run-given (mold)
   "Run MOLD :given."
+  (unless (me-get-in mold '(:given :fn)) (error "For now all molds need to declare :given with :fn"))
   (me-with-mold-let mold
                     :given))
 
@@ -413,6 +419,7 @@ For example, (me-get-in '(:a (:b (:c 1))) '(:a :b :c)) yields 1."
 
 (defun me-mold-run-then (mold)
   "Run MOLD :then."
+  (unless (me-get-in mold '(:then :fn)) (error "For now all molds need to declare :then with :fn"))
   (me-with-mold-let mold :then))
 
 (defun me-mold ()
