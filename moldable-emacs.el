@@ -360,24 +360,23 @@ For example, (me-get-in '(:a (:b (:c 1))) '(:a :b :c)) yields 1."
 
 (defmacro me-with-mold-let (mold &rest clause) ;; TODO this must evaluate only once any time is called AND needs to make evaluation of bindings lazy?
   "Wrap BODY in a let with :let and :buffername of MOLD, plus add the body for CLAUSE."
-  `(funcall
-    (lambda (m clause)
-      (eval
-       `(progn
-          (let ((buffername (concat "*moldable-emacs-" (or ,(plist-get m :buffername) ,(plist-get m :key)) "*")))
-            (,(if (ignore-errors (eq (car clause) :then))
-                  'let*
-                'let*
-                ;; 'thunk-let* ; TODO for some strange reason, it seems that a mold with (:let ((1 ..) (2 ..) (3 ..))) ends up with (:let ((1 ..))) if I use thunk-let* here
-                )
-             (,@(plist-get m :let))
-             (pcase ',clause
-               ('(:given) ,(me-interpret-given m))
-               ('(:then) ,(me-interpret-then m))
-               (_ ,@clause)))))
-       't))
-    ,mold
-    ',clause))
+  (let ((m (-clone mold))) ;; for some strange reason, it seems that a mold with (:let ((1 ..) (2 ..) (3 ..))) ends up with (:let ((1 ..))) if I use thunk-let* on the original mold, so I clone it
+    `(funcall
+      (lambda (m clause)
+        (eval
+         `(progn
+            (let ((buffername (concat "*moldable-emacs-" (or ,(plist-get m :buffername) ,(plist-get m :key)) "*")))
+              (,(if (ignore-errors (eq (car clause) :then))
+                    'let*
+                  'thunk-let*)
+               (,@(plist-get m :let))
+               (pcase ',clause
+                 ('(:given) ,(me-interpret-given m))
+                 ('(:then) ,(me-interpret-then m))
+                 (_ ,@clause)))))
+         't))
+      ,
+      ',clause)))
 
 ;; (me-print-to-buffer (let ((mold (me-find-mold "PlistToJson")))
 ;;                       (me-with-mold-let mold
@@ -388,7 +387,7 @@ For example, (me-get-in '(:a (:b (:c 1))) '(:a :b :c)) yields 1."
 (defun me-mold-run-given (mold)
   "Run MOLD :given."
   (unless (me-get-in mold '(:given :fn)) (error "For now all molds need to declare :given with :fn"))
-  (me-with-mold-let mold
+  (me-with-mold-let (-clone mold)
                     :given))
 
 (defvar me-usable-mold-stats nil)
