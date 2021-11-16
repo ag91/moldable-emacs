@@ -1,0 +1,10 @@
+; -*- mode: emacs-lisp; lexical-binding: t -*-
+
+;; Autodetermined by `eldev init'.
+(eldev-use-package-archive 'melpa)
+
+;; these are currently optional dependencies only required for
+;; testing
+(eldev-add-extra-dependencies 'test
+                              'tree-sitter 'tree-sitter-langs)
+
