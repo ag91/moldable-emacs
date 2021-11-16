@@ -310,12 +310,11 @@ For example, (me-get-in '(:a (:b (:c 1))) '(:a :b :c)) yields 1."
        me-extension-to-major-mode
        me-major-mode-to-tree-sitter-grammar))
 
-
-(defun me-filepath-to-flattened-tree (file)
+(defun me-filepath-to-flattened-tree (file &optional contents)
   "Return the flattened tree for FILE."
   (when-let ((grammar (me-extension-to-tree-sitter-grammar (file-name-extension file t))))
     (with-temp-buffer
-      (insert-file-contents-literally file)
+      (if contents (insert contents) (insert-file-contents-literally file))
       (let ((buffer-file-name file)
             (tree-sitter-language (tree-sitter-require grammar))
             (tree-sitter-parser (tsc-make-parser)))
