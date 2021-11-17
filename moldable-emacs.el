@@ -405,7 +405,7 @@ For example, (me-get-in '(:a (:b (:c 1))) '(:a :b :c)) yields 1."
                  ('(:then) ,(me-interpret-then m))
                  (_ ,@clause)))))
          't))
-      ,
+      ,m
       ',clause)))
 
 ;; (me-print-to-buffer (let ((mold (me-find-mold "PlistToJson")))
