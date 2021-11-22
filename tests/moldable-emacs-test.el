@@ -127,7 +127,8 @@ some new contents
                             (concat "hello " s "!")))))
              '((:a 1 :b 2)
                (:a 2 :b 3)))
-            "| A | B |
-|--+--|
+            "| A | B | 
+|--+--| 
 | 1 | hello 2! |
 | 2 | hello 3! |" )))
+
