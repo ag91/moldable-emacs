@@ -105,3 +105,29 @@ some new contents
                 (:type decimal_integer_literal :text "0" :begin 7 :end 8 :buffer ,bn :buffer-file nil)
                 (:type ";" :text ";" :begin 8 :end 9 :buffer ,bn :buffer-file nil))))))
   )
+
+(ert-deftest me-get-in_not-found-is-nil ()
+  (should
+   (eq (me-get-in '() '(:a :b)) nil)))
+
+(ert-deftest me-get-in_finds-val ()
+  (should
+   (eq (me-get-in '(:a (:b something)) '(:a :b)) 'something)))
+
+
+(ert-deftest me-make-org-table_make-simple-table ()
+  (should
+   (string= (me-make-org-table
+             `(("A" .
+                (:extractor (lambda (e) (number-to-string (plist-get e :a)))))
+               ("B" .
+                (
+                 :extractor (lambda (e) (number-to-string (plist-get e :b)))
+                 :handler (lambda (s)
+                            (concat "hello " s "!")))))
+             '((:a 1 :b 2)
+               (:a 2 :b 3)))
+            "| A | B |
+|--+--|
+| 1 | hello 2! |
+| 2 | hello 3! |" )))
