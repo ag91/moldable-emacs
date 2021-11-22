@@ -1,8 +1,11 @@
+(defvar me-playground-self nil "With this you can inject self in the Playground mold.")
+
 (me-register-mold
  :key "Playground"
  :given (:fn 't)
  :then (:fn
         (let ((tree (or ;; TODO I need to revisit this: has the code tree always precedence?
+                     me-playground-self
                      (ignore-errors
                        (me-mold-treesitter-to-parse-tree))
                      (ignore-errors (me-org-to-flatten-tree (current-buffer)))
