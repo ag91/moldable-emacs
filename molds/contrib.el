@@ -452,6 +452,9 @@ following in your lein project.clj
                (ignore-errors (parseedn-read-str (buffer-substring-no-properties (caar (region-bounds)) (cdar (region-bounds))))))
              (ignore-errors (parseedn-read)))))
  :given (:fn (and
+              (or (eq major-mode 'clojure-mode)
+                  (eq major-mode 'clojurec-mode)
+                  (eq major-mode 'clojurescript-mode))
               (me-require 'parseedn)
               edn))
  :then (:fn

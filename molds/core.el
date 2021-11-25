@@ -953,3 +953,28 @@ It specializes for source code."
             (setq-local self tutorials))))
  :docs "You can consult `moldable-emacs' tutorials."
  :examples nil)
+
+(me-register-mold
+ :key "To Date"
+ :let ((number (thing-at-point 'number t)))
+ :given (:fn (and number))
+ :then (:fn
+        (let* ((tree number))
+          (with-current-buffer buffername
+            (org-mode)
+            (erase-buffer)
+            (insert (format "- Seconds: %s is %s\n" number (me-format-iso8601-time (seconds-to-time number))))
+            (insert (format "- MilliSeconds: %s is %s\n" (/ number 1000) (me-format-iso8601-time (seconds-to-time (/ number 1000)))))
+            (insert "\n If you want to play around:\n")
+            (insert "
+#+begin_src elisp :var date=\"2016-12-01T23:35:06-05:00\"
+(time-to-seconds (parse-iso8601-time-string date)) ; multiply by 1000 if you need millis
+#+end_src
+
+#+begin_src elisp :var time=1480653306
+(me-format-iso8601-time time)
+#+end_src
+")
+            (setq-local self tree))))
+ :docs "You can convert an epoch number to date."
+ :examples nil)

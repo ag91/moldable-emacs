@@ -1449,8 +1449,6 @@ a string (node -> string)."
    (eq 'quoting_lit (plist-get node :type))
    (s-contains-p ":where" (plist-get node :text))))
 
-
-
 (defun me-project-to-nodes (dir &optional file-extension) ; TODO this works for Clojure now, I need to bind the predicates according to the extension/grammar instead. If 'python `me-node-fn-p' should behave differently than me-clj-fn-p
   "Produce categories of nodes for project DIR. Optionally filter for files with FILE-EXTENSION."
   (-->  (--> (projectile-project-files dir)
@@ -1474,9 +1472,12 @@ a string (node -> string)."
          :requires
          (-non-nil (--map (-filter 'me-clj-require-p it) it)))))
 
-;; (--> (me-project-to-nodes "/home/andrea/workspace/fy-core/" "clj")
-;;      (--map (or (ignore-errors (length it)) it) it))
-
+(defun me-format-iso8601-time (time)
+  "Format time to ISO8601 -- taken from http://xahlee.info/emacs/emacs/elisp_datetime.html."
+  (concat
+   (format-time-string "%Y-%m-%dT%T" time)
+   ((lambda (x) (concat (substring x 0 3) ":" (substring x 3 5)))
+    (format-time-string "%z" time))))
 
 (provide 'moldable-emacs)
 ;;; moldable-emacs.el ends here
