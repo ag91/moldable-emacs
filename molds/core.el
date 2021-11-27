@@ -17,7 +17,7 @@
             (emacs-lisp-mode)
             (auto-save-mode)
             (erase-buffer)
-            (insert ";; Tips:\n;;    Use `self' to access the mold context.\n;;    You can access the previous mold context through `mold-data'.\n\n")
+            (insert ";; Tips:\n;;    Use `self' to access the mold context.\n;;    You can access the previous mold context through `mold-data'.\n\n(format \"%s\" self); run EvalSexp to see\n(format \"%s\" mold-data); run EvalSexp to see\n\n")
             (goto-char (point-max))
             (setq-local self tree))))
  ;; TODO experimental for auto-completion: how can I make molds easy to autocomplete?
@@ -32,6 +32,9 @@ in the local variable `self'."
              :then (:type buffer :name "Playground" :mode emacs-lisp-mode :contents ";; Tips:
 ;;    Use `self' to access the mold context.
 ;;    You can access the previous mold context through `mold-data'.
+
+(format \"%s\" self); run EvalSexp to see
+(format \"%s\" mold-data); run EvalSexp to see
 
 "))))
 
