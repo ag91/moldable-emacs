@@ -1276,11 +1276,11 @@ a string (node -> string)."
              (and
               (seqp it)
               (-contains? it 'executable-find)
-              (me-with-mold-let mold (not (eval it))))
+              (me-with-mold-let mold (not (lambda () (eval it)))))
              (and
               (seqp it)
               (-contains? it 'me-require)
-              (me-with-mold-let mold (not (eval it))))
+              (me-with-mold-let mold (not (lambda () (eval it)))))
              )
             it))))))
 
