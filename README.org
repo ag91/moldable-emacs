@@ -5,17 +5,19 @@
 :END:
 
 When you use a tool, you are trying to achieve something. You have a
-story in mind. For example, "given all the expenses I had this year,
-how much have I available to spend for an enjoyable holiday" or "given
-my Emacs, what variables are occupying most of the memory (maybe I
-introduced a memory bug?)". In all your stories you have some context
-and some result (finances -> holiday budget). A good story molds the
-context into a result.
+story in mind. For example, "given all the expenses I had this year, I
+want to see what kind of holiday I can afford" or "given my running
+Emacs, I want to make sure I didn't introduce a memory bug by checking
+the variable sizes (otherwise I have to review my code!)". In all your
+stories you have some context and some result (finances -> holiday
+budget). A good story molds the context into a result. It does it in a
+way that attracts the listener attention!
 
 Since there is so much data around us, we could be telling fabulous
-stories. The problem is that there is too much to read! We just cannot
-absorb it as text (or it would take too long). We need tools that help
-us telling our stories!
+stories. The problem is that there is too much information to read it
+all! We just cannot absorb it as text (or it would take too long). We
+need tools that help us telling our stories! They must do so by
+attracting our attention on what is important.
 
 This Emacs extension is a framework to make it easier to tell your
 stories. It allows you to quickly create micro-tools (we will call
