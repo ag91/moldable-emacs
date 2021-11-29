@@ -62,8 +62,6 @@ Let me give you some examples of stories I tell myself through molds.
   inverted. I focus only on my story by relying on existing molds that
   divide the CSS files in elements I can query.
 
-  [[images/invertBlogThemeWithMolds.gif]]
-
 - "When I am tired, given a long list of steps, I would like to see it as a succinct diagram."
 
   [[images/listToPicture.gif]]
