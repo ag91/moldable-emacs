@@ -1,18 +1,83 @@
-* Moldable Emacs
+* Moldable Emacs.
 :PROPERTIES:
 :CREATED:  [2021-06-18 Fri 21:45]
 :ID:       db0f9ac1-54f7-476e-b566-0a8395e9943c
 :END:
 
-This is an extension of Emacs aiming to enable Moldable Development.
-Or better still, aiming to make you a better story teller when you
-deal with code.
+When you use a tool, you are trying to achieve something. You have a
+story in mind. For example, "given all the expenses I had this year,
+how much have I available to spend for an enjoyable holiday" or "given
+my Emacs, what variables are occupying most of the memory (maybe I
+introduced a memory bug?)". In all your stories you have some context
+and some result (finances -> holiday budget). A good story molds the
+context into a result.
 
-TODO: I will detail dependencies and more information in a later change.
+Since there is so much data around us, we could be telling fabulous
+stories. The problem is that there is too much to read! We just cannot
+absorb it as text (or it would take too long). We need tools that help
+us telling our stories!
 
-*Ah! This is a pretty alpha release: I have a plan for quite few
-changes ahead! So avoid to build upon this prototype for now!!*
+This Emacs extension is a framework to make it easier to tell your
+stories. It allows you to quickly create micro-tools (we will call
+these *"molds"*) to enact your stories. Molds "mold" the data in your
+context into the data of your result. A mold for the holiday story may
+look like:
 
+#+begin_src elisp
+  (me-register-mold
+   :key "FinancesToHoliday" ; your mold/story name
+   :given (:fn (I-can-retrieve-my-finances?)) ; the context
+   :then (:fn ; the result
+          (let* ((my-finances ...)
+                 (my-holiday-savings (learn-that-from my-finances)))
+            (with-current-buffer buffername
+              (show-prettily my-holiday-savings)
+              (setq-local self (list :finances my-finances :holiday-savings my-holiday-savings)) ; this sets a state that the next mold can compose upon
+              ))))
+#+end_src
+
+The power of =moldable-emacs= is to make this micro-tools highly
+composable. Any time you write a mold, you enhance all the molds that
+can combine with it! A mold can combine with another if the first sets
+up the context of the latter (the =:given= clause). And since the
+molds you write are highly fit to your context, this growth benefits
+your story telling.
+
+*Note*: remember the smaller and the more standard the molds, the
+higher the composition! (Our example mold above could be split
+further)
+
+Let me give you some examples of stories I tell myself through molds.
+
+- "Given a code buffer, I want to see duplicated code because I copy-pasted a lot and I want to cleanup."
+
+  [[images/duplicatedCodeMold.gif]]
+
+- "Given my blog, I would like to change its theme by inverting colors (in one swoop)"
+
+  [[images/invertBlogThemeWithMolds.gif]]
+
+  Here the context to mold is the CSS file of my blog + the feedback I
+  received from my readers and the output is a CSS file with colors
+  inverted. I focus only on my story by relying on existing molds that
+  divide the CSS files in elements I can query.
+
+  [[images/invertBlogThemeWithMolds.gif]]
+
+- "When I am tired, given a long list of steps, I would like to see it as a succinct diagram."
+
+  [[images/listToPicture.gif]]
+
+- "Given a Python file, I want the most complex function because I want something to refactor"
+
+- "Given my personal notes and their history, I want to see what I have been most interested in lately so I can move forward."
+
+- "Given some code, I want to highlight the syntax constructs to teach myself what they mean and how I should use them."
+
+This extension of Emacs follows the principles of [[https://gtoolkit.com/docs/moldable/][Moldable
+Development]], if you are a SmallTalker check out [[https://gtoolkit.com/][GlamorousToolkit]]!
+
+My presentation at EmacsConf21: [[https://www.youtube.com/watch?v=lLK7d6bTjuA]]
 
 ** Installation
 :PROPERTIES:
