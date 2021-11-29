@@ -1250,15 +1250,16 @@ a string (node -> string)."
         (> (length given-cond) 1)
         (eq (car given-cond) 'and)
         (me-with-mold-let mold
-                          (eval (cons 'and (--remove
-                                            (or
-                                             (and
-                                              (seqp it)
-                                              (-contains? it 'executable-find))
-                                             (and
-                                              (seqp it)
-                                              (-contains? it 'me-require)))
-                                            (cdr given-cond))))))))
+                          (lambda ()
+                            (eval (cons 'and (--remove
+                                              (or
+                                               (and
+                                                (seqp it)
+                                                (-contains? it 'executable-find))
+                                               (and
+                                                (seqp it)
+                                                (-contains? it 'me-require)))
+                                              (cdr given-cond)))))))))
    me-available-molds))
 
 (defun me-find-missing-dependencies-for-mold (mold)
@@ -1276,11 +1277,11 @@ a string (node -> string)."
              (and
               (seqp it)
               (-contains? it 'executable-find)
-              (me-with-mold-let mold (not (lambda () (eval it)))))
+              (me-with-mold-let mold (lambda () (not (eval it)))))
              (and
               (seqp it)
               (-contains? it 'me-require)
-              (me-with-mold-let mold (not (lambda () (eval it)))))
+              (me-with-mold-let mold (lambda () (not (eval it)))))
              )
             it))))))
 
