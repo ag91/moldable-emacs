@@ -671,3 +671,67 @@ following in your lein project.clj
             (setq-local self result))))
  :docs "You can evaluate some Parenscript in the current buffer of Nyxt."
  :examples nil)
+
+(me-register-mold
+ :key "AllMolds"
+ :given (:fn t)
+ :then (:fn
+        (let* ((molds me-available-molds)
+               (missing-deps-molds
+                (--filter
+                 (plist-get it :missing-dependencies)
+                 (me-find-missing-dependencies-for-molds (me-usable-molds-requiring-deps)))))
+          (with-current-buffer buffername
+            (erase-buffer)
+            (org-mode)
+            (insert "* All Registered Molds.\n\n")
+            (me-insert-org-table
+             `(("Mold" .
+                (:extractor
+                 (lambda (obj) (ignore-errors (me-make-elisp-navigation-link (plist-get obj :key) (plist-get obj :origin))))))
+               ("Demo" .
+                (:extractor
+                 (lambda (obj) (plist-get obj :key))
+                 :handler
+                 (lambda (s)
+                   (if (plist-get (me-find-mold s) :examples)
+                       (me-make-elisp-file-link  "Start!" (format "(me-mold-demo (me-find-mold \"%s\"))" s) "elisp")
+                     "Not available."))))
+               ("Documentation" .
+                (:extractor
+                 (lambda (obj) (or (plist-get obj :docs) "Not available."))
+                 :handler
+                 (lambda (s) (car (s-split "\n" s))))))
+             molds)
+            (when missing-deps-molds
+              (insert "\n\n\n** Molds you could use by installing some extra dependencies.\n\n")
+              (me-insert-org-table
+               `(("Mold" .
+                  (:extractor
+                   (lambda (obj) (me-make-elisp-navigation-link (plist-get obj :key) (plist-get (me-find-mold (plist-get obj :key)) :origin)))))
+                 ("Demo" .
+                  (:extractor
+                   (lambda (obj) (plist-get obj :key))
+                   :handler
+                   (lambda (s)
+                     (me-make-elisp-file-link  "Start!" (format "(me-mold-demo (me-find-mold \"%s\"))" s) "elisp"))))
+                 ("Documentation" .
+                  (:extractor
+                   (lambda (obj) (or (plist-get (me-find-mold (plist-get obj :key)) :docs) "Not available."))
+                   :handler
+                   (lambda (s) (car (s-split "\n" s)))))
+                 ("Required Dependencies" .
+                  (:extractor
+                   (lambda (obj) (--> (plist-get obj :missing-dependencies)
+                                      (--map
+                                       (concat
+                                        (when (equal (nth 0 it) 'me-require) "emacs ")
+                                        (pp-to-string (nth 1 it)))
+                                       it)
+                                      (s-join ", " it)))
+                   :handler
+                   (lambda (s) (me-make-elisp-file-link s (format "//duckduckgo.com/?q=%s" s) "https")))))
+               missing-deps-molds))
+            (setq-local self molds))))
+ :docs "You can see examples and demos of the molds you can use."
+ :examples nil)
