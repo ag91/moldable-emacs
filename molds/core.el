@@ -121,7 +121,7 @@ Useful to run Elisp on the fly without a Playground."
  :key "CodeAsTree"
  :given (:fn (and
               (me-require 'tree-sitter)
-              (seq-contains-p minor-mode-list 'tree-sitter-mode)))
+              (bound-and-true-p tree-sitter-mode)))
  :then (:fn
         (let* ((tree (me-mold-treesitter-to-parse-tree)))
           (with-current-buffer buffername
