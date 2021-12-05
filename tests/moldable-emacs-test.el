@@ -138,6 +138,7 @@ some new contents
    (equal (me-find-missing-dependencies-for-mold '(:key "test" :given (:fn (and t))))
           '(:key "test" :missing-dependencies nil))))
 
+
 (ert-deftest me-find-missing-dependencies-for-mold_finds-nothing-for-existing-dependencies ()
   (should
    (equal (me-find-missing-dependencies-for-mold '(:key "test" :given (:fn (and (me-require 'org) (executable-find "sh")))))
@@ -177,3 +178,55 @@ some new contents
                (erase-buffer)
                (insert
                 (format "Loading %s contents..." "Test")))))))
+
+(ert-deftest me-with-mold-let-evals ()
+  (let ((mold '(
+                :key "MissingExecutable"
+                :given (:fn (and
+                             ;; (progn (message "me-usable-molds-requiring-deps-1:major-mode=%s"
+                             ;;                 major-mode) t)
+                             ;; (executable-find "executable-does-not-exist")
+                             (executable-find "sh")
+                             (eq major-mode 'fundamental-mode)))
+                :then (:fn
+                       (switch-to-buffer buffername)
+                       (kill-buffer-and-window))
+                :docs "Test failing :given")))
+    (should
+     (equal (me-with-mold-let mold :given) t))
+    (should
+     (equal (buffer-name (me-with-mold-let mold :then)) "*moldable-emacs-MissingExecutable*"))
+    (should
+     (equal (me-with-mold-let mold (funcall (lambda () (+ 2 4)))) 6))
+    ))
+
+(ert-deftest me-usable-molds-requiring-deps-1 ()
+  (let ((mold '(
+                :key "NoMissingExecutable"
+                :given (:fn (and
+                             (executable-find "sh")
+                             (eq major-mode 'fundamental-mode)))
+                :then (:fn
+                       (switch-to-buffer buffername)
+                       (kill-buffer-and-window))
+                :docs "Test failing :given")))
+      (should
+       (equal (me-usable-molds-requiring-deps-in (list mold)) nil))
+      ))
+
+(ert-deftest me-usable-molds-requiring-deps-2 ()
+  (let ((mold '(
+                :key "MissingExecutable"
+                :given (:fn (and
+                             (executable-find "sh-does-not-exist")
+                             (eq major-mode 'fundamental-mode)))
+                :then (:fn
+                       (switch-to-buffer buffername)
+                       (kill-buffer-and-window))
+                :docs "Test failing :given")))
+    (should
+     ;; AZ: I would expect it to return (list molds). What am I missing?
+     (equal (me-usable-molds-requiring-deps-in (list mold)) nil))
+    ))
+
+;;; moldable-emacs-test.el ends here

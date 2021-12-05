@@ -1242,6 +1242,10 @@ a string (node -> string)."
 
 (defun me-usable-molds-requiring-deps ()
   "Find molds that require dependencies to run."
+  (me-usable-molds-requiring-deps-in me-available-molds))
+
+(defun me-usable-molds-requiring-deps-in (molds-alist)
+  "Find molds in MOLDS-ALIST that require dependencies to run."
   (--remove
    (let ((mold it)
          (given-cond (me-get-in it '(:given :fn))))
@@ -1250,17 +1254,18 @@ a string (node -> string)."
         (> (length given-cond) 1)
         (eq (car given-cond) 'and)
         (me-with-mold-let mold
-                          (lambda ()
-                            (eval (cons 'and (--remove
-                                              (or
-                                               (and
-                                                (seqp it)
-                                                (-contains? it 'executable-find))
-                                               (and
-                                                (seqp it)
-                                                (-contains? it 'me-require)))
-                                              (cdr given-cond)))))))))
-   me-available-molds))
+                          (funcall
+                           (lambda ()
+                             (eval (cons 'and (--remove
+                                               (or
+                                                (and
+                                                 (seqp it)
+                                                 (-contains? it 'executable-find))
+                                                (and
+                                                 (seqp it)
+                                                 (-contains? it 'me-require)))
+                                               (cdr (me-get-in mold '(:given :fn))))))))))))
+   molds-alist))
 
 (defun me-find-missing-dependencies-for-mold (mold)
   "List unmet dependencies by MOLD."
