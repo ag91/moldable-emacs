@@ -152,3 +152,28 @@ some new contents
   (should
    (equal (me-find-missing-dependencies-for-mold '(:key "test" :given (:fn (or (or (me-require 'some-package) t) (and t (executable-find "some-command"))))))
           '(:key "test" :missing-dependencies ((me-require 'some-package) (executable-find "some-command"))))))
+
+(ert-deftest me-interpret-then_expand-then ()
+  (should
+   (equal (me-interpret-then '(:then (:fn 'some-body)))
+          '(progn (get-buffer-create buffername) 'some-body (ignore-errors (switch-to-buffer-other-window (get-buffer buffername)))))))
+
+(ert-deftest me-interpret-then_expand-async ()
+  (should
+   (equal (let ((load-path '("some-load-path")))
+            (me-interpret-then '(:key "Test" :then (:async ((bind1 'slow-binding)  (bind2 'slow-binding)) :fn 'some-body))))
+
+          '(let
+               ((_
+                 (async-let
+                     ((bind1 'slow-binding)
+                      (bind2 'slow-binding))
+                   (progn 'some-body
+                          (ignore-errors
+                            (switch-to-buffer-other-window
+                             (get-buffer buffername)))))))
+             (get-buffer-create buffername)
+             (with-current-buffer buffername
+               (erase-buffer)
+               (insert
+                (format "Loading %s contents..." "Test")))))))
