@@ -1264,26 +1264,19 @@ a string (node -> string)."
 
 (defun me-find-missing-dependencies-for-mold (mold)
   "List unmet dependencies by MOLD."
-  (let ((given-cond (me-get-in mold '(:given :fn)))) ;; TODO this will break if I add other keywords than :fn
+  (let* ((flatten-given (-flatten (me-get-in mold '(:given :fn)))) ;; TODO this will break if I add other keywords than :fn
+         (executables (--> flatten-given
+                           (--find-indices (eq it 'executable-find) it)
+                           (--map (list (nth it flatten-given) (nth (+ 1 it) flatten-given)) it)
+                           (--remove (eval it) it)))
+         (requires (--> flatten-given
+                        (--find-indices (eq it 'me-require) it)
+                        (--map (list (nth it flatten-given) `(quote ,(nth (+ 2 it) flatten-given))) it)
+                        (--remove (eval it) it))))
     (list
      :key (plist-get mold :key)
      :missing-dependencies
-     (and
-      (ignore-errors (> (length given-cond) 1))
-      (eq (car given-cond) 'and)
-      (--> (cdr given-cond)
-           (--filter
-            (or
-             (and
-              (seqp it)
-              (-contains? it 'executable-find)
-              (me-with-mold-let mold (lambda () (not (eval it)))))
-             (and
-              (seqp it)
-              (-contains? it 'me-require)
-              (me-with-mold-let mold (lambda () (not (eval it)))))
-             )
-            it))))))
+     (append requires executables))))
 
 (defun me-find-missing-dependencies-for-molds (molds)
   "List unmet dependencies by MOLDS."

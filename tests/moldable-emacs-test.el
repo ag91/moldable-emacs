@@ -132,3 +132,23 @@ some new contents
 | 1 | hello 2! |
 | 2 | hello 3! |" )))
 
+
+(ert-deftest me-find-missing-dependencies-for-mold_finds-nothing ()
+  (should
+   (equal (me-find-missing-dependencies-for-mold '(:key "test" :given (:fn (and t))))
+          '(:key "test" :missing-dependencies nil))))
+
+(ert-deftest me-find-missing-dependencies-for-mold_finds-nothing-for-existing-dependencies ()
+  (should
+   (equal (me-find-missing-dependencies-for-mold '(:key "test" :given (:fn (and (me-require 'org) (executable-find "sh")))))
+          '(:key "test" :missing-dependencies nil))))
+
+(ert-deftest me-find-missing-dependencies-for-mold_finds-requires-and-executables ()
+  (should
+   (equal (me-find-missing-dependencies-for-mold '(:key "test" :given (:fn (and (me-require 'some-package) (executable-find "some-command")))))
+          '(:key "test" :missing-dependencies ((me-require 'some-package) (executable-find "some-command"))))))
+
+(ert-deftest me-find-missing-dependencies-for-mold_finds-nested-requires-and-executables ()
+  (should
+   (equal (me-find-missing-dependencies-for-mold '(:key "test" :given (:fn (or (or (me-require 'some-package) t) (and t (executable-find "some-command"))))))
+          '(:key "test" :missing-dependencies ((me-require 'some-package) (executable-find "some-command"))))))
