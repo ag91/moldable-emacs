@@ -229,4 +229,7 @@ some new contents
      (equal (me-usable-molds-requiring-deps-in (list mold)) nil))
     ))
 
-;;; moldable-emacs-test.el ends here
+
+(ert-deftest me-keys_return-keys-of-plist ()
+  (should
+   (equal (me-keys '(:a 1 :b 2 :c 3)) '(:a :b :c))))
