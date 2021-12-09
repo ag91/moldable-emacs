@@ -177,3 +177,7 @@ some new contents
                (erase-buffer)
                (insert
                 (format "Loading %s contents..." "Test")))))))
+
+(ert-deftest me-keys_return-keys-of-plist ()
+  (should
+   (equal (me-keys '(:a 1 :b 2 :c 3)) '(:a :b :c))))

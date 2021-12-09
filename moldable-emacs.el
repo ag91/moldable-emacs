@@ -1473,5 +1473,9 @@ a string (node -> string)."
    ((lambda (x) (concat (substring x 0 3) ":" (substring x 3 5)))
     (format-time-string "%z" time))))
 
+(defun me-keys (plist)
+  "Return keys of PLIST."
+  (--filter (and (symbolp it) (s-starts-with-p ":" (symbol-name it))) plist))
+
 (provide 'moldable-emacs)
 ;;; moldable-emacs.el ends here
