@@ -1,12 +1,12 @@
 ;;; moldable-emacs.el --- Moldable Development Extension -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2021 Andrea ??
+;; Copyright (C) 2021 Andrea
 
-;; Author: Andrea ?? <??@??>
+;; Author: Andrea <andrea-dev@hotmail.com>
 ;; Version: 20211115-snapshot
 ;; URL: https://github.com/ag91/moldable-emacs
 ;; Package-Requires: ((emacs "26.1") (dash "2.19.1") (s "1.12.0") (async "1.9.4"))
-;; Keywords: moldable
+;; Keywords: convenience
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -80,7 +80,9 @@ For example, (me-get-in '(:a (:b (:c 1))) '(:a :b :c)) yields 1."
          (switch-to-buffer old-buffer)))))
 
 (defun me-async-map--finish (futures post-fn too-late-p poll-time)
-  (if (not (some #'null (mapcar #'async-ready futures)))
+  "Run FUTURES and apply POST-FN on their results.
+Use TOO-LATE-P and POLL-TIME to stop."
+  (if (not (-some #'null (mapcar #'async-ready futures)))
       (let ((results (--map
                       (let ((buf (process-buffer it)))
                         (with-current-buffer buf
@@ -102,7 +104,9 @@ For example, (me-get-in '(:a (:b (:c 1))) '(:a :b :c)) yields 1."
        poll-time))))
 
 (defun me-async-map (fn els &optional post-fn poll-time timeout) ;; TODO maybe I can just use this https://github.com/chuntaro/emacs-promise
-  "Run FN async on elements ELS. Optionally define a POST-FN to run on the results of apply FN on ELS. Optionally define a POLL-TIME to look for results and a TIMEOUT to fail."
+  "Run FN async on elements ELS.
+Optionally define a POST-FN to run on the results of apply FN on ELS.
+Optionally define a POLL-TIME to look for results and a TIMEOUT to fail."
   (let* ((start (current-time))
          (futures (mapcar
                    (lambda (el)
@@ -126,7 +130,9 @@ For example, (me-get-in '(:a (:b (:c 1))) '(:a :b :c)) yields 1."
 ;;  (lambda (_) (message "%s" (directory-files "/tmp"))))
 
 (defun me-pmap (fn els &optional poll-time timeout) ;; TODO maybe I can just use this https://github.com/chuntaro/emacs-promise
-  "Run FN in parallel on elements ELS. Optionally define a POST-FN to run on the results of apply FN on ELS. Optionally define a POLL-TIME to look for results and a TIMEOUT to fail."
+  "Run FN in parallel on elements ELS.
+Optionally define a POST-FN to run on the results of apply FN on ELS.
+Optionally define a POLL-TIME to look for results and a TIMEOUT to fail."
   (let* ((start (current-time))
          (futures (mapcar
                    (lambda (el)
@@ -137,7 +143,7 @@ For example, (me-get-in '(:a (:b (:c 1))) '(:a :b :c)) yields 1."
          (too-late-p
           `(lambda () (>= (time-to-seconds (time-since ',start)) (or ,timeout 300)))))
     (while (some #'null (mapcar #'async-ready futures))
-      (when (funcall too-late-p) (error "me-pmap has waited too long: timed out"))
+      (when (funcall too-late-p) (error "Me-pmap has waited too long: timed out"))
       (sleep-for (or poll-time 0.2)))
     (--map
      (let ((buf (process-buffer it)))
@@ -177,9 +183,9 @@ For example, (me-get-in '(:a (:b (:c 1))) '(:a :b :c)) yields 1."
             " |")
            objects))))
 
-
 (defun me-insert-string-table (table-string)
-  "Insert TABLE-STRING in buffer. Make sure table is well indented."
+  "Insert TABLE-STRING in buffer.
+Make sure table is also indented."
   (insert table-string)
   (save-excursion
     (search-backward "|" nil nil 2) ;; count 2 to avoid an extra (empty) row at the bottom
@@ -210,6 +216,7 @@ For example, (me-get-in '(:a (:b (:c 1))) '(:a :b :c)) yields 1."
         (setq result (plist-put result (intern (concat ":" (s-replace "\"" "" (car r)))) (cdr r)))))))
 
 (defun me-org-table-to-flat-plist (table-string)
+  "Convert Org mode table TABLE-STRING to a list of plists."
   (let* ((plist (me-org-table-to-plist table-string))
          (keys (-filter 'symbolp plist)))
     (--> keys
@@ -218,6 +225,9 @@ For example, (me-get-in '(:a (:b (:c 1))) '(:a :b :c)) yields 1."
          (-map '-flatten it))))
 
 (defun me-flat-org-table-to-string (flat-org-table)
+  "Make a string out of FLAT-ORG-TABLE.
+
+An example of input is: '((:a 1 :b 2) (:a 3 :b 4))"
   (me-make-org-table
    (--map
     (list (substring (symbol-name it) 1) . (:extractor `(lambda (x) (format "%s" (plist-get x ,it)))))
@@ -225,6 +235,7 @@ For example, (me-get-in '(:a (:b (:c 1))) '(:a :b :c)) yields 1."
    flat-org-table))
 
 (defun me-insert-flat-org-table (flat-org-table)
+  "Insert FLAT-ORG-TABLE in current buffer."
   (me-insert-string-table (me-flat-org-table-to-string flat-org-table)))
 
 (defun me-org-tabletolisp-to-plist (org-table-to-lisp)
@@ -234,7 +245,7 @@ For example, (me-get-in '(:a (:b (:c 1))) '(:a :b :c)) yields 1."
        (me-org-table-to-flat-plist it)))
 
 (defun me-first-org-table (&optional buffer)
-  "Find first org table. Optionally in BUFFER."
+  "Find first org table.  Optionally in BUFFER."
   (ignore-errors
     (with-current-buffer (or buffer (current-buffer)) ;; TODO remove org links in table!
       (save-excursion
@@ -242,7 +253,7 @@ For example, (me-get-in '(:a (:b (:c 1))) '(:a :b :c)) yields 1."
         (me-org-tabletolisp-to-plist (org-table-to-lisp))))))
 
 (defun me-all-flat-org-tables (&optional buffer)
-  "Find first org table. Optionally in BUFFER."
+  "Find first org table.  Optionally in BUFFER."
   (ignore-errors
     (with-current-buffer (or buffer (current-buffer)) ;; TODO remove org links in table!
       (save-excursion
@@ -270,7 +281,8 @@ For example, (me-get-in '(:a (:b (:c 1))) '(:a :b :c)) yields 1."
 ;;   (call-interactively 'my/org-table-to-plist))
 
 (defun me-mold-treesitter-to-parse-tree (&optional node)
-  "Return list of all abstract syntax tree nodes one step away from leaf nodes. Optionally start from NODE."
+  "Return list of all abstract syntax tree nodes one step away from leaf nodes.
+Optionally start from NODE."
   (let ((root (or
                node
                (ignore-errors (tsc-root-node tree-sitter-tree)))))
@@ -297,7 +309,8 @@ For example, (me-get-in '(:a (:b (:c 1))) '(:a :b :c)) yields 1."
         (reverse acc)))))
 
 (defun me-extension-to-major-mode (extension)
-  "Find major-mode for EXTENSION. E.g., \".scala\" => scala-mode"
+  "Find `major-mode' for EXTENSION.
+For example: \".scala\" => scala-mode."
   (cdr (--find (s-match (car it) extension) auto-mode-alist)))
 
 (defun me-major-mode-to-tree-sitter-grammar (major-mode)
@@ -311,7 +324,8 @@ For example, (me-get-in '(:a (:b (:c 1))) '(:a :b :c)) yields 1."
        me-major-mode-to-tree-sitter-grammar))
 
 (defun me-filepath-to-flattened-tree (file &optional contents)
-  "Return the flattened tree for FILE."
+  "Return the flattened tree for FILE.
+Optionally use CONTENTS string instead of file contents."
   (when-let ((grammar (me-extension-to-tree-sitter-grammar (file-name-extension file t))))
     (with-temp-buffer
       (if contents (insert contents) (insert-file-contents-literally file))
@@ -324,7 +338,7 @@ For example, (me-get-in '(:a (:b (:c 1))) '(:a :b :c)) yields 1."
              tsc-root-node
              me-mold-treesitter-to-parse-tree)))))
 
-(defun nodes-with-duplication (self)
+(defun me-nodes-with-duplication (self)
   "Find nodes that are duplicated for SELF."
   (-remove
    'null
@@ -424,7 +438,9 @@ For example, (me-get-in '(:a (:b (:c 1))) '(:a :b :c)) yields 1."
 
 
 (defun me-usable-molds (&optional molds buffer)
-  "Return the usable molds among the `me-available-molds' for the `current-buffer'. Optionally you can pass a list of MOLDS and a BUFFER to filter the usable ones."
+  "Return the usable molds among the `me-available-molds'.
+Optionally you can pass your own candidate MOLDS.
+Optionally you can pass a BUFFER to use instead of the `current-buffer'."
   (let ((_ (setq me-usable-mold-stats nil))
         (molds (or molds me-available-molds))
         (buffer (or buffer (current-buffer))))
@@ -500,7 +516,8 @@ For example, (me-get-in '(:a (:b (:c 1))) '(:a :b :c)) yields 1."
                   (kill-buffer-and-window)))))
 
 (defun me-mold-compose (m1 m2 &optional props)
-  "Compose M1 and M2 in a single mold. Add PROPS (e.g.,  `(:docs \"...\" :examples nil)') to it."
+  "Compose M1 and M2 in a single mold.
+Add PROPS (e.g.,  `(:docs \"...\" :examples nil)') to it."
   (let ((mold1 (if (stringp m1) (me-find-mold m1) m1))
         (mold2 (if (stringp m2) (me-find-mold m2) m2)))
     (if (and mold1 mold2)
@@ -654,6 +671,8 @@ This should simplify the testing and documentation of molds.")
 
 
 (defun me-check-then-clause (then)
+  "Run THEN clause and return list with success and issues.
+This is a function used to test mold examples."
   (let* ((contents (list
                     (plist-get then :contents)
                     (buffer-substring-no-properties (point-min) (point-max))))
@@ -787,12 +806,14 @@ This should simplify the testing and documentation of molds.")
 ;; (me-demo-example '(:name "some example" :given (:type buffer :name "somebuffer" :contents "some contents") :then (:type file :name "/tmp/somefile.txt" :contents "some new contents")))
 
 (defun me-mold-demo (mold)
+  "Demo MOLD using its examples."
   (if-let ((mold mold)
            (example (nth 0 (plist-get mold :examples))))
       (me-demo-example example)
-    (error "No example available for this mold to demo.")))
+    (error "No example available for this mold to demo")))
 
 (defun me-mold-demo-by-key (key)
+  "Demo mold after find it using its KEY."
   (me-mold-demo (me-find-mold key)))
 
 (defun me-open-at-point ()
@@ -884,7 +905,7 @@ This should simplify the testing and documentation of molds.")
      (me-add-to-available-molds ',mold)))
 
 (defun me-find-relative-test-report (filepath)
-  ;; TODO refactor a bit for supporting Clojure with https://github.com/ruedigergad/test2junit
+  "Find Clojure test report for FILEPATH." ;; TODO refactor a bit for supporting Clojure with https://github.com/ruedigergad/test2junit
   (let* ((_report-directory (concat (locate-dominating-file (file-name-directory filepath) "target") "target/test-reports"))
          (report-directory
           (if (string= "clj" (file-name-extension  filepath))
@@ -903,6 +924,8 @@ This should simplify the testing and documentation of molds.")
          (concat report-directory "/" it))))
 
 (defun me-make-elisp-file-link (description target &optional link-type)
+  "Make Org file link with DESCRIPTION and TARGET.
+Optionally pass the LINK-TYPE instead of file."
   (format "[[%s:%s][%s]]" (or link-type "file") target description))
 
 (defun me-make-elisp-navigation-link (name file-name)
@@ -942,15 +965,11 @@ This should simplify the testing and documentation of molds.")
     'face
     (list :background color))))
 
-(defun me-buffer-changed-while-the-mold-is-on-p (buffername)
-  "Return `t' if buffer changed from last call."
-  ;; TODO store hash of `buffername' in a unique variable and test against if it the variable is defined
-  nil)
-
 ;; https://hungyi.net/posts/org-mode-subtree-contents/
 (defun me-org-copy-subtree-contents (&optional buffer position)
   "Get the content text of the subtree at point and add it to the `kill-ring'.
-Excludes the heading and any child subtrees."
+Excludes the heading and any child subtrees.
+Optionally select BUFFER and POSITION."
   (with-current-buffer (or buffer (current-buffer))
     (when position (goto-char position))
     (if (org-before-first-heading-p)
@@ -966,6 +985,7 @@ Excludes the heading and any child subtrees."
           contents)))))
 
 (defun me-org-to-flatten-tree (buffername)
+  "Convert Org BUFFERNAME to a list of plists."
   (--map (append
           (list :type 'org)
           (plist-put (cadr it) :title nil)
@@ -1124,7 +1144,7 @@ a string (node -> string)."
    (string= "." it)))
 
 (defun me-arithmetic-expression-member-p (it)
-  "Tell if string IT contains an arithmetic member."
+  "Check if there is an arithmetic member in IT."
   (or (me-arithmetic-component-p it)
       ;; in case we have something like "1+1"
       (-all?
@@ -1132,7 +1152,8 @@ a string (node -> string)."
        (s-split "" it 't))))
 
 (defun me-arithmetic-at-point () ;; TODO needs refactoring!
-  "Find an arithmetic expression on the current line. NIL if not there."
+  "Find an arithmetic expression on the current line.
+NIL if not there."
   (--> (or
         (when (region-active-p)
           (list
@@ -1147,38 +1168,40 @@ a string (node -> string)."
          (buffer-substring-no-properties
           (point)
           (save-excursion (end-of-line) (point)))))
-    (list
-     ;; take only arithmetic words from point to beginning of line
-     (--> it
-       (nth 0 it)
-       (s-split " " it 't)
-       (reverse it)
-       (-take-while #'me-arithmetic-expression-member-p it)
-       (reverse it)
-       (s-join " " it))
-     ;; take only arithmetic words from point to end of line
-     (--> it
-       (nth 1 it)
-       (s-split " " it 't)
-       (-take-while #'me-arithmetic-expression-member-p it)
-       (s-join " " it)))
-    ;; join the two parts
-    (concat (nth 0 it) (nth 1 it))
-    s-trim
-    (unless (string-blank-p it) it)))
+       (list
+        ;; take only arithmetic words from point to beginning of line
+        (--> it
+             (nth 0 it)
+             (s-split " " it 't)
+             (reverse it)
+             (-take-while #'me-arithmetic-expression-member-p it)
+             (reverse it)
+             (s-join " " it))
+        ;; take only arithmetic words from point to end of line
+        (--> it
+             (nth 1 it)
+             (s-split " " it 't)
+             (-take-while #'me-arithmetic-expression-member-p it)
+             (s-join " " it)))
+       ;; join the two parts
+       (concat (nth 0 it) (nth 1 it))
+       s-trim
+       (unless (string-blank-p it) it)))
 
 (defcustom me-note-file-store "~/workspace/agenda/moldableNotes.el" "Store for notes.")
 
 (defvar me-notes nil "Prototype of notes.")
 
-(defun me-store-note (note) ;; TODO implement persistence
+(defun me-store-note (note)
+  "Persist NOTE."
   (add-to-list 'me-notes note)
   (async-start
    `(lambda ()
       (write-region ,(pp-to-string (me-load-notes)) nil ,me-note-file-store)))
   me-notes note)
 
-(defun me-load-notes () ;; TODO implement persistence
+(defun me-load-notes ()
+  "Load notes unless cached."
   (if me-notes
       me-notes
     (setq me-notes
@@ -1193,8 +1216,9 @@ a string (node -> string)."
   (let ((text (read-string "Note:")))
     (plist-put note :then `(:string ,text))))
 
+;; https://stackoverflow.com/questions/21486934/file-specific-key-binding-in-emacs
 (defun me-override-keybiding-in-buffer (key command)
-  ;; https://stackoverflow.com/questions/21486934/file-specific-key-binding-in-emacs
+  "Override KEY with COMMAND in buffer."
   (interactive "KSet key buffer-locally: \nCSet key %s buffer-locally to command: ")
   (let ((oldmap (current-local-map))
         (newmap (make-sparse-keymap)))
@@ -1204,6 +1228,7 @@ a string (node -> string)."
     (use-local-map newmap)))
 
 (defun me-filter-notes-by-buffer (buffername)
+  "Filter notes by BUFFERNAME."
   (--filter
    (ignore-errors (equal buffername (plist-get (plist-get (plist-get it :given) :node) :buffer)))
    me-notes))
@@ -1319,23 +1344,25 @@ a string (node -> string)."
           (insert text))))))
 
 (defun me-change-node (transition)
-  "Run a TRANSITION to change a node. This must contain a :before and an :after node."
+  "Run a TRANSITION to change a node.  This must contain a :before and an :after node."
   (let ((before (plist-get transition :before))
         (after (plist-get transition :after)))
     (me-remove-node before)
     (me-add-node after)))
 
 (defun me-change-nodes (transitions)
-  "Change nodes according to TRANSITIONS. These contain a :before node and an :after node."
+  "Change nodes according to TRANSITIONS.
+These contain a :before node and an :after node."
   (-each (reverse transitions)
     #'me-change-node))
 
 (defun me-transitate-node-text (node fn)
-  "Create a transition changing text of NODE via FN. FN is a function taking the text of NODE and generating new text."
+  "Create a transition changing text of NODE via FN.
+FN is a function taking the text of NODE and generating new text."
   (list
    :before node
    :after (plist-put
-           (copy-list node)
+           (-copy node)
            :text
            (funcall fn (plist-get node :text)))))
 
@@ -1357,14 +1384,17 @@ a string (node -> string)."
     result))
 
 (defun me-plist-focus (plist keys)
-  "Focus only on KEYS of PLIST. For example, (me-plist-focus '(:a a :b b :c c) '(:a :c)) => '(:a a :c c)."
+  "Focus only on KEYS of PLIST.
+For example, (me-plist-focus '(:a a :b b :c c) '(:a :c)) => '(:a a :c c)."
   (-flatten (--map (list it (plist-get plist it)) keys)))
 
 ;; (me-plist-focus '(:a a :b b :c c) '(:a :c))
 
 (defun me-focus-on-consistent-keys (list-of-plist)
-  "Focus on common keys of LIST-OF-PLIST. For example ((:a 1 :b 1 :c 1) (:a 2 :c 2)) becomes ((:a 1 :c 1) (:a 2 :c 2)). This is useful for plotting."
-  (let ((keys (-reduce '-intersection (--map (-filter 'symbolp it) list-of-plist)))) ;; TODO
+  "Focus on common keys of LIST-OF-PLIST.
+For example ((:a 1 :b 1 :c 1) (:a 2 :c 2)) becomes ((:a 1 :c 1) (:a 2 :c 2)).
+This is useful for plotting."
+  (let ((keys (-reduce '-intersection (--map (-filter 'symbolp it) list-of-plist))))
     (--map (me-plist-focus it keys) list-of-plist)))
 
 (defun me-get-region ()
@@ -1376,7 +1406,7 @@ a string (node -> string)."
 
 ;; https://emacs.stackexchange.com/questions/10707/in-org-mode-how-to-remove-a-link
 (defun me-org-replace-link-by-link-description ()
-  "Remove the link part of an org-mode link at point and keep only the description"
+  "Remove the link part of an `org-mode' link at point and keep only the description."
   (interactive)
   (let ((elem (org-element-context)))
     (if (eq (car elem) 'link)
@@ -1443,13 +1473,14 @@ a string (node -> string)."
    (s-starts-with-p "(:require" (plist-get node :text))))
 
 (defun me-clj-datomic-query-p (node)
-  "Check if flattened tree NODE contains a Datomic query."
+  "Check if there is a Datomic query in flattened tree's NODE."
   (and
    (eq 'quoting_lit (plist-get node :type))
    (s-contains-p ":where" (plist-get node :text))))
 
 (defun me-project-to-nodes (dir &optional file-extension) ; TODO this works for Clojure now, I need to bind the predicates according to the extension/grammar instead. If 'python `me-node-fn-p' should behave differently than me-clj-fn-p
-  "Produce categories of nodes for project DIR. Optionally filter for files with FILE-EXTENSION."
+  "Produce categories of nodes for project DIR.
+Optionally filter for files with FILE-EXTENSION."
   (-->  (--> (projectile-project-files dir)
              (if file-extension
                  (--filter
@@ -1472,7 +1503,8 @@ a string (node -> string)."
          (-non-nil (--map (-filter 'me-clj-require-p it) it)))))
 
 (defun me-format-iso8601-time (time)
-  "Format time to ISO8601 -- taken from http://xahlee.info/emacs/emacs/elisp_datetime.html."
+  "Format TIME to ISO8601.
+-- taken from http://xahlee.info/emacs/emacs/elisp_datetime.html."
   (concat
    (format-time-string "%Y-%m-%dT%T" time)
    ((lambda (x) (concat (substring x 0 3) ":" (substring x 3 5)))

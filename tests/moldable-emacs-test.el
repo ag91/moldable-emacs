@@ -233,3 +233,24 @@ some new contents
 (ert-deftest me-keys_return-keys-of-plist ()
   (should
    (equal (me-keys '(:a 1 :b 2 :c 3)) '(:a :b :c))))
+
+
+(ert-deftest me-org-table-to-plist_get-plist ()
+  (should
+   (equal
+    (me-org-table-to-plist "| a | b |\n|1|2|\n|3|4|")
+    '(:a ("1" "3") :b ("2" "4")) )))
+
+(ert-deftest me-org-table-to-flat-plist_get-plists ()
+  (should
+   (equal
+    (me-org-table-to-flat-plist "| a | b |\n|1|2|\n|3|4|")
+    '((:a "1" :b "2") (:a "3" :b "4")))))
+
+(ert-deftest me-flat-org-table-to-string_get-string ()
+  (should
+   (string= (me-flat-org-table-to-string '((:a "1" :b "2") (:a "3" :b "4")))
+            "| a | b | 
+|--+--| 
+| 1 | 2 |
+| 3 | 4 |" )))

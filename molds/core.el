@@ -301,8 +301,7 @@ You can transform this to extract information with the Playground mold."
                  't)))
           (with-current-buffer buffername
             (erase-buffer)
-            (me-print-to-buffer (mapcar 'list sentences)) ;; TODO I need to do keep the position, or allow editing in place, no?
-            )))
+            (me-print-to-buffer (mapcar 'list sentences))))) ;; TODO I need to do keep the position, or allow editing in place, no?
  :docs "Create a list of sentences for a text buffer."
  :examples ((:given (:type buffer :name "SentencesAsTree" :mode emacs-lisp-mode :contents "((\"Some sentence\")
  (\"Some other sentence\")
@@ -335,7 +334,7 @@ You can transform this to extract information with the Playground mold."
                        (save-excursion
                          (goto-char (point-min))
                          (eval `',(read (current-buffer))))))
-               (duplicated-tree (nodes-with-duplication self))
+               (duplicated-tree (me-nodes-with-duplication self))
                (buffer (get-buffer-create "m/tree" )))
           (with-current-buffer buffername
             (erase-buffer)
@@ -482,7 +481,7 @@ It specializes for source code."
             (when self
               (insert "* Duplication Stats\n\n")
               (insert "-- Code Duplication By Token Type --\n\n")
-              (let* ((nodes-with-duplication (nodes-with-duplication self))
+              (let* ((nodes-with-duplication (me-nodes-with-duplication self))
                      (texts-by-type
                       (--map
                        (cons (car it) (-map (lambda (x) (plist-get x :text)) (cdr it)))
