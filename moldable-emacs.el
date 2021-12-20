@@ -35,9 +35,15 @@
 (require 'thunk)
 (require 'cl-lib)
 
+(defgroup moldable-emacs nil
+  "Customize group for Moldable-Emacs."
+  :group 'convenience
+  :prefix "me-")
+
 (defcustom me-i-know-what-i-am-doing
   nil
-  "Set this to t if don't need to see tutorials.")
+  "Set this to t if don't need to see tutorials."
+  :group 'moldable-emacs)
 
 (defcustom me-files-with-molds
   (--map
@@ -47,11 +53,13 @@
    (list
     "molds/core.el"
     "molds/contrib.el"))
-  "Files containing molds.")
+  "Files containing molds."
+  :group 'moldable-emacs)
 
 (defcustom me-molds-debug-on
   nil
-  "Toggle for debugging information.")
+  "Toggle for debugging information."
+  :group 'moldable-emacs)
 
 (defun me-setup-molds ()
   "Load molds from `me-files-with-molds'."
@@ -835,7 +843,9 @@ This is a function used to test mold examples."
   "Find mold for KEY."
   (--find (equal key (plist-get it :key)) me-available-molds))
 
-(defcustom me-enable-history 't "Keeps history for current session, if defined.")
+(defcustom me-enable-history 't
+  "Keeps history for current session, if defined."
+  :group 'moldable-emacs)
 (defvar me-current-history-index 0 "Keeps track of where you are in history.")
 
 (defun me-save-buffer-in-history ()
@@ -1188,7 +1198,9 @@ NIL if not there."
        s-trim
        (unless (string-blank-p it) it)))
 
-(defcustom me-note-file-store "~/workspace/agenda/moldableNotes.el" "Store for notes.")
+(defcustom me-note-file-store "~/workspace/agenda/moldableNotes.el"
+  "Store for notes."
+  :group 'moldable-emacs)
 
 (defvar me-notes nil "Prototype of notes.")
 
