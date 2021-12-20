@@ -204,7 +204,7 @@ Make sure table is also indented."
   "Produce org table of OBJECTS formatting with HEADLINES."
   (me-insert-string-table (me-make-org-table headlines objects)))
 
-(defun me-alist-to-plist (alist)
+(defun me-alist-to-lists-of-plist (alist)
   "Convert ALIST to a `plist'."
   (let ((keys (ignore-errors
                 (and (= (length (car alist)) (length (-filter #'stringp (car alist))))

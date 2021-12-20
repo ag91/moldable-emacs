@@ -178,8 +178,8 @@ You can transform this to extract information with the Playground mold."
                  (--all? (equal (-filter #'symbolp (car l)) (-filter #'symbolp it)) l)))))
  :then (:fn
         (let* ((list (if (ignore-errors (length (car l)))
-                         (me-alist-to-plist l)
-                       (me-alist-to-plist (-map #'-cons-to-list l)))))
+                         (me-alist-to-lists-of-plist l)
+                       (me-alist-to-lists-of-plist (-map #'-cons-to-list l)))))
           (with-current-buffer buffername
             (org-mode)
             (erase-buffer)
