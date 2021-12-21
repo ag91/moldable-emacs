@@ -1382,6 +1382,19 @@ FN is a function taking the text of NODE and generating new text."
   "Create transitions changing texts of NODES via FN."
   (--map (me-transitate-node-text it fn) nodes))
 
+(defun me-node-children (node nodes)
+  "Get children of NODE in NODES."
+  (let ((begin (plist-get node :begin))
+        (end (plist-get node :end)))
+    (--filter
+     (and (> (plist-get it :begin) begin)
+          (<  (plist-get it :end) end))
+     nodes)))
+
+(defun me-children-number (node nodes)
+  "Get children number of NODE in NODES."
+  (--> (me-get-children node nodes)
+       length))
 
 (defun me-hash-to-plist (hash-table)
   ;; from http://ergoemacs.org/emacs/elisp_hash_table.html (this is a recursive version)
