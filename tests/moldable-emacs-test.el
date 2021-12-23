@@ -254,3 +254,11 @@ some new contents
 |--+--| 
 | 1 | 2 |
 | 3 | 4 |" )))
+
+
+(ert-deftest molds-have-examples_they-should-pass ()
+  (should
+   (equal (me-check-mold-examples (me-find-mold "Playground"))
+          (--map
+           (list :example (plist-get it :name) :success t :issues nil)
+           (plist-get (me-find-mold "Playground") :examples)))))

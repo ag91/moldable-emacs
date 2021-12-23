@@ -667,7 +667,7 @@ This should simplify the testing and documentation of molds.")
                       (plist-get given :contents))))
      (eval (if (equal type 'buffer)
                `(with-temp-buffer
-                  (rename-buffer ,name) ;; TODO this does not work if there is a homonym buffer open!
+                  (rename-buffer ,name "-new") ;; TODO it would be better to keep the old buffer alive: now if I am testing Playground, it kills an existing Playground buffer too. It is fine for now because I plan to use this only for testing purposes.
                   (insert ,contents)
                   (,(if mode mode 'fundamental-mode))
                   ,@body)
@@ -675,8 +675,6 @@ This should simplify the testing and documentation of molds.")
                 (insert ,contents) ;; TODO this does not work for images: it seems there are coding system issues
                 (,(if mode mode 'fundamental-mode))
                 ,@body)))))
-
-
 
 (defun me-check-then-clause (then)
   "Run THEN clause and return list with success and issues.
@@ -694,20 +692,33 @@ This is a function used to test mold examples."
 
 (defun me-check-example (example run-fn)
   "Run RUN-FN in the EXAMPLE."
-  (let* ((beg (plist-get example :given))
-         (end (plist-get example :then)))
-    (me-given beg
-              (goto-char (point-min))
-              (funcall run-fn)
-              (me-check-then-clause end)
-              (kill-buffer))))
+  (append
+   (list :example (plist-get example :name))
+   (eval `(let ((buf ,(current-buffer))
+                (pos ,(point))
+                (beg (plist-get ',example :given))
+                (end (plist-get ',example :then)))
+            (me-given beg
+                      (goto-char (point-min))
+                      (funcall ',run-fn)
+                      (let ((result (me-check-then-clause end)))
+                        (kill-buffer)
+                        (switch-to-buffer buf)
+                        (goto-char pos)
+                        result))))))
+
+(defun me-check-mold-examples (mold)
+  "Check that MOLD's examples are working, returning test reports for each of them."
+  (--map
+   (me-check-example it (lambda () (me-mold-run-then mold)))
+   (plist-get mold :examples)))
 
 (defun me-test-example (example run-fn)
   "Test RUN-FN in the EXAMPLE."
   (let ((result (plist-get (me-check-example example run-fn) :success)))
     (if result
         result
-      (message "Issues: %s" (plist-get (me-check-example example run-fn) :issues)))))
+      (message "Issues: %s" (list example (me-check-example example run-fn))))))
 
 (defun me-test-mold-examples (mold)
   "Check that all MOLD's examples are working."

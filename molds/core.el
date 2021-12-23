@@ -150,7 +150,7 @@ You can transform this to extract information with the Playground mold."
             (erase-buffer)
             (emacs-lisp-mode)
             (me-print-to-buffer tree)
-            (setq self tree)
+            (setq-local self tree)
             (current-buffer))))
  :docs "You can obtain the code flattened tree only for the node at point. This is a more focused view than `CodeToTree.'"
  :examples ((
@@ -525,7 +525,7 @@ It specializes for source code."
             (erase-buffer)
             (me-print-to-buffer json)
             (emacs-lisp-mode)
-            (setq self json)))))
+            (setq-local self json)))))
 
 (me-register-mold
  :key "JsonAsPlist"
@@ -541,7 +541,7 @@ It specializes for source code."
             (erase-buffer)
             (emacs-lisp-mode)
             (me-print-to-buffer json)
-            (setq self json)))))
+            (setq-local self json)))))
 
 (me-register-mold
  :key "PlistToJson"
@@ -560,7 +560,7 @@ It specializes for source code."
             (if (json-plist-p plist)
                 (insert (json-encode-plist plist))
               (insert (json-encode-array plist)))
-            (setq self plist)
+            (setq-local self plist)
             (json-pretty-print-buffer)))))
 
 (me-register-mold
@@ -710,7 +710,7 @@ It specializes for source code."
           (erase-buffer)
           (emacs-lisp-mode)
           (me-print-to-buffer notes)
-          (setq self notes))))
+          (setq-local self notes))))
 
 (me-register-mold
  :key "ShowNotesByProject"
@@ -721,7 +721,7 @@ It specializes for source code."
           (erase-buffer)
           (emacs-lisp-mode)
           (me-print-to-buffer notes)
-          (setq self notes))))
+          (setq-local self notes))))
 
 
 (me-register-mold
@@ -733,7 +733,7 @@ It specializes for source code."
           (erase-buffer)
           (emacs-lisp-mode)
           (me-print-to-buffer notes)
-          (setq self notes))))
+          (setq-local self notes))))
 
 (me-register-mold
  :key "NotesToOrg"
@@ -775,7 +775,7 @@ It specializes for source code."
             (setq-local org-confirm-elisp-link-function nil)
             (insert "# Remember to save the note with C-x C-s!\n\n\n")
             (insert (me-note-to-org-heading note))
-            (setq self note)
+            (setq-local self note)
             (me-override-keybiding-in-buffer
              (kbd "C-x C-s")
              '(lambda ()
