@@ -152,7 +152,8 @@ You can transform this to extract information with the Playground mold."
             (me-print-to-buffer tree)
             (setq-local self tree)
             (current-buffer))))
- :docs "You can obtain the code flattened tree only for the node at point. This is a more focused view than `CodeToTree.'"
+ :docs "You can obtain the code tree for the node at point.
+This is a more focused view than `CodeToTree.'"
  :examples ((
              :name "Pointer just after \"a\": "
              :given

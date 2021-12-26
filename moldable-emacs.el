@@ -1550,5 +1550,39 @@ Optionally filter for files with FILE-EXTENSION."
   "Return keys of PLIST."
   (--filter (and (symbolp it) (s-starts-with-p ":" (symbol-name it))) plist))
 
+;; organize screens better
+
+(defvar me-mold-start-buffer nil "Buffer on which you run `me-mold'.")
+(defun me-set-me-mold-start-buffer () (setq me-mold-start-buffer (buffer-name)))
+
+(add-hook 'me-mold-before-hook #'me-set-me-mold-start-buffer)
+
+(defun me-show-buffer-and-mold ()
+  "Show only start buffer (on the left) and mold (on the right).
+This stores the original screen configuration in the `m' register."
+  (let ((old-buffer me-mold-start-buffer)
+        (mold-buffer (current-buffer)))
+    (window-configuration-to-register "m") ; store starting configuration - this overrides it every time
+    (delete-other-windows)
+    (switch-to-buffer old-buffer)
+    (switch-to-buffer-other-window mold-buffer)
+    (let ((final-window (selected-window))) ; TODO maybe move this in its own me-start-inspector function?
+      (select-window (split-window-below))
+      (switch-to-buffer (get-buffer-create "*moldable-emacs-inspector*"))
+      (erase-buffer)
+      (emacs-lisp-mode)
+      (me-print-to-buffer (list
+                           :note "hs-minor-mode enabled for code folding."
+                           :self
+                           (with-current-buffer mold-buffer (ignore-errors self))
+                           :mold-data
+                           (with-current-buffer mold-buffer (ignore-errors mold-data))))
+      (hs-minor-mode 1)
+      (call-interactively #'hs-hide-level)
+      (select-window final-window))))
+
+(add-hook 'me-mold-after-hook #'me-show-buffer-and-mold)
+
+
 (provide 'moldable-emacs)
 ;;; moldable-emacs.el ends here
