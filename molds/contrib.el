@@ -735,3 +735,22 @@ following in your lein project.clj
             (setq-local self molds))))
  :docs "You can see examples and demos of the molds you can use."
  :examples nil)
+
+(me-register-mold
+ :key "Backlinks as Org"
+ :given (:fn (and
+              (me-require 'org-roam)
+              (org-roam-node-p (org-roam-node-at-point))))
+ :then (:fn
+        (let* ((backlinks (org-roam-backlinks-get (org-roam-node-at-point))))
+          (with-current-buffer buffername
+            (org-mode)
+            (erase-buffer)
+            (--each backlinks
+              (insert-file-contents-literally (org-roam-node-file (org-roam-backlink-source-node it)))
+              ;; TODO add link to original file somehow?
+              ;; (insert (format "[%s]" (org-roam-node-file (org-roam-backlink-source-node it))))
+              )
+            (setq-local self backlinks))))
+ :docs "You can check backlinks for current org-roam node."
+ :examples nil)
