@@ -1,5 +1,6 @@
 (require 'ert)
 (require 'moldable-emacs)
+(require 'tree-sitter)
 
 
 (ert-deftest me-alist-to-lists-of-plist_convert-alist-to-plist ()
@@ -258,7 +259,12 @@ some new contents
 
 (ert-deftest molds-have-examples_they-should-pass ()
   (should
-   (equal (me-check-mold-examples (me-find-mold "Playground"))
-          (--map
-           (list :example (plist-get it :name) :success t :issues nil)
-           (plist-get (me-find-mold "Playground") :examples)))))
+   (let* ((molds-with-examples (--filter (ignore-errors (>= (length (plist-get it :examples)) 1)) me-available-molds))
+          (result (--map (ignore-errors (me-check-mold-examples it)) molds-with-examples)))
+     (equal result
+            (-map
+             (lambda (mold)
+               (--map
+                (list :example (plist-get it :name) :success t :issues nil)
+                (plist-get mold :examples)))
+             molds-with-examples)))))

@@ -346,11 +346,7 @@ following in your lein project.clj
           (clipboard-yank)
           (setq-local self img)
           (plist-put self :text (buffer-substring-no-properties (point-min) (point-max))))))
- :examples ((:name "Initial Loading"
-                   :given
-                   (:type file :name "/tmp/my.jpg" :mode image-mode :contents "/home-andrea/.emacs.d/lisp/moldable-emacs/resources/my.jpg")
-                   :then
-                   (:type buffer :name "Text from my.jpg" :mode fundamental-mode :contents "Loading text from image..."))))
+ :examples nil)
 
 (me-register-mold
  :key "List Files To Edit After This"
@@ -467,7 +463,6 @@ following in your lein project.clj
  :docs "You can parse EDN format as an Elisp object."
  :examples nil)
 
-
 (me-register-mold
  :key "Playground Clojure"
  :given (:fn (and (me-require 'clojure-mode)))
@@ -482,11 +477,12 @@ following in your lein project.clj
                                                                                                                                   (buffer-string)))))))
             (setq-local self tree))))
  :docs "You can play around with code in Clojure."
- :examples ((:given
+ :examples ((
+             :name "Empty Playground"
+             :given
              (:type buffer :name "example.txt" :mode text-mode :contents "")
              :then
-             (:type buffer :name "*moldable-emacs-Playground Clojure*" :mode clojure-mode :contents ";; Tips:\n;;    Use `self' to access the mold context.\n;;    You can access the previous mold context through `mold-data'.\n\n"))
-            ))
+             (:type buffer :name "*moldable-emacs-Playground Clojure*" :mode clojure-mode :contents ";; Tips:\n;;    Use `self' to access the mold context.\n;;    You can access the previous mold context through `mold-data'.\n\n"))))
 
 (me-register-mold
  :key "Eval With Clojure"
@@ -507,11 +503,7 @@ following in your lein project.clj
             (insert tree)
             (pp-buffer)
             (setq-local self tree))))
- :docs "You can evaluate the *last* Clojure expression."
- :examples ((:given
-             (:type buffer :name "*moldable-emacs-Playground Clojure*" :mode clojure-mode :contents ";; Tips:\n;;    Use `self' to access the mold context.\n;;    You can access the previous mold context through `mold-data'.\n\n(identity {:a 1})")
-             :then
-             (:type buffer :name "*moldable-emacs-Eval With Clojure*" :mode clojure-mode :contents "{:a 1}"))))
+ :docs "You can evaluate the *last* Clojure expression.")
 
 
 (defvar me-lighthouse-url-to-audit nil "This is a variable to set for setting the Audit mold. Useful for looping.")
@@ -576,11 +568,12 @@ following in your lein project.clj
             (insert (me-diagram-to-dot-string diagram))
             (setq-local self diagram))))
  :docs "You can transform a bullet list like '1) some 2) any' into a dot graph."
- :examples ((:given
-             (:type buffer :name "example.txt" :mode text-mode :contents "1) something\n2) something else")
+ :examples ((
+             :name "Simple List"
+             :given
+             (:type file :name "/tmp/example.txt" :mode text-mode :contents "1) something\n2) something else" :point 1)
              :then
-             (:type buffer :name "*moldable-emacs-List To Dot*" :mode fundamental-mode :contents "digraph {\nrankdir=TD;\nnode6c378c7e65 [label=\"1) something\" shape=\"\" style=\"filled\" fillcolor=\"\"]\nnode637828c03a [label=\"something else\" shape=\"\" style=\"filled\" fillcolor=\"\"]\nnode6c378c7e65 -> node637828c03a [taillabel=\"\"]\n}\n"))
-            ))
+             (:type buffer :name "*moldable-emacs-List To Dot*" :mode fundamental-mode :contents "digraph {\nrankdir=TD;\nnode1af17e7372 [label=\"something\" shape=\"\" style=\"filled\" fillcolor=\"\"]\nnode637828c03a [label=\"something else\" shape=\"\" style=\"filled\" fillcolor=\"\"]\nnode1af17e7372 -> node637828c03a [taillabel=\"\"]\n}\n"))))
 
 (me-register-mold-by-key
  "List To Picture"

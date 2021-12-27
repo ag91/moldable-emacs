@@ -589,6 +589,7 @@ This should simplify the testing and documentation of molds.")
 (defun me-record-given-of-example ()
   "Reset and store in `me-last-example' the given of a mold example."
   (let* ((type (if (buffer-file-name) 'file 'buffer))
+         (point (point))
          (name (or (buffer-file-name) (buffer-name)))
          (mode major-mode)
          (contents (if (eq mode 'image-mode)
@@ -607,7 +608,8 @@ This should simplify the testing and documentation of molds.")
              :type ,type
              :name ,name
              :mode ,mode
-             :contents ,contents)))))
+             :contents ,contents
+             :point ,point)))))
 
 (defun me-record-then-of-example ()
   "Reset and store in `me-last-example' the then of a mold example."
@@ -659,6 +661,7 @@ This should simplify the testing and documentation of molds.")
           (type (plist-get  given :type))
           (name (plist-get given :name))
           (mode (plist-get given :mode))
+          (point (plist-get given :point))
           (body ',body)
           (contents (if (eq mode 'image-mode)
                         (with-temp-buffer
@@ -670,11 +673,15 @@ This should simplify the testing and documentation of molds.")
                   (rename-buffer ,name "-new") ;; TODO it would be better to keep the old buffer alive: now if I am testing Playground, it kills an existing Playground buffer too. It is fine for now because I plan to use this only for testing purposes.
                   (insert ,contents)
                   (,(if mode mode 'fundamental-mode))
+                  (if ,point (goto-char ,point) (goto-char (point-min)))
                   ,@body)
              `(with-temp-file ,name
-                (insert ,contents) ;; TODO this does not work for images: it seems there are coding system issues
-                (,(if mode mode 'fundamental-mode))
-                ,@body)))))
+                (let ((buffer-file-name ,name ))
+                  (rename-buffer (file-name-nondirectory ,name) "-new")
+                  (insert ,contents) ;; TODO this does not work for images: it seems there are coding system issues
+                  (,(if mode mode 'fundamental-mode))
+                  (if ,point (goto-char ,point) (goto-char (point-min)))
+                  ,@body))))))
 
 (defun me-check-then-clause (then)
   "Run THEN clause and return list with success and issues.
@@ -699,7 +706,6 @@ This is a function used to test mold examples."
                 (beg (plist-get ',example :given))
                 (end (plist-get ',example :then)))
             (me-given beg
-                      (goto-char (point-min))
                       (funcall ',run-fn)
                       (let ((result (me-check-then-clause end)))
                         (kill-buffer)
@@ -710,7 +716,10 @@ This is a function used to test mold examples."
 (defun me-check-mold-examples (mold)
   "Check that MOLD's examples are working, returning test reports for each of them."
   (--map
-   (me-check-example it (lambda () (me-mold-run-then mold)))
+   (progn
+     (unless (plist-get it :name)
+       (warn (concat "Missing name for example of " (plist-get mold :key))))
+     (me-check-example it (lambda () (me-mold-run-then mold))))
    (plist-get mold :examples)))
 
 (defun me-test-example (example run-fn)

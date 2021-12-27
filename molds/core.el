@@ -51,7 +51,8 @@ in the local variable `self'."
             (me-print-to-buffer sexps))))
  :docs "Evaluate Elisp sexp showing the result in a new Elisp buffer.
 Useful to run Elisp on the fly without a Playground."
- :examples ((:given (:type file :name "/tmp/example" :mode fundamental-mode :contents "") :then (:type buffer :name "Query" :mode emacs-lisp-mode :contents "\"Just evaluating a string: anything you evaluate in this mold appears here\""))))
+ :examples nil                          ; TODO need to extend me-given for this to insert text in the minibuffer
+ )
 
 (me-register-mold
  :key "WhatMoldsCanIUse?"
@@ -136,7 +137,7 @@ You can transform this to extract information with the Playground mold."
              :given
              (:type file :name "/tmp/test.json" :mode json-mode :contents "{\n  \"a\": 1,\n  \"b\": [1,2]\n}\n")
              :then
-             (:type buffer :name "CodeAsTree" :mode emacs-lisp-mode :contents "((:type object :text \"{\n  \\\"a\\\": 1,\n  \\\"b\\\": [1,2]\n}\" :begin 1 :end 27 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"{\" :text \"{\" :begin 1 :end 2 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type pair :text \"\\\"a\\\": 1\" :begin 5 :end 11 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type string :text \"\\\"a\\\"\" :begin 5 :end 8 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 5 :end 6 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type string_content :text \"a\" :begin 6 :end 7 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 7 :end 8 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \":\" :text \":\" :begin 8 :end 9 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type number :text \"1\" :begin 10 :end 11 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \",\" :text \",\" :begin 11 :end 12 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type pair :text \"\\\"b\\\": [1,2]\" :begin 15 :end 25 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type string :text \"\\\"b\\\"\" :begin 15 :end 18 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 15 :end 16 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type string_content :text \"b\" :begin 16 :end 17 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 17 :end 18 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \":\" :text \":\" :begin 18 :end 19 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type array :text \"[1,2]\" :begin 20 :end 25 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"[\" :text \"[\" :begin 20 :end 21 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type number :text \"1\" :begin 21 :end 22 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \",\" :text \",\" :begin 22 :end 23 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type number :text \"2\" :begin 23 :end 24 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"]\" :text \"]\" :begin 24 :end 25 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"}\" :text \"}\" :begin 26 :end 27 :buffer \"test.json\" :buffer-file \"/tmp/test.json\"))\n"))
+             (:type buffer :name "CodeAsTree" :mode emacs-lisp-mode :contents "((:type object :text \"{\\n  \\\"a\\\": 1,\\n  \\\"b\\\": [1,2]\\n}\" :begin 1 :end 27 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"{\" :text \"{\" :begin 1 :end 2 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type pair :text \"\\\"a\\\": 1\" :begin 5 :end 11 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type string :text \"\\\"a\\\"\" :begin 5 :end 8 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 5 :end 6 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type string_content :text \"a\" :begin 6 :end 7 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 7 :end 8 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \":\" :text \":\" :begin 8 :end 9 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type number :text \"1\" :begin 10 :end 11 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \",\" :text \",\" :begin 11 :end 12 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type pair :text \"\\\"b\\\": [1,2]\" :begin 15 :end 25 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type string :text \"\\\"b\\\"\" :begin 15 :end 18 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 15 :end 16 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type string_content :text \"b\" :begin 16 :end 17 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 17 :end 18 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \":\" :text \":\" :begin 18 :end 19 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type array :text \"[1,2]\" :begin 20 :end 25 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"[\" :text \"[\" :begin 20 :end 21 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type number :text \"1\" :begin 21 :end 22 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \",\" :text \",\" :begin 22 :end 23 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type number :text \"2\" :begin 23 :end 24 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"]\" :text \"]\" :begin 24 :end 25 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"}\" :text \"}\" :begin 26 :end 27 :buffer \"test.json\" :buffer-file \"/tmp/test.json\"))\n"))
             ))
 
 (me-register-mold
@@ -157,10 +158,9 @@ This is a more focused view than `CodeToTree.'"
  :examples ((
              :name "Pointer just after \"a\": "
              :given
-             (:type file :name "/tmp/test.json" :mode json-mode :contents "{\n  \"a\": 1,\n  \"b\": [1,2]\n}\n")
+             (:type file :name "/tmp/test.json" :mode json-mode :contents "{\n  \"a\": 1,\n  \"b\": [1,2]\n}\n" :point 9)
              :then
-             (:type buffer :name "m/tree" :mode emacs-lisp-mode :contents "((:type string :text \"\\\"a\\\"\" :begin 5 :end 8 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 5 :end 6 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type string_content :text \"a\" :begin 6 :end 7 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 7 :end 8 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \":\" :text \":\" :begin 8 :end 9 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type number :text \"1\" :begin 10 :end 11 :buffer \"test.json\" :buffer-file \"/tmp/test.json\"))\n"))
-            ))
+             (:type buffer :name "*moldable-emacs-NodeAtPointToTree*" :mode emacs-lisp-mode :contents "((:type string :text \"\\\"a\\\"\" :begin 5 :end 8 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 5 :end 6 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type string_content :text \"a\" :begin 6 :end 7 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 7 :end 8 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \":\" :text \":\" :begin 8 :end 9 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type number :text \"1\" :begin 10 :end 11 :buffer \"test.json\" :buffer-file \"/tmp/test.json\"))\n"))))
 
 (me-register-mold
  :key "ElispListToOrgTable"
@@ -190,21 +190,21 @@ This is a more focused view than `CodeToTree.'"
  :examples ((
              :name "Alist to Org table"
              :given
-             (:type file :name "/tmp/my.el" :mode emacs-lisp-mode :contents "((\"Index\" \"Value\")\n (1 3)\n (2 9)\n (3  27))")
+             (:type file :name "/tmp/my.el" :mode emacs-lisp-mode :contents "((\"Index\" \"Value\")\n (1 3)\n (2 9)\n (3  27))" :point 1)
              :then
-             (:type buffer :name "Org Table for list starting for (:Index 1 :Value 3)" :mode org-mode :contents "| Index | Value |\n|-------+-------|\n|     1 |     3 |\n|     2 |     9 |\n|     3 |    27 |\n|       |       |\n"))
+             (:type buffer :name "Org Table for list starting for (:Index 1 :Value 3)" :mode org-mode :contents "| Index | Value |\n|-------+-------|\n|     1 |     3 |\n|     2 |     9 |\n|     3 |    27 |\n"))
             (
              :name "Cons list to Org table"
              :given
-             (:type file :name "/tmp/my.el" :mode emacs-lisp-mode :contents "((\"Index\" . \"Value\")\n (1 . 3)\n (2 . 9)\n (3 . 27))")
+             (:type file :name "/tmp/my.el" :mode emacs-lisp-mode :contents "((\"Index\" . \"Value\")\n (1 . 3)\n (2 . 9)\n (3 . 27))" :point 1)
              :then
-             (:type buffer :name "Org Table for list starting for (:Index 1 :Value 3)" :mode org-mode :contents "| Index | Value |\n|-------+-------|\n|     1 |     3 |\n|     2 |     9 |\n|     3 |    27 |\n|       |       |\n"))
+             (:type buffer :name "Org Table for list starting for (:Index 1 :Value 3)" :mode org-mode :contents "| Index | Value |\n|-------+-------|\n|     1 |     3 |\n|     2 |     9 |\n|     3 |    27 |\n"))
             (
              :name "Property list to Org table"
              :given
-             (:type file :name "/tmp/my.el" :mode emacs-lisp-mode :contents "((:index 1 :value 3)\n (:index 2 :value 9)\n (:index 3 :value 27))")
+             (:type file :name "/tmp/my.el" :mode emacs-lisp-mode :contents "((:index 1 :value 3)\n (:index 2 :value 9)\n (:index 3 :value 27))" :point 1)
              :then
-             (:type buffer :name "Org Table for list starting for (:index 1 :value 3)" :mode org-mode :contents "| index | value |\n|-------+-------|\n|     1 |     3 |\n|     2 |     9 |\n|     3 |    27 |\n|       |       |\n"))))
+             (:type buffer :name "Org Table for list starting for (:index 1 :value 3)" :mode org-mode :contents "| index | value |\n|-------+-------|\n|     1 |     3 |\n|     2 |     9 |\n|     3 |    27 |\n"))))
 
 
 (me-register-mold
@@ -236,7 +236,9 @@ This is a more focused view than `CodeToTree.'"
               (me-print-to-buffer plist)
               (setq-local self plist)))))
  :docs "You can extract a plist from a CSV buffer."
- :examples ((:given
+ :examples ((
+             :name "Simple CSV"
+             :given
              (:type buffer :name "OrgTableToCSV" :mode csv-mode :contents "a,b,c\n1,2,3\n2,3,4")
              :then
              (:type buffer :name "CSVtoPlist" :mode emacs-lisp-mode :contents "((:a \"2\" :b \"3\" :c \"4\")\n (:a \"1\" :b \"2\" :c \"3\"))\n"))))
@@ -304,10 +306,12 @@ This is a more focused view than `CodeToTree.'"
             (erase-buffer)
             (me-print-to-buffer (mapcar 'list sentences))))) ;; TODO I need to do keep the position, or allow editing in place, no?
  :docs "Create a list of sentences for a text buffer."
- :examples ((:given (:type buffer :name "SentencesAsTree" :mode emacs-lisp-mode :contents "((\"Some sentence\")
- (\"Some other sentence\")
- (\"Some more\"))
-"))))
+ :examples ((
+             :name "3 sentences"
+             :given
+             (:type file :name "/tmp/test.txt" :mode text-mode :contents "Some sentence. Some other sentence.\n\nSome more." :point 1)
+             :then
+             (:type buffer :name "*moldable-emacs-SentencesAsTree*" :mode emacs-lisp-mode :contents "((\"Some sentence\")\n (\"Some other sentence\")\n (\"Some more\"))\n"))))
 
 (me-register-mold
  :key "ElispAsTree"
@@ -342,7 +346,9 @@ This is a more focused view than `CodeToTree.'"
             (emacs-lisp-mode)
             (setq-local self duplicated-tree)
             (me-print-to-buffer duplicated-tree))))
- :examples ((:given (:type buffer :name "CodeAsTree" :mode emacs-lisp-mode :contents "((:type declaration :text \"include a;\" :begin 1 :end 11 :buffer \"my.cc\" :buffer-file \"/tmp/my.cc\")
+ :examples ((
+             :name "C file to flattened tree"
+             :given (:type buffer :name "CodeAsTree" :mode emacs-lisp-mode :contents "((:type declaration :text \"include a;\" :begin 1 :end 11 :buffer \"my.cc\" :buffer-file \"/tmp/my.cc\")
  (:type type_identifier :text \"include\" :begin 1 :end 8 :buffer \"my.cc\" :buffer-file \"/tmp/my.cc\")
  (:type identifier :text \"a\" :begin 9 :end 10 :buffer \"my.cc\" :buffer-file \"/tmp/my.cc\")
  (:type \";\" :text \";\" :begin 10 :end 11 :buffer \"my.cc\" :buffer-file \"/tmp/my.cc\")
@@ -374,19 +380,7 @@ This is a more focused view than `CodeToTree.'"
             (erase-buffer)
             (me-print-to-buffer tree)
             (setq-local self tree))))
- :docs "You can evaluate an Elisp sexp after point and show the result."
- :examples ((
-             :name "Simple addition"
-             :given (
-                     :type file
-                     :name "/home-andrea/someElispBuffer"
-                     :mode emacs-lisp-mode
-                     :contents "(+ 1 2)")
-             :then (
-                    :type buffer
-                    :name "m/tree-eval-from"
-                    :mode emacs-lisp-mode
-                    :contents "3"))))
+ :docs "You can evaluate an Elisp sexp after point and show the result.")
 
 ;; (me-register-mold
 ;;  :key "GotoNodeBuffer"
@@ -430,7 +424,9 @@ This is a more focused view than `CodeToTree.'"
             (setq-local org-confirm-elisp-link-function nil)
             (insert text))))
  :docs "Transform a flatten tree of nodes into a Org mode list."
- :examples ((:given (:type buffer :name "TreeOfDuplicates" :mode emacs-lisp-mode :contents "((:type type_identifier :text \"include\" :begin 12 :end 19 :buffer \"my.cc\" :buffer-file \"/tmp/my.cc\"))
+ :examples ((
+             :name "C file with duplicates"
+             :given (:type buffer :name "TreeOfDuplicates" :mode emacs-lisp-mode :contents "((:type type_identifier :text \"include\" :begin 12 :end 19 :buffer \"my.cc\" :buffer-file \"/tmp/my.cc\"))
 ") :then (:type buffer :name "TreeToOrgTodos" :mode org-mode :contents "* Todo list [/]
 - [ ] [[elisp:(progn (find-file-other-window \"/tmp/my.cc\") (goto-char 12))][include]]"))))
 
@@ -509,8 +505,7 @@ It specializes for source code."
              :given
              (:type file :name "/tmp/test.txt" :mode text-mode :contents "This is a little test file. Test!\n")
              :then
-             (:type buffer :name "Statistics" :mode org-mode :contents "* Generic Stats\n\n- Reading time: 0 minutes \n- Page has 1 line (0 + 1)\n- Buffer has 1 line, 7 words, and 34 characters.\n- Average book pages for this text: 0\n\n- Buffer size in KiloBytes: 158\n\n- Up to three most and least used words:\n\n  1   | file\n  1   | little\n  1   | test\n  1   | test\n  1   | test!\n  1   | this\n\n\n"))
-            ))
+             (:type buffer :name "Statistics" :mode org-mode :contents "* Generic Stats\n\n- Reading time: 0 minutes \n- Page has 1 line (0 + 1)\n- Buffer has 1 line, 7 words, and 34 characters.\n- Average book pages for this text: 0\n\n- Buffer size in KiloBytes: 34\n\n- Up to three most and least used words:\n\n  1   | file\n  1   | little\n  1   | test\n  1   | test\n  1   | test!\n  1   | this\n\n\n"))))
 
 (me-register-mold
  :key "JsonAsTree"
@@ -631,16 +626,12 @@ It specializes for source code."
                           "ElispListToOrgTable"
                           "OrgTableToCSV"
                           '((:docs "You can produce a CSV from a Plist.")
-                            (:examples ((:name "Simple plist to csv." :given (:type buffer :name "m/tree-playground" :mode emacs-lisp-mode :contents ";; Tips:
-;;    Use `self' to access the mold context.
-;;    You can access the previous mold context through `mold-data'.
-
-((:a 1 :b 2)
- (:a 2 :b 3)
- (:a 4 :b 9))") :then (:type buffer :name "m/csv-from-org-table" :mode csv-mode :contents "a,b
-1,2
-2,3
-4,9")))))))
+                            (:examples ((
+                                         :name "Simple plist to csv."
+                                         :given
+                                         (:type file :name "/tmp/test.el" :mode emacs-lisp-mode :contents "((:a 1 :b 2)\n (:a 2 :b 3)\n (:a 4 :b 9))" :point 1)
+                                         :then
+                                         (:type buffer :name "*moldable-emacs-OrgTableToCSV*" :mode csv-mode :contents "a,b\n1,2\n2,3\n4,9")))))))
 
 (me-register-mold
  :key "CSVToOrgTable"
@@ -819,7 +810,7 @@ It specializes for source code."
 
 (me-register-mold
  :key "NodeAtPointToPlayground"
- :let ((node (thing-at-point 'sexp)))
+ :let ((node (list-at-point)))
  :given (:fn (and
               (equal major-mode 'emacs-lisp-mode)
               node))
@@ -859,7 +850,7 @@ It specializes for source code."
  :examples ((
              :name "Simple arithmetic expression"
              :given
-             (:type file :name "/tmp/my.txt" :mode text-mode :contents "bla bla 1 + 1 / 2 bla bla\n")
+             (:type file :name "/tmp/my.txt" :mode text-mode :contents "bla bla 1 + 1 / 2 bla bla\n" :point 9)
              :then
              (:type buffer :name "Evaluate 1 + 1 / 2" :mode fundamental-mode :contents "1 + 1 / 2 = 1.5"))))
 
