@@ -575,7 +575,7 @@ Add PROPS (e.g.,  `(:docs \"...\" :examples nil)') to it."
                 :date (format-time-string "%FT%T%z"))
                me-temporary-mold-data)))
 
-(add-hook 'me-mold-after-hook #'me-set-self-mold-data)
+(add-hook 'me-mold-after-hook #'me-set-self-mold-data -100)
 
 (defvar me-last-example nil "Last automatically generated example for mold.
 This should simplify the testing and documentation of molds.")
@@ -1590,7 +1590,7 @@ This stores the original screen configuration in the `m' register."
       (call-interactively #'hs-hide-level)
       (select-window final-window))))
 
-(add-hook 'me-mold-after-hook #'me-show-buffer-and-mold)
+(add-hook 'me-mold-after-hook #'me-show-buffer-and-mold 100)
 
 
 (provide 'moldable-emacs)
