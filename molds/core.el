@@ -223,7 +223,7 @@ This is a more focused view than `CodeToTree.'"
                             (s-split separator it)
                             (--map (intern (concat ":" (s-replace "\"" "" (s-trim it)))) it)))
                  (plist nil)
-                 (_ (while (ignore-errors (not (next-line)))
+                 (_ (while (ignore-errors (not (next-logical-line)))
                       (--> (thing-at-point 'line t)
                            (s-split separator it)
                            (-map #'s-trim it)
