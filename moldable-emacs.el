@@ -1089,14 +1089,14 @@ Optionally select BUFFER and POSITION."
 (defun me-count-raw-word-list (raw-word-list)
   "Produce a dictionary of RAW-WORD-LIST with the number of occurrences for each word."
   (--> raw-word-list
-    (--reduce-from
-     (progn
-       (incf (cdr (or (assoc it acc)
-                      (car (push (cons it 0) acc)))))
-       acc)
-     nil
-     it)
-    (sort it (lambda (a b) (string< (car a) (car b))))))
+       (--reduce-from
+        (progn
+          (cl-incf (cdr (or (assoc it acc)
+                            (car (push (cons it 0) acc)))))
+          acc)
+        nil
+        it)
+       (sort it (lambda (a b) (string< (car a) (car b))))))
 
 (defun me-word-stats (string)
   "Return word (as a token between spaces) frequency in STRING."
