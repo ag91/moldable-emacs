@@ -99,6 +99,7 @@ my installation configuration:
          ("C-c m b" . me-go-back)
          ("C-c m o" . me-open-at-point)
          ("C-c m d" . me-mold-docs)
+         ("C-c m g" . me-goto-mold-source)
          ("C-c m e a" . me-mold-add-last-example)
          )
   :config
@@ -296,3 +297,15 @@ https://ag91.github.io/blog/2021/10/22/moldable-emacs-how-to-get-useful-info-abo
 :END:
 
 https://ag91.github.io/blog/2021/10/29/emacs-with-nyxt-capturing-youtube-links-at-time-and-molding-nyxt-with-js/
+
+*** Mold examples as tests
+:PROPERTIES:
+:CREATED:  [2022-01-03 Mon 15:02]
+:ID:       9cc7b3c2-1773-41fa-aa58-2db4b28cf6b2
+:END:
+https://ag91.github.io/blog/2021/12/23/moldable-emacs-examples-for-docs-demos-and-ert-tests
+*** Async molds
+:PROPERTIES:
+:CREATED:  [2022-01-03 Mon 15:02]
+:END:
+https://ag91.github.io/blog/2021/12/31/moldable-emacs-make-your-molds-async-with-ease

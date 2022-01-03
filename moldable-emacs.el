@@ -1592,6 +1592,27 @@ This stores the original screen configuration in the `m' register."
 
 (add-hook 'me-mold-after-hook #'me-show-buffer-and-mold 100)
 
+(defun me-goto-mold-source (mold)
+  "Go to source code of MOLD."
+  (interactive
+   (list nil))
+  (let* ((molds me-available-molds)
+         (keys (--map (plist-get it :key) molds))
+         (picked-mold (or mold
+                          (completing-read
+                           "Pick the mold you need:"
+                           keys))))
+    (--> picked-mold
+         (-find
+          (lambda (x)
+            (string=
+             (plist-get x :key)
+             it))
+          molds)
+         (plist-get it :origin)
+         (find-file it))
+    (goto-char (point-min))
+    (search-forward picked-mold)))
 
 (provide 'moldable-emacs)
 ;;; moldable-emacs.el ends here
