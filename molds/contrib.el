@@ -747,3 +747,20 @@ following in your lein project.clj
             (setq-local self backlinks))))
  :docs "You can check backlinks for current org-roam node."
  :examples nil)
+
+(defcustom me-backlinks-depth 2 "Define how deep you want to search for backlinks for \"Deep Backlinks as Org\" mold.")
+
+(me-register-mold
+ :key "Deep Backlinks as Org"
+ :given (:fn (and
+              (me-require 'org-roam)
+              (org-roam-node-p (org-roam-node-at-point))))
+ :then (:fn
+        (let* ((backlinks-contents (me-org-roam-backlinks-contents (org-roam-node-at-point) me-backlinks-depth)))
+          (with-current-buffer buffername
+            (org-mode)
+            (erase-buffer)
+            (insert (me-org-roam-format-backlinks-contents backlinks-contents))
+            (setq-local self backlinks-contents))))
+ :docs "You can format nested backlinks as a single Org mode buffer."
+ :examples nil)

@@ -1614,5 +1614,46 @@ This stores the original screen configuration in the `m' register."
     (goto-char (point-min))
     (search-forward picked-mold)))
 
+(defun me-org-roam-backlinks-contents (node &optional depth)
+  "Collect NODE backlink contents.
+Optionally stop at DEPTH, by default 0.
+The format of the contents is (:node .. :node-contents .. :sub-nodes (list (:node .. :contents)) :sub-sub-nodes (list <recursive type>))."
+  (let* ((depth (or depth 0))
+         (backlinks (org-roam-backlinks-get node))
+         (contents
+          (--map
+           (let ((backlink-node (org-roam-backlink-source-node it)))
+             (list
+              :node backlink-node
+              :contents
+              (with-temp-buffer
+                (insert-file-contents-literally (org-roam-node-file backlink-node))
+                (buffer-string))))
+           backlinks)))
+    (list :node node
+          :node-contents (with-temp-buffer
+                           (insert-file-contents-literally (org-roam-node-file node))
+                           (buffer-string))
+          :sub-nodes-contents contents
+          :sub-sub-nodes
+          (when (> depth 0)
+            (--map (me-org-roam-backlinks-contents (plist-get it :node) (- depth 1)) contents)))))
+
+(defun me-org-roam-format-backlinks-contents (contents &optional depth)
+  "Format CONTENTS to an Org tree.
+Optionally provide DEPTH to define the number of additions asterisks to prepend to heading."
+  (let* ((depth (or depth 0)))
+    (s-concat
+     (s-repeat depth "*")
+     (plist-get contents :node-contents)
+     "\n\n"
+     (--> (plist-get contents :sub-nodes-contents)
+          (--map (concat (s-repeat (+ 1 depth) "*") (plist-get it :contents)) it)
+          (s-join "\n\n" it))
+     "\n\n"
+     (s-join
+      "\n\n"
+      (--map (me-org-roam-format-backlinks-contents it (+ 1 depth))
+             (plist-get contents :sub-sub-nodes))))))
 (provide 'moldable-emacs)
 ;;; moldable-emacs.el ends here
