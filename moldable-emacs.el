@@ -1246,7 +1246,12 @@ NIL if not there."
 (defun me-ask-for-details-according-to-context (note)
   "Ask for NOTE details."
   (let ((text (read-string "Note:")))
-    (plist-put note :then `(:string ,text))))
+    (plist-put note :then `(:string ,text :state note))))
+
+(defun me-ask-for-todo-details-according-to-context (note)
+  "Ask for NOTE details."
+  (let ((text (read-string "Note:")))
+    (plist-put note :then `(:string ,text :state todo))))
 
 ;; https://stackoverflow.com/questions/21486934/file-specific-key-binding-in-emacs
 (defun me-override-keybiding-in-buffer (key command)
@@ -1291,7 +1296,11 @@ NIL if not there."
                  "elisp"))
          (content (plist-get then :string)))
     (format
-     "* %s\n:PROPERTIES:\n:ID:       %s\n:END:\n%s\n"
+     "* %s %s\n:PROPERTIES:\n:ID:       %s\n:END:\n%s\n"
+     (if-let* ((state (me-get-in note '(:then :state)))
+               (_ (eq state 'note)))
+         ""
+       (upcase (symbol-name state)))
      title
      id
      content)))

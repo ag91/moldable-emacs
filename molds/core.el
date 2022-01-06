@@ -694,6 +694,51 @@ It specializes for source code."
  :docs "Take a note with moldable-emacs.")
 
 (me-register-mold
+ :key "Add Todo"
+ :given (:fn 't)
+ :then (:fn
+        (let* ((buffer (buffer-name))
+               (boundaries (or (region-bounds) (bounds-of-thing-at-point 'sexp) `((,(beginning-of-line) . ,(end-of-line)))))
+               (default-note
+                 `(
+                   :given (:node
+                           (
+                            :key ,(format-time-string "%Y-%m-%d+%H:%M:%S")
+                            :type position
+                            :text ,(buffer-substring-no-properties (caar boundaries) (cdar boundaries))
+                            :begin ,(caar boundaries)
+                            :end ,(cdar boundaries)
+                            :buffer ,buffer
+                            :buffer-file ,(ignore-errors (s-replace (getenv "HOME") "~" (buffer-file-name)))
+                            :mode ,major-mode
+                            :git-hash ,(when-let* ((hash? (shell-command-to-string "git rev-parse --short HEAD"))
+                                                   (hash (when (< (length hash?) 15) hash?))) ;; TODO this is a hack because more chars may mean an error
+                                         (s-trim hash))))
+                   :when nil
+                   :then nil))
+               (note (me-ask-for-todo-details-according-to-context default-note)))
+          (with-current-buffer buffername
+            (erase-buffer)
+            (emacs-lisp-mode)
+            (insert ";; Remember to save the note with C-x C-s!\n\n\n")
+            (me-print-to-buffer note)
+            (me-override-keybiding-in-buffer
+             (kbd "C-x C-s")
+             '(lambda ()
+                (interactive)
+                (let ((note
+                       (ignore-errors
+                         (save-excursion
+                           (goto-char (point-min))
+                           (search-forward "(")
+                           (eval `',(list-at-point))))))
+                  (setq-local self note)
+                  (me-store-note note)
+                  (message "Note stored!"))))
+            (setq-local self note))))
+ :docs "Take a note with moldable-emacs.")
+
+(me-register-mold
  :key "ShowNotesByBuffer"
  :let ((notes (me-filter-notes-by-buffer (buffer-name))))
  :given (:fn (and notes))
