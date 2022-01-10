@@ -1,83 +1,47 @@
-* Moldable Emacs.
+* Moldable Emacs
 :PROPERTIES:
 :CREATED:  [2021-06-18 Fri 21:45]
 :ID:       db0f9ac1-54f7-476e-b566-0a8395e9943c
 :END:
 
-When you use a tool, you are trying to achieve something. You have a
-story in mind. For example, "given all the expenses I had this year, I
-want to see what kind of holiday I can afford" or "given my running
-Emacs, I want to make sure I didn't introduce a memory bug by checking
-the variable sizes (otherwise I have to review my code!)". In all your
-stories you have some context and some result (finances -> holiday
-budget). A good story molds the context into a result. It does it in a
-way that attracts the listener attention!
+Moldable Emacs is about molding data into information. You can
+represent data in many ways. The context you work with defines if a
+representation is more useful than another.
 
-Since there is so much data around us, we could be telling fabulous
-stories. The problem is that there is too much information to read it
-all! We just cannot absorb it as text (or it would take too long). We
-need tools that help us telling our stories! They must do so by
-attracting our attention on what is important.
+Moldable Emacs introduces a new concept: *Mold*. Think of a mold as a
+function that, given a precondition, transforms some data into the
+representation you need. This enhances your understanding of things
+but also allows you to [[https://ag91.github.io/blog/2021/08/11/moldable-emacs-editing-your-file-via-treesitter-(or-how-i-fixed-my-css-with-a-playground)/][solve specific problems you have by solving
+general problems with molds]]
 
-This Emacs extension is a framework to make it easier to tell your
-stories. It allows you to quickly create micro-tools (we will call
-these *"molds"*) to enact your stories. Molds "mold" the data in your
-context into the data of your result. A mold for the holiday story may
-look like:
+Typically a mold takes as input an Emacs buffer and produce a new
+buffer. I designed Moldable Emacs so you can easily compose molds, so
+that one mold can fulfill a precondition for another mold.
 
-#+begin_src elisp
-  (me-register-mold
-   :key "FinancesToHoliday" ; your mold/story name
-   :given (:fn (I-can-retrieve-my-finances?)) ; the context
-   :then (:fn ; the result
-          (let* ((my-finances ...)
-                 (my-holiday-savings (learn-that-from my-finances)))
-            (with-current-buffer buffername
-              (show-prettily my-holiday-savings)
-              (setq-local self (list :finances my-finances :holiday-savings my-holiday-savings)) ; this sets a state that the next mold can compose upon
-              ))))
-#+end_src
+[[https://www.youtube.com/watch?v=lLK7d6bTjuA][Presentation at EmacsConf21 here]].
 
-The power of =moldable-emacs= is to make this micro-tools highly
-composable. Any time you write a mold, you enhance all the molds that
-can combine with it! A mold can combine with another if the first sets
-up the context of the latter (the =:given= clause). And since the
-molds you write are highly fit to your context, this growth benefits
-your story telling.
+For example, given a source code file, I want to find how complex its
+functions are. Then I want to know the aggregate complexity of all the
+functions. This is what I would do.
 
-*Note*: remember the smaller and the more standard the molds, the
-higher the composition! (Our example mold above could be split
-further)
+I have a Python file.
 
-Let me give you some examples of stories I tell myself through molds.
+[[resources/pythonFile.jpg]]
 
-- "Given a code buffer, I want to see duplicated code because I copy-pasted a lot and I want to cleanup."
+I use =M-x me-mold= to choose the "FunctionsComplexity" mold.
 
-  [[images/duplicatedCodeMold.gif]]
+[[resources/pythonFunctionComplexity.jpg]]
 
-- "Given my blog, I would like to change its theme by inverting colors (in one swoop)"
+I use =M-x me-mold= again to choose the "Playground" mold (and write
+some code to calculate the total complexity).
 
-  [[images/invertBlogThemeWithMolds.gif]]
+[[resources/playgroundMold.jpg]]
 
-  Here the context to mold is the CSS file of my blog + the feedback I
-  received from my readers and the output is a CSS file with colors
-  inverted. I focus only on my story by relying on existing molds that
-  divide the CSS files in elements I can query.
-
-- "When I am tired, given a long list of steps, I would like to see it as a succinct diagram."
-
-  [[images/listToPicture.gif]]
-
-- "Given a Python file, I want the most complex function because I want something to refactor"
-
-- "Given my personal notes and their history, I want to see what I have been most interested in lately so I can move forward."
-
-- "Given some code, I want to highlight the syntax constructs to teach myself what they mean and how I should use them."
-
-This extension of Emacs follows the principles of [[https://gtoolkit.com/docs/moldable/][Moldable
-Development]], if you are a SmallTalker check out [[https://gtoolkit.com/][GlamorousToolkit]]!
-
-My presentation at EmacsConf21: [[https://www.youtube.com/watch?v=lLK7d6bTjuA]]
+I composed two molds for this: "FunctionsComplexity" (show complexity
+of functions as an Org Mode table) and "Playground" (similar to Emacs
+*scratch* buffer). The composition preserves (part of) the context
+through the local variables =self= and =mold-data=. An inspector
+buffer always shows you their current contents.
 
 ** Installation
 :PROPERTIES:
@@ -166,27 +130,103 @@ Install the [[https://github.com/doublep/eldev][Elisp Development Tool (Eldev)]]
 #+end_src
 
 
-** Tutorials
+** Getting Started
 :PROPERTIES:
 :CREATED:  [2021-10-04 Mon 21:40]
 :ID:       ed317af9-902e-4048-a74f-035ce8af58bf
 :END:
 
-You should be able to access tutorials via the "Show Tutorials" mold.
+You can start with a fun exercise: access tutorials via the "Show Tutorials" mold.
 Or you can look in [[tutorials/]].
+
+** Similar Packages
+:PROPERTIES:
+:CREATED:  [2022-01-10 Mon 21:51]
+:ID:       58f7084a-7b08-492b-acc6-16ba313320fd
+:END:
+
+
+This extension attempts to implement [[https://gtoolkit.com/docs/moldable/][Moldable Development]] for Emacs
+users. If you speak SmallTalk, try [[https://gtoolkit.com/][GlamorousToolkit]] because it is much
+more advanced.
+
+** Why I spend time developing this package
+:PROPERTIES:
+:CREATED:  [2022-01-10 Mon 21:14]
+:ID:       e56f17da-964d-48e8-8adb-93277edabcf8
+:END:
+
+I find Moldable Development interesting because attempts to fill a gap
+of expression. The context we live everyday often becomes a
+comfortable prison for ourselves. When I work as a software engineer,
+I cultivate a vocabulary and a toolkit that elevates me and so
+separates me from others. I mean if my grandpa asks me about what I am
+doing at the computer, I typically don't feel comfortable in replying:
+"I am baking a higher-order function to make this bit of code easier
+to test".
+
+Unluckily, this is an universal issue. Listen to a chef masterclass
+and you may likely hear things like "mise-en-place", which may not
+ring a bell.
+
+For software users this is a notable and critical issue because
+technology changes fast and the knowledge of yesterday is outdated
+today (for instance, checkout the number of versions of JS
+frameworks). This is pretty unsustainable. Moldable Development tries
+to start small and provide views for small data. This way you can
+understand small things. Then recur until we deal with big problems.
+
+My hope is that we get to a point where I can tell my grandpa "I am
+baking a higher-order function to make this bit of code easier to
+test", but in the way he can understand. And I want my computer to
+help me into doing that. This is not too bigger of an effort than
+translating that legacy COBOL codebase to something a beginner Python
+developer can understand.
+
+I believe the secret is in molding the data into information
+accessible to people. This for me is telling a story. A story is a
+sequence of facts that carries some meaning to the listener. It is a
+fundamental tool to exchange meaning. The meaning I want to convey to
+my grandpa is about the smart technique he can apply in his daily
+life, not necessarily about how that works in the programming language
+I am working with. Similarly, a company with a legacy COBOL codebase
+cares about the functionality and not the technology: if they could
+translate that to a newer language/technology without losing
+functionality, they would not mind. (I guess, they would like it even
+if they could just extract the functionality as a set of requirements
+and test a new implementation against those: often even that is hard).
+
+At this point this package is not mature enough for all of the above
+(yet!). But let me give you some examples of stories I tell myself
+through molds.
+
+- "Given a code buffer, I want to see duplicated code because I copy-pasted a lot and I want to cleanup."
+
+  [[images/duplicatedCodeMold.gif]]
+
+- "Given my blog, I would like to change its theme by inverting colors (in one swoop)"
+
+  [[images/invertBlogThemeWithMolds.gif]]
+
+  Here the context to mold is the CSS file of my blog + the feedback I
+  received from my readers and the output is a CSS file with colors
+  inverted. I focus only on my story by relying on existing molds that
+  divide the CSS files in elements I can query.
+
+- "When I am tired, given a long list of steps, I would like to see it as a succinct diagram."
+
+  [[images/listToPicture.gif]]
+
+- "Given a Python file, I want the most complex function because I want something to refactor"
+
+- "Given my personal notes and their history, I want to see what I have been most interested in lately so I can move forward."
+
+- "Given some code, I want to highlight the syntax constructs to teach myself what they mean and how I should use them."
 
 ** Further info
 :PROPERTIES:
 :CREATED:  [2021-06-18 Fri 21:51]
 :END:
-
-*** View code duplication as an Org buffer
-:PROPERTIES:
-:CREATED:  [2021-06-18 Fri 21:52]
-:ID:       449520e9-de3b-48f9-8f06-bc1f6437102c
-:END:
-
-https://ag91.github.io/blog/2021/05/26/moldable-emacs-make-everything-moldable-through-lisp
 
 *** Vision
 :PROPERTIES:
@@ -195,6 +235,14 @@ https://ag91.github.io/blog/2021/05/26/moldable-emacs-make-everything-moldable-t
 :END:
 
 https://ag91.github.io/blog/2021/06/18/moldable-emacs-vision-basic-concepts-and-design
+*** View code duplication as an Org buffer
+:PROPERTIES:
+:CREATED:  [2021-06-18 Fri 21:52]
+:ID:       449520e9-de3b-48f9-8f06-bc1f6437102c
+:END:
+
+https://ag91.github.io/blog/2021/05/26/moldable-emacs-make-everything-moldable-through-lisp
+
 *** Exploring JSON via Elisp
 :PROPERTIES:
 :CREATED:  [2021-06-18 Fri 21:51]
@@ -309,3 +357,4 @@ https://ag91.github.io/blog/2021/12/23/moldable-emacs-examples-for-docs-demos-an
 :CREATED:  [2022-01-03 Mon 15:02]
 :END:
 https://ag91.github.io/blog/2021/12/31/moldable-emacs-make-your-molds-async-with-ease
+
