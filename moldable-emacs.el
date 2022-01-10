@@ -1296,11 +1296,11 @@ NIL if not there."
                  "elisp"))
          (content (plist-get then :string)))
     (format
-     "* %s %s\n:PROPERTIES:\n:ID:       %s\n:END:\n%s\n"
-     (if-let* ((state (me-get-in note '(:then :state)))
-               (_ (eq state 'note)))
-         ""
-       (upcase (symbol-name state)))
+     "* %s%s\n:PROPERTIES:\n:ID:       %s\n:END:\n%s\n"
+     (let ((state (me-get-in note '(:then :state))))
+       (if (and state (not (eq 'note state)))
+           (format "%s " (upcase (symbol-name state)))
+         ""))
      title
      id
      content)))
