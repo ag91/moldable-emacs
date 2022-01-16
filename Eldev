@@ -6,5 +6,6 @@
 ;; these are currently optional dependencies only required for
 ;; testing
 (eldev-add-extra-dependencies 'test
-                              'tree-sitter 'tree-sitter-langs)
-
+                              'tree-sitter
+                              'tree-sitter-langs
+                              'google-translate)

@@ -1230,7 +1230,7 @@ NIL if not there."
   (async-start
    `(lambda ()
       (write-region ,(pp-to-string (me-load-notes)) nil ,me-note-file-store)))
-  me-notes note)
+  note)
 
 (defun me-load-notes ()
   "Load notes unless cached."

@@ -785,3 +785,40 @@ following in your lein project.clj
             (setq-local self backlinks-contents))))
  :docs "You can format nested backlinks as a single Org mode buffer."
  :examples nil)
+
+
+(defcustom me-languages
+  (list :from "en" :to '("fr" "de" "it" "no" "pt" "es" "sv"))
+  "Languages to translate to.")
+
+(me-register-mold
+ :key "To multiple languages"
+ :let ((sentence (or (me-get-region)
+                     (sentence-at-point t))))
+ :given (:fn (and
+              me-languages
+              sentence
+              (me-require 'google-translate)))
+ :then (:fn
+        (let* ((translations
+                (-map
+                 (lambda (language)
+                   (google-translate-translate (plist-get me-languages :from) language sentence 'kill-ring)
+                   (list :language language :translation (car kill-ring)))
+                 (plist-get me-languages :to)))
+               (tree (--map (append (list :sentence sentence) it) translations)))
+          (with-current-buffer buffername
+            (org-mode)
+            (erase-buffer)
+            (insert (format "* %s\n\n" sentence))
+            (--each translations
+              (insert (format "** %s #%s\n\n"
+                              (plist-get it :language)
+                              (plist-get it :translation) )))
+            (setq-local self tree))))
+ :docs "You can translate text to multiple languages."
+ :examples '((:name "Hello there translation"
+                    :given
+                    (:type file :name "/tmp/test.txt" :mode text-mode :contents "Hello there!" :point 13)
+                    :then
+                    (:type buffer :name "*moldable-emacs-To multiple languages*" :mode org-mode :contents "* Hello there!\n\n** fr #Bonjour!\n\n** de #Hallo!\n\n** it #Ciao!\n\n** no #Hei der!\n\n** pt #Olá!\n\n** es #¡Hola!\n\n** sv #Hej där!\n\n"))))
