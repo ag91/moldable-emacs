@@ -1232,8 +1232,8 @@ NIL if not there."
       (write-region ,(pp-to-string (me-load-notes)) nil ,me-note-file-store)))
   note)
 
-(defun me-load-notes ()
-  "Load notes unless cached."
+(defun me-load-all-notes ()
+  "Load all notes unless cached."
   (if me-notes
       me-notes
     (setq me-notes
@@ -1242,6 +1242,14 @@ NIL if not there."
               (insert-file-contents-literally me-note-file-store)
               (goto-char (point-min))
               (eval `',(list-at-point)))))))
+
+(defun me-tag-note-p (note)
+  "If NOTE is a tag."
+  (me-get-in note '(:then :tags)))
+
+(defun me-load-notes ()
+  "Load only textual notes unless cached."
+  (-remove 'me-tag-note-p (me-load-all-notes)))
 
 (defun me-ask-for-details-according-to-context (note)
   "Ask for NOTE details."
