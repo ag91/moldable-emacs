@@ -822,3 +822,40 @@ following in your lein project.clj
                     (:type file :name "/tmp/test.txt" :mode text-mode :contents "Hello there!" :point 13)
                     :then
                     (:type buffer :name "*moldable-emacs-To multiple languages*" :mode org-mode :contents "* Hello there!\n\n** fr #Bonjour!\n\n** de #Hallo!\n\n** it #Ciao!\n\n** no #Hei der!\n\n** pt #Olá!\n\n** es #¡Hola!\n\n** sv #Hej där!\n\n"))))
+
+(defun me-get-org-roam-notes-with-tags (tags)
+  "Get org roam notes matching TAGS."
+  (-flatten
+   (--keep
+    (ignore-errors (--> it
+                        org-roam-node-from-title-or-alias
+                        org-roam-backlinks-get
+                        (-map 'org-roam-backlink-source-node it)))
+    tags)))
+
+(me-register-mold
+ :key "TagsToOrgRoamNotes"
+ :given (:fn (and (me-require 'org-roam)))
+ :then (:fn
+        (let* ((tags (completing-read-multiple
+                      "Choose tags (or make new ones):"
+                      (--> (org-roam--get-titles)
+                           (--filter (= 1 (length (and (s-lowercase-p it) (<= (length (s-split "-" it)) 1) (s-split " " it)))) it)
+                           )))
+               (notes (ignore-errors
+                        (--reduce-from
+                         (-intersection (me-get-org-roam-notes-with-tags (list it)) acc)
+                         (me-get-org-roam-notes-with-tags (list (car tags))) ; if nil, -intersect would always return nil
+                         (cdr tags))))
+               (tags-and-notes (list :tags tags :notes notes)))
+          (with-current-buffer buffername
+            (org-mode)
+            (org-transclusion-remove-all)
+            (erase-buffer)
+            (--each notes
+              (insert (format "#+transclude: [[id:%s][%s]]\n\n" (org-roam-node-id it) (org-roam-node-title it))))
+            (org-transclusion-add-all)
+            (goto-char (point-min))
+            (setq-local self tags-and-notes))))
+ :docs "You can query the Org Roam notes that contain ALL the selected tags."
+ :examples nil)
