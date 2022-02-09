@@ -127,9 +127,9 @@ Useful to run Elisp on the fly without a Playground."
         (let* ((tree (me-mold-treesitter-to-parse-tree)))
           (with-current-buffer buffername
             (erase-buffer)
-            (me-print-to-buffer tree) ;; TODO I need to do keep the position, or allow editing in place, no?
-            (pp-buffer)
-            (emacs-lisp-mode))))
+            (emacs-lisp-mode)
+            (me-print-to-buffer tree)
+            (setq-local self tree))))
  :docs "You get a flattened tree of all parsed elements.
 You can transform this to extract information with the Playground mold."
  :examples ((

@@ -295,7 +295,7 @@ Optionally start from NODE."
                node
                (ignore-errors (tsc-root-node tree-sitter-tree)))))
     (when root
-      (cl-labels ((fn (node)
+      (cl-labels ((fn (node level)
                       (tsc-mapc-children
                        (lambda (n)
                          (setq acc (cons
@@ -308,12 +308,13 @@ Optionally start from NODE."
                                      :buffer-file (when buffer-file-name
                                                     (s-replace (getenv "HOME") "~"
                                                                buffer-file-name))
+                                     :level level
                                      )
                                     acc))
-                         (fn n))
+                         (fn n (1+ level)))
                        node)))
         (setq-local acc nil)
-        (fn root)
+        (fn root 0)
         (reverse acc)))))
 
 (defun me-extension-to-major-mode (extension)
@@ -444,7 +445,6 @@ Optionally use CONTENTS string instead of file contents."
 
 (defvar me-usable-mold-stats nil)
 
-
 (defun me-usable-molds (&optional molds buffer)
   "Return the usable molds among the `me-available-molds'.
 Optionally you can pass your own candidate MOLDS.
@@ -467,16 +467,26 @@ Optionally you can pass a BUFFER to use instead of the `current-buffer'."
                                                              (time-subtract
                                                               ending
                                                               beginning)))))))
-         result) ;; TODO run this in parallel when time goes over 100ms (time goes already over for org-table condition when there are many org tables in the same file - I got over 2 seconds wait for 5 tables mostly empty!!!)
+         result) ;; TODO run this in parallel when time goes over 100ms)
        molds))))
+
+(defun me-usable-p (mold-key)
+  "Check if MOLD-KEY mold is usable."
+  (= (length
+      (-non-nil
+       (me-usable-molds
+        (list (me-find-mold mold-key)))))
+     1))
 
 (defun me-mold-run-then (mold)
   "Run MOLD :then."
   (unless (me-get-in mold '(:then :fn)) (error "For now all molds need to declare :then with :fn"))
   (me-with-mold-let mold :then))
 
-(defun me-mold ()
-  "Propose a list of available molds for the current context."
+(defun me-mold (&optional mold-key view-fn)
+  "Propose a list of available molds for the current context.
+Use MOLD-KEY as chosen mold when it is provided and usable.
+Use VIEW-FN to show result buffer when provided."
   (interactive)
   (run-hooks 'me-mold-before-hook)
   (let* ((beginning (current-time))
@@ -489,9 +499,10 @@ Optionally you can pass a BUFFER to use instead of the `current-buffer'."
                                                                    ending
                                                                    beginning))))))
     (--> keys
-         (completing-read
-          "Pick the mold you need:"
-          it)
+         (or (when (-contains-p keys mold-key) mold-key)
+             (completing-read
+              "Pick the mold you need:"
+              it))
          (-find
           (lambda (x)
             (string=
@@ -505,7 +516,7 @@ Optionally you can pass a BUFFER to use instead of the `current-buffer'."
               (funcall it mold))
             mold)
           it)
-         me-mold-run-then)
+         me-mold-run-then)              ; TODO how can I use VIEW-FN ?
     (run-hooks 'me-mold-after-hook)))
 
 (defun me-mold-compose-molds (mold1 mold2)
@@ -1135,7 +1146,7 @@ a string (node -> string)."
       nodes
     (let ((type (plist-get it :type))
           (beg (point)))
-      (insert
+      (insert                           ; this insert the type of the node with overlay inline!
        (or (when transformer (funcall transformer it))
            (format "%s\n" type)))
       (let ((old-buffer (plist-get it :buffer))
@@ -1224,14 +1235,6 @@ NIL if not there."
 
 (defvar me-notes nil "Prototype of notes.")
 
-(defun me-store-note (note)
-  "Persist NOTE."
-  (add-to-list 'me-notes note)
-  (async-start
-   `(lambda ()
-      (write-region ,(pp-to-string (me-load-notes)) nil ,me-note-file-store)))
-  note)
-
 (defun me-load-all-notes ()
   "Load all notes unless cached."
   (if me-notes
@@ -1242,6 +1245,14 @@ NIL if not there."
               (insert-file-contents-literally me-note-file-store)
               (goto-char (point-min))
               (eval `',(list-at-point)))))))
+
+(defun me-store-note (note)
+  "Persist NOTE."
+  (add-to-list 'me-notes note)
+  (async-start
+   `(lambda ()
+      (write-region ,(pp-to-string (me-load-all-notes)) nil ,me-note-file-store)))
+  note)
 
 (defun me-tag-note-p (note)
   "If NOTE is a tag."
