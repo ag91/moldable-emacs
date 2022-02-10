@@ -308,8 +308,8 @@ Optionally start from NODE."
                                      :buffer-file (when buffer-file-name
                                                     (s-replace (getenv "HOME") "~"
                                                                buffer-file-name))
-                                     :level level
-                                     )
+                                     :mode major-mode
+                                     :level level)
                                     acc))
                          (fn n (1+ level)))
                        node)))
