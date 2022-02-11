@@ -357,4 +357,9 @@ https://ag91.github.io/blog/2021/12/23/moldable-emacs-examples-for-docs-demos-an
 :CREATED:  [2022-01-03 Mon 15:02]
 :END:
 https://ag91.github.io/blog/2021/12/31/moldable-emacs-make-your-molds-async-with-ease
-
+*** Learn syntax
+:PROPERTIES:
+:CREATED:  [2022-02-11 Fri 23:50]
+:ID:       fcc9dd9f-9290-486b-8dd8-ecb828071aac
+:END:
+https://ag91.github.io/blog/2022/02/11/moldable-emacs-learning-syntax-from-your-editor/

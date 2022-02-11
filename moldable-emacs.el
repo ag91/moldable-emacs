@@ -1683,5 +1683,60 @@ Optionally provide DEPTH to define the number of additions asterisks to prepend 
       "\n\n"
       (--map (me-org-roam-format-backlinks-contents it (+ 1 depth))
              (plist-get contents :sub-sub-nodes))))))
+
+;; syntax highlighting
+(defun me-highlight-node (node)
+  "Highlight NODE in its buffer."
+  (with-current-buffer (get-buffer-create (plist-get node :buffer)) ; TODO handle :buffer-file
+    (let* ((node-start (plist-get node :begin))
+           (node-end (plist-get node :end))
+           (overlay (make-overlay node-start node-end))
+           (capture-name (or (ignore-errors (symbol-name (plist-get node :type)))
+                             (plist-get node :type))))
+      ;; Ensure the overlay is deleted when it becomes empty.
+      (overlay-put overlay 'evaporate t)
+      (overlay-put overlay 'face '(:background "Green"))
+      ;; Use the capture's name as the mouseover tooltip.
+      (unless (string= capture-name "")
+        (overlay-put overlay 'help-echo capture-name)))))
+
+(defun me-highlight-nodes (nodes)
+  "Highlight NODES in their buffer."
+  (-each nodes 'me-highlight-node))
+
+
+(defun me-insert-follow-overlay (node-to-overlay nodes)
+  "Link NODE-TO-OVERLAY and NODES with an overlay executing when cursor touches the area of NODE-TO-OVERLAY."
+  (cursor-sensor-mode 1)
+  (let ((old-buffer (plist-get (car nodes) :buffer))
+        (ov (make-overlay
+             (plist-get node-to-overlay :begin)
+             (plist-get node-to-overlay :end))))
+    (overlay-put
+     ov
+     'cursor-sensor-functions
+     (list `(lambda (affected-window old-position entered-or-left)
+              (cond
+               ((eq entered-or-left 'entered)
+                (progn (overlay-put ,ov 'face '(:background "Green"))
+                       (-each ',nodes 'me-highlight-node)))
+               ((eq entered-or-left 'left)
+                (progn (overlay-put ,ov 'face nil)
+                       (with-current-buffer ,old-buffer
+                         (remove-overlays))))))))))
+
+(defun me-syntax-description (type language)
+  "Get description for node of TYPE and LANGUAGE."
+  (or
+   ;;  TODO I should generalize this to add descriptions on demand (in particular if I am going to define my own types)
+   (plist-get
+    (--find (equal (plist-get it :label) (or
+                                          (ignore-errors (symbol-name type))
+                                          type))
+            nil ;; me-natural-syntax-tree-labels - TODO not shared yet
+            )
+    :description)
+   (format "[[elisp:(browse-web \"%s %s\")][Search for description]]" language type)))
+
 (provide 'moldable-emacs)
 ;;; moldable-emacs.el ends here

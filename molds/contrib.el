@@ -859,3 +859,36 @@ following in your lein project.clj
             (setq-local self tags-and-notes))))
  :docs "You can query the Org Roam notes that contain ALL the selected tags."
  :examples nil)
+
+(me-register-mold
+ :key "LearnSyntax"
+ :given (:fn (ignore-errors (and (plist-get (car self) :begin)
+                                 (plist-get (car self) :end))))
+ :then (:fn
+        (let* ((language (--> (plist-get (car self) :mode)
+                              symbol-name
+                              (s-replace "-mode" "" it)))
+               (grouped-nodes (--sort (< (length (cdr it))
+                                         (length (cdr other)))
+                                      (--group-by (plist-get it :type) self))))
+          (with-current-buffer buffername
+            (org-mode)
+            (erase-buffer)
+            (insert (format "* Syntax Types for %s\n\n" language))
+            (--each grouped-nodes
+              (let* ((type (or (ignore-errors (symbol-name (nth 0 it)))
+                               (car it)))
+                     (description (me-syntax-description type language))
+                     (p (point))
+                     (nodes (cdr it)))
+                (insert (format "- %s :: %s found\n\n  %s\n\n" type (length (cdr it)) description))
+                (me-insert-follow-overlay (list :begin (+ 2 p) ; to keep track of the "- " bit
+                                                :end (- (point) 1)) ; `insert' adds the pointer on the space after
+                                          nodes)))
+            (setq-local self grouped-nodes))))
+ :docs "You can learn about the syntax of a language."
+ :examples nil)
+
+(me-register-mold-by-key "LearnSyntaxOfCode"
+                         (me-mold-compose "CodeAsTree" "LearnSyntax"
+                                          '((:docs "Explain syntax of code."))))
