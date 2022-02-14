@@ -875,13 +875,16 @@ following in your lein project.clj
             (org-mode)
             (erase-buffer)
             (insert (format "* Syntax Types for %s\n\n" language))
-            (--each grouped-nodes
+            (--each-indexed grouped-nodes
               (let* ((type (or (ignore-errors (symbol-name (nth 0 it)))
                                (car it)))
                      (description (me-syntax-description type language))
+                     (kill (format
+                            "  [[elisp:(add-to-list 'kill-ring (s-join \"\\n\" (-distinct (--map (plist-get it :text) (cdr (nth %s self))))))][Kill matching text]]"
+                            it-index))
                      (p (point))
                      (nodes (cdr it)))
-                (insert (format "- %s :: %s found\n\n  %s\n\n" type (length (cdr it)) description))
+                (insert (format "- %s :: %s found\n\n  %s\n%s\n\n" type (length (cdr it)) description kill))
                 (me-insert-follow-overlay (list :begin (+ 2 p) ; to keep track of the "- " bit
                                                 :end (- (point) 1)) ; `insert' adds the pointer on the space after
                                           nodes)))
