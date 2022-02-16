@@ -6,6 +6,7 @@
  :then (:fn
         (let ((tree (or ;; TODO I need to revisit this: has the code tree always precedence?
                      me-playground-self
+                     (ignore-errors self)
                      (ignore-errors
                        (me-mold-treesitter-to-parse-tree))
                      (ignore-errors (me-org-to-flatten-tree (current-buffer)))
