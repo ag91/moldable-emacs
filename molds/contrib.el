@@ -895,3 +895,40 @@ following in your lein project.clj
 (me-register-mold-by-key "LearnSyntaxOfCode"
                          (me-mold-compose "CodeAsTree" "LearnSyntax"
                                           '((:docs "Explain syntax of code."))))
+
+
+
+(me-register-mold
+ :key "FlycheckErrorsAsTree"
+ :given (:fn (and
+              (me-require 'flycheck)
+              (flycheck-has-current-errors-p)))
+ :then (:fn
+        (let* ((errors (--> (flycheck-overlay-errors-in (point-min)
+                                                        (point-max))
+                            (--map (let* ((buffer (buffer-name (flycheck-error-buffer it)))
+                                          (begin (flycheck-error-pos it))
+                                          (end (with-current-buffer buffer
+                                                 (next-single-char-property-change begin 'flycheck-error)))
+                                          (text (buffer-substring-no-properties begin end)))
+                                     (list :type (flycheck-error-checker it)
+                                           :text text
+                                           :error (flycheck-error-message it)
+                                           :begin begin
+                                           :end end
+                                           :buffer buffer
+                                           :filename (flycheck-error-filename it)
+                                           ))
+                                   it))))
+          (with-current-buffer buffername
+            (emacs-lisp-mode)
+            (erase-buffer)
+            (me-print-to-buffer errors)
+            (setq-local self errors))))
+ :docs "You can see Flycheck errors as a flattened tree."
+ :examples ((
+             :name "Missing quotes in clj map"
+             :given
+             (:type buffer :name "*moldable-emacs-Playground Clojure*" :mode clojure-mode :contents ";; Tips:\n;;    Use `self' to access the mold context.\n;;    You can access the previous mold context through `mold-data'.\n\n{:key needs-quotes}" :point 143)
+             :then
+             (:type buffer :name "*moldable-emacs-FlycheckErrorsAsTree*" :mode emacs-lisp-mode :contents "((:type clj-kondo-clj :text \"needs-quotes\" :error \"Unresolved symbol: needs-quotes\" :begin 130 :end 142 :buffer \"*moldable-emacs-Playground Clojure*\" :filename nil))\n"))))
