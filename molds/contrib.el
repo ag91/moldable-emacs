@@ -467,11 +467,20 @@ following in your lein project.clj
  :key "Playground Clojure"
  :given (:fn (and (me-require 'clojure-mode)))
  :then (:fn
-        (let* ((tree (ignore-errors self)))
+        (let* ((region (me-get-region))
+               (tree (ignore-errors self)))
           (with-current-buffer buffername
             (clojure-mode)
             (erase-buffer)
             (insert ";; Tips:\n;;    Use `self' to access the mold context.\n;;    You can access the previous mold context through `mold-data'.\n\n")
+            (when region (insert region))
+            (me-override-keybiding-in-buffer
+             (kbd "C-x B")
+             '(lambda ()
+                (interactive)
+                (if (executable-find "bb") (async-shell-command "bb nrepl-server 1667") (error "Install babanshka first!"))
+                (cider-connect-clj (list :host "localhost" :port 1667))
+                ))
             (ignore-errors
               (when (cider-connected-p) (cider-nrepl-sync-request:eval (format "(def self '%s)" (let ((x self)) (with-temp-buffer (me-print-to-buffer x)
                                                                                                                                   (buffer-string)))))))
