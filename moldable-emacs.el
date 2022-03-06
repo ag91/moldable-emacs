@@ -1551,17 +1551,26 @@ This is useful for plotting."
    (eq 'quoting_lit (plist-get node :type))
    (s-contains-p ":where" (plist-get node :text))))
 
-(defun me-project-to-nodes (dir &optional file-extension) ; TODO this works for Clojure now, I need to bind the predicates according to the extension/grammar instead. If 'python `me-node-fn-p' should behave differently than me-clj-fn-p
+(defun me-project-to-nodes (dir &optional file-extension)
+  "Produce nodes for project DIR.
+Optionally filter for files with FILE-EXTENSION."
+  (--> (projectile-project-files dir)
+       (if file-extension
+           (--filter
+            (equal file-extension
+                   (file-name-extension it))
+            it)
+         it)
+       (--map (ignore-errors  (me-filepath-to-flattened-tree (let ((default-directory dir)) (expand-file-name it)))) it)))
+
+(defun me-project-to-flattened-nodes (dir &optional file-extension)
+  "Create a list of all the syntax elements nodes of files in DIR filtering by FILE-EXTENSION."
+  (-flatten-n 1 (me-project-to-nodes dir file-extension)))
+
+(defun me-clj-project-to-nodes-categories (dir &optional file-extension) ; TODO this works for Clojure now, I need to bind the predicates according to the extension/grammar instead. If 'python `me-node-fn-p' should behave differently than me-clj-fn-p
   "Produce categories of nodes for project DIR.
 Optionally filter for files with FILE-EXTENSION."
-  (-->  (--> (projectile-project-files dir)
-             (if file-extension
-                 (--filter
-                  (equal file-extension
-                         (file-name-extension it))
-                  it)
-               it)
-             (--map (ignore-errors  (me-filepath-to-flattened-tree (let ((default-directory dir)) (expand-file-name it)))) it))
+  (-->  (me-project-to-nodes dir file-extension)
 
         (list
          :fns
