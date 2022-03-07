@@ -1530,7 +1530,9 @@ This is useful for plotting."
   "Check if flattened tree NODE is a Clojure function."
   (and
    (eq 'list_lit (plist-get node :type))
-   (s-starts-with-p "(defn " (plist-get node :text))))
+   (or (s-starts-with-p "(defn " (plist-get node :text))
+       ;;  in case I have (def x (fn [] ...))
+       (s-starts-with-p "(fn " (plist-get node :text)))))
 
 (defun me-clj-atom-p (node)
   "Check if flattened tree NODE is a Clojure atom."
