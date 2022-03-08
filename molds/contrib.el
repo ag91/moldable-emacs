@@ -270,9 +270,9 @@ following in your lein project.clj
 (defun me-dot-string-to-picture (dot-diagram)
   (if-let* ((dot (executable-find "dot"))
             (dotfilename (make-temp-file "dot" nil ".dot"))
-            (filename (make-temp-file "image" nil ".png"))
+            (filename (make-temp-file "image" nil ".svg"))
             (_ (or (write-region dot-diagram nil dotfilename) "don't stop!"))
-            (output (shell-command-to-string (format "%s -Tpng -o%s %s" dot filename dotfilename))))
+            (output (shell-command-to-string (format "%s -Tsvg -o%s %s" dot filename dotfilename))))
       filename
     (message "Something went wrong in generating a dot file: %s." (list dot dotfilename filename output))))
 
@@ -311,11 +311,15 @@ following in your lein project.clj
  :given (:fn (and
               (executable-find "dot")
               (eq major-mode 'fundamental-mode)
-              (s-contains-p " Dot" (buffer-name))))
+              (s-contains-p "Dot" (buffer-name))))
  :then (:fn
-        (find-file-other-window (me-dot-string-to-picture (buffer-substring-no-properties (point-min) (point-max))))
-        (switch-to-buffer buffername)
-        (kill-buffer-and-window))
+        (let* ((file (me-dot-string-to-picture (buffer-substring-no-properties (point-min) (point-max)))))
+          (with-current-buffer buffername
+            (fundamental-mode)
+            (erase-buffer)
+            (insert-file-contents-literally file)
+            (image-mode)
+            (setq-local self file))))
  :docs "Convert Graphviz dot buffer to an graph image.")
 
 (me-register-mold-by-key
