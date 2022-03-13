@@ -4,7 +4,8 @@
  :key "Playground"
  :given (:fn 't)
  :then (:fn
-        (let ((tree (or ;; TODO I need to revisit this: has the code tree always precedence?
+        (let ((region (me-get-region))
+              (tree (or
                      me-playground-self
                      (ignore-errors self)
                      (ignore-errors
@@ -19,6 +20,8 @@
             (auto-save-mode)
             (erase-buffer)
             (insert ";; Tips:\n;;    Use `self' to access the mold context.\n;;    You can access the previous mold context through `mold-data'.\n\n")
+            (when region
+              (insert (format "(--> \"%s\"\n)" (replace-regexp-in-string "\"" "\\\\\"" region))))
             (goto-char (point-max))
             (setq-local self tree))))
  ;; TODO experimental for auto-completion: how can I make molds easy to autocomplete?
