@@ -411,6 +411,10 @@ Optionally use CONTENTS string instead of file contents."
            (switch-to-buffer-other-window
             (get-buffer buffername))))))))
 
+(defun me-mold-buffername (mold)
+  "Get the resulting buffer name of MOLD."
+  (concat "*moldable-emacs-" (or (plist-get mold :buffername) (plist-get mold :key)) "*"))
+
 (defmacro me-with-mold-let (mold &rest clause) ;; TODO this must evaluate only once any time is called AND needs to make evaluation of bindings lazy?
   "Wrap BODY in a let with :let and :buffername of MOLD, plus add the body for CLAUSE."
   (let ((m (-clone mold))) ;; for some strange reason, it seems that a mold with (:let ((1 ..) (2 ..) (3 ..))) ends up with (:let ((1 ..))) if I use thunk-let* on the original mold, so I clone it
@@ -418,7 +422,7 @@ Optionally use CONTENTS string instead of file contents."
       (lambda (m clause)
         (eval
          `(progn
-            (let ((buffername (concat "*moldable-emacs-" (or ,(plist-get m :buffername) ,(plist-get m :key)) "*")))
+            (let ((buffername ,(me-mold-buffername m)))
               (,(if (ignore-errors (eq (car clause) :then))
                     'let*
                   'thunk-let*)
@@ -483,6 +487,8 @@ Optionally you can pass a BUFFER to use instead of the `current-buffer'."
   (unless (me-get-in mold '(:then :fn)) (error "For now all molds need to declare :then with :fn"))
   (me-with-mold-let mold :then))
 
+(defvar me-mold-whens nil "All :when clauses of molds to check periodically.")
+
 (defun me-mold (&optional mold-key view-fn)
   "Propose a list of available molds for the current context.
 Use MOLD-KEY as chosen mold when it is provided and usable.
@@ -519,6 +525,58 @@ Use VIEW-FN to show result buffer when provided."
          me-mold-run-then)              ; TODO how can I use VIEW-FN ?
     (run-hooks 'me-mold-after-hook)))
 
+(defun me-add-when-to-periodic-check (mold)
+  "Add MOLD :when clause to `me-mold-whens'."
+  (-when-let* ((w (plist-get mold :when))
+               (mold-b (me-mold-buffername mold))
+               (current-b (buffer-name)))
+    (setq me-mold-whens (-distinct
+                         (cons
+                          (list
+                           :when w
+                           :mold-buffer mold-b
+                           :mold-key (plist-get mold :key)
+                           :current-buffer current-b)
+                          me-mold-whens)))))
+
+(add-hook 'me-mold-before-mold-runs-hook 'me-add-when-to-periodic-check)
+
+(defun me-get-visible-buffers ()
+  "Return buffer names that are visible now."
+  (let (result)          ; taken from helm-buffers-get-visible-buffers
+    (walk-windows
+     (lambda (x)
+       (push (buffer-name (window-buffer x)) result))
+     nil 'visible)
+    result))
+
+(defun me-run-whens ()
+  "Run molds :then clauses for `me-mold-whens' clauses that are satisfied."
+  (--each me-mold-whens
+    (save-excursion
+      (when (and
+             ;; both original buffer are visible: it means I am looking at them and I want automatic updates
+             (-contains? (me-get-visible-buffers) (plist-get it :mold-buffer))
+             (-contains? (me-get-visible-buffers) (plist-get it :current-buffer))
+             ;; the when clause is satisfied
+             (eval (me-get-in it '(:when :fn))))
+        ;; save current window config
+        (let ((window-config (current-window-configuration)))
+          ;; go to :current-buffer
+          (switch-to-buffer (plist-get it :current-buffer))
+          ;; run the :then clause of :mold-key mold
+          (message "Running then in buffer %s" (buffer-name) )
+          (me-mold-run-then (me-find-mold (plist-get it :mold-key)))
+          ;; restore old window config
+          (set-window-configuration window-config))))))
+
+(defcustom me-no-when-updates nil
+  "When non-nil, it prevents automatic refresh of molds.
+When a :when clause is defined on the mold and the relevant buffers are visible,
+`moldable-emacs' tries to refresh the mold according to the `:when' clause trigger logic.")
+
+(unless me-no-when-updates (run-with-idle-timer 0.8 t 'me-run-whens))
+
 (defun me-mold-compose-molds (mold1 mold2)
   "Compose MOLD1 and MOLD2 in a new mold."
   `(
@@ -532,7 +590,9 @@ Use VIEW-FN to show result buffer when provided."
                   (me-mold-run-then ',mold2)
                   ;; (delete-window (get-buffer-window (plist-get ',mold1 :buffername)))
                   (switch-to-buffer buffername)
-                  (kill-buffer-and-window)))))
+                  (kill-buffer-and-window)
+                  (rename-buffer buffername)
+                  (switch-to-buffer buffername)))))
 
 (defun me-mold-compose (m1 m2 &optional props)
   "Compose M1 and M2 in a single mold.

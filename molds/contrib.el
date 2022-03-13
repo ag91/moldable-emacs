@@ -325,7 +325,19 @@ following in your lein project.clj
 (me-register-mold-by-key
  "OrgTablesToDotPicture"
  (me-mold-compose "OrgTablesToDot" "DotToPicture"
-                  '((:docs "Make a graph image out of Org tables representing a graph."))))
+                  '((
+                     :when
+                     (:fn
+                      (progn
+                        (ignore-errors (unless (s-contains-p "| key" (thing-at-point 'line)) (goto-char (search-backward "| key"))))
+                        (not
+                         ;; TODO this is fragile if I move the cursor in the Org Table buffer..
+                         ;; I could use :old-point in the mold-data of the "OrgTablesToDot" mold to go to the right place?
+                         ;; or I could just have a function that jumps at the beginning of the table for this?
+                         (equal (ignore-errors me-org-tables-to-dot) ;first time this is undefined
+                                (setq-local me-org-tables-to-dot (me-all-flat-org-tables))))))
+                     ;; add :when clause saying that if the table at point has changed, return true
+                     :docs "Make a graph image out of Org tables representing a graph."))))
 
 (me-register-mold
  :key "Image To Text"
