@@ -280,6 +280,13 @@ An example of input is: '((:a 1 :b 2) (:a 3 :b 4))"
   (when (symbolp type)
     (--filter (eq (plist-get it :type) type) tree)))
 
+(defun me-count-by-key (key list)
+  "Group LIST by KEY and count groups. Given ((:a \"x\") (:a \"x\") (:a \"y\")) and :a, it returns ((:a \"x\" :count 2) (:a \"y\" :count 1))"
+  (--> list
+       (--group-by (plist-get it key) it)
+       (--map (list key (car it) :count (length (cdr it))) it)
+       (--sort (> (plist-get it :count) (plist-get other :count)) it)))
+
 ;; (with-temp-buffer
 ;;   (save-excursion (insert "| a | b |
 ;;     |---+---|
