@@ -350,7 +350,7 @@ Optionally use CONTENTS string instead of file contents."
             (tree-sitter-parser (tsc-make-parser)))
         (tsc-set-language tree-sitter-parser tree-sitter-language)
         (--> (tsc--without-restriction
-               (tsc-parse-chunks tree-sitter-parser #'tsc--buffer-input nil))
+               (tsc-parse-chunks tree-sitter-parser #'tsc--buffer-input nil)) ; TODO this seems to break for non unicode files
              tsc-root-node
              me-mold-treesitter-to-parse-tree)))))
 
@@ -1630,7 +1630,13 @@ Optionally filter for files with FILE-EXTENSION."
                    (file-name-extension it))
             it)
          it)
-       (--map (ignore-errors  (me-filepath-to-flattened-tree (let ((default-directory dir)) (expand-file-name it)))) it)))
+       (--map
+        (let ((filename (let ((default-directory dir)) (expand-file-name it))))
+          (or
+           (ignore-errors (me-filepath-to-flattened-tree filename)) ; sometimes there is an encoding issue with this that I can fix me-mold-treesitter-to-parse-tree
+           (ignore-errors (with-file filename
+                                     (me-mold-treesitter-to-parse-tree)))))
+        it)))
 
 (defun me-project-to-flattened-nodes (dir &optional file-extension)
   "Create a list of all the syntax elements nodes of files in DIR filtering by FILE-EXTENSION."
