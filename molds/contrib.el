@@ -957,3 +957,23 @@ following in your lein project.clj
              (:type buffer :name "*moldable-emacs-Playground Clojure*" :mode clojure-mode :contents ";; Tips:\n;;    Use `self' to access the mold context.\n;;    You can access the previous mold context through `mold-data'.\n\n{:key needs-quotes}" :point 143)
              :then
              (:type buffer :name "*moldable-emacs-FlycheckErrorsAsTree*" :mode emacs-lisp-mode :contents "((:type clj-kondo-clj :text \"needs-quotes\" :error \"Unresolved symbol: needs-quotes\" :begin 130 :end 142 :buffer \"*moldable-emacs-Playground Clojure*\" :filename nil))\n"))))
+
+
+
+(me-register-mold
+ :key "YamlToJson"
+ :given (:fn (and (eq major-mode 'yaml-mode)
+                  (executable-find "yq")))
+ :then (:fn
+        (let* ((filename (concat (temporary-file-directory) "tojson.yml"))
+               (_ (write-region (point-min) (point-max) filename))
+               (json-string (shell-command-to-string (format "yq -o=json eval %s" filename)))
+               (tree (json-parse-string json-string)))
+          (with-current-buffer buffername
+            (json-mode)
+            (erase-buffer)
+            (insert json-string)
+            (json-pretty-print-buffer)
+            (setq-local self tree))))
+ :docs "You can translate a YAML buffer to JSON."
+ :examples nil)
