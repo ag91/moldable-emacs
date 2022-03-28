@@ -1449,11 +1449,14 @@ NIL if not there."
         (end (plist-get node :end))
         (buffer (plist-get node :buffer))
         (file (plist-get node :buffer-file)))
-    (if file
-        (me-with-file file (delete-region begin end)))
-    (when (and buffer (get-buffer buffer))
-      (with-current-buffer buffer
-        (delete-region begin end)))))
+    (with-current-buffer buffer
+      (delete-region begin end))
+    ;; (if file
+    ;;     (me-with-file file (delete-region begin end)))
+    ;; (when (and buffer (get-buffer buffer))
+    ;;   (with-current-buffer buffer
+    ;;     (delete-region begin end)))
+    ))
 
 (defun me-add-node (node)
   "Add NODE to :buffer or :buffer-file using its :begin position as an anchor."
@@ -1461,14 +1464,18 @@ NIL if not there."
         (text (plist-get node :text))
         (buffer (plist-get node :buffer))
         (file (plist-get node :buffer-file)))
-    (if file
-        (me-with-file
-         (goto-char begin)
-         (insert text))
-      (when (and buffer (get-buffer buffer))
-        (with-current-buffer buffer
-          (goto-char begin)
-          (insert text))))))
+    (with-current-buffer buffer
+      (goto-char begin)
+      (insert text))
+    ;; (if file
+    ;;     (me-with-file
+    ;;      (goto-char begin)
+    ;;      (insert text))
+    ;;   (when (and buffer (get-buffer buffer))
+    ;;     (with-current-buffer buffer
+    ;;       (goto-char begin)
+    ;;       (insert text))))
+    ))
 
 (defun me-change-node (transition)
   "Run a TRANSITION to change a node.  This must contain a :before and an :after node."
