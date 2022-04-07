@@ -71,9 +71,26 @@
 For example, (me-get-in '(:a (:b (:c 1))) '(:a :b :c)) yields 1."
   (ignore-errors
     (--reduce-from
-     (plist-get acc it)
+     (if (numberp it)
+         (nth it acc)
+       (plist-get acc it))
      plist
      keys)))
+
+;; (me-get-in '(:a (1 2 (:b result))) '(:a 2 :b))
+
+(defun me-alist-get-in (alist keys)
+  "Navigate an ALIST via KEYS.
+Numbers in SYMBOLS are considered indeces of sequences."
+  (ignore-errors
+    (--reduce-from
+     (if (numberp it)
+         (nth it acc)
+       (alist-get it acc))
+     alist
+     keys)))
+
+;; (me-alist-get-in '((a . (1 2 3 ((c . result))))) '(a 3 c))
 
 (defmacro me-with-file (file &rest body)
   "Open FILE, execute BODY close FILE if it was not already open."

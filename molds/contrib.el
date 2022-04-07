@@ -256,6 +256,15 @@ following in your lein project.clj
    ;; TODO add shape!
    ))
 
+(defun me-tables-to-diagram (tables)
+  (list
+   :structure (--find (-contains-p (car it) :option) tables)
+   :nodes (--find
+           (and (not (-contains-p (car it) :option))
+                (-contains-p (car it) :key))
+           tables)
+   :edges (--find (-contains-p (car it) :to) tables)))
+
 (defun me-diagram-to-dot-string (diagram)
   (concat
    "digraph {\n"
@@ -296,10 +305,7 @@ following in your lein project.clj
               ;; TODO check for buffer name since probably I can avoid to make these by hand..
               ))
  :then (:fn
-        (let* ((diagram (list
-                         :structure (--find (-contains-p (car it) :option) tables)
-                         :nodes (--find (-contains-p (car it) :key) tables)
-                         :edges (--find (-contains-p (car it) :to) tables))))
+        (let* ((diagram (me-tables-to-diagram tables)))
           (with-current-buffer buffername
             (erase-buffer)
             (insert (me-diagram-to-dot-string diagram))
