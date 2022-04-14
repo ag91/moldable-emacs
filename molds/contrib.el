@@ -249,12 +249,11 @@ following in your lein project.clj
 
 (defun me-edge-to-dot-string (edge)
   (format
-   "%s -> %s [taillabel=\"%s\"]"
+   "%s -> %s [taillabel=\"%s\"; arrowhead=\"%s\"]"
    (plist-get edge :from)
    (plist-get edge :to)
    (or (plist-get edge :label) "")
-   ;; TODO add shape!
-   ))
+   (or (plist-get edge :shape) "")))
 
 (defun me-tables-to-diagram (tables)
   (list
