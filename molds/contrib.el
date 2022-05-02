@@ -70,7 +70,7 @@ following in your lein project.clj
             (setq-local self table)
             (async-shell-command
              (format
-              "graph --bar --figsize %sx%s --xtick-angle 90 %s"
+              "graph --barh --figsize %sx%s %s"
               (display-pixel-width)
               (display-pixel-height)
               "/tmp/somefile.csv"))
