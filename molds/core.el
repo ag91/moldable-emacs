@@ -217,23 +217,7 @@ This is a more focused view than `CodeToTree.'"
  :then (:fn
         (save-excursion
           (goto-char (point-min))
-          (let* ((separator (--> (thing-at-point 'line t)
-                                 (list (list "," (length (s-split "," it)))
-                                       (list ";" (length (s-split ";" it)))
-                                       (list "\t" (length (s-split "\t" it))))
-                                 (--max-by (> (nth 1 it) (nth 1 other)) it)
-                                 car))
-                 (keys (--> (thing-at-point 'line t)
-                            (s-split separator it)
-                            (--map (intern (concat ":" (s-replace "\"" "" (s-trim it)))) it)))
-                 (plist nil)
-                 (_ (while (ignore-errors (not (next-logical-line)))
-                      (--> (thing-at-point 'line t)
-                           (s-split separator it)
-                           (-map #'s-trim it)
-                           (-zip-lists keys it)
-                           -flatten
-                           (setq plist (cons it plist))))))
+          (let* ((plist (me-csv-buffer-to-plist)))
             (with-current-buffer buffername
               (emacs-lisp-mode)
               (erase-buffer)
