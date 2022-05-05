@@ -1867,5 +1867,26 @@ Optionally provide DEPTH to define the number of additions asterisks to prepend 
                    (setq plist (cons it plist))))))
     plist))
 
+(defun me-heatmap (plists-list intervals)
+  "Insert a heatmap as an org table, given a PLISTS-LIST and INTERVALS.
+Example:
+  (me-heatmap '((:a 1 :b 2 :c 3)
+                (:a 2 :b 8 :c 10))
+              '(3 5 8))"
+  (me-insert-org-table
+   (--map
+    (cons (symbol-name it)
+          `(:extractor
+            (lambda (obj) (plist-get obj ,it))
+            :handler
+            (lambda (number)
+              (let* ((color
+                      (cond ((>= number (nth 0 intervals)) "red")
+                            ((>= number (nth 1 intervals)) "orange")
+                            ('otherwise "green"))))
+                (me-color-string (number-to-string number) color)))))
+    (me-keys (car plists-list)))
+   plists-list))
+
 (provide 'moldable-emacs)
 ;;; moldable-emacs.el ends here
