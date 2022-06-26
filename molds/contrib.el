@@ -316,7 +316,7 @@ following in your lein project.clj
  :given (:fn (and
               (executable-find "dot")
               (eq major-mode 'fundamental-mode)
-              (s-contains-p "Dot" (buffer-name))))
+              (s-contains-p "dot" (buffer-name) t)))
  :then (:fn
         (let* ((file (me-dot-string-to-picture (buffer-substring-no-properties (point-min) (point-max)))))
           (with-current-buffer buffername
