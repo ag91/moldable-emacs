@@ -818,7 +818,7 @@ following in your lein project.clj
 
 
 (defcustom me-languages
-  (list :from "en" :to '("fr" "de" "it" "no" "pt" "es" "sv"))
+  (list :from "en" :to '("fr" "de" "it" "no" "pt" "es" "sv" "pl"))
   "Languages to translate to.")
 
 (me-register-mold
