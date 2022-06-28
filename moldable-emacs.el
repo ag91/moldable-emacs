@@ -1663,7 +1663,7 @@ Optionally filter for files with FILE-EXTENSION."
         it)))
 
 (defun me-project-to-flattened-nodes (dir &optional file-extension)
-  "Create a list of all the syntax elements nodes of files in DIR filtering by FILE-EXTENSION."
+  "Create a list of all the syntax elements nodes of files in DIR filtering by FILE-EXTENSION (e.g, 'clj')."
   (-flatten-n 1 (me-project-to-nodes dir file-extension)))
 
 (defun me-clj-project-to-nodes-categories (dir &optional file-extension) ; TODO this works for Clojure now, I need to bind the predicates according to the extension/grammar instead. If 'python `me-node-fn-p' should behave differently than me-clj-fn-p
@@ -1694,6 +1694,30 @@ Optionally filter for files with FILE-EXTENSION."
 (defun me-keys (plist)
   "Return keys of PLIST."
   (--filter (and (symbolp it) (s-starts-with-p ":" (symbol-name it))) plist))
+
+(defun me-select-keys (plist keys)
+  "Select subset of KEYS from PLIST.
+For '(:a 1 :b 2 :c 3) and '(:a :c) this yields '(:a 1 :c 3)."
+  (--reduce-from (append acc (list it (plist-get plist it))) nil keys))
+;; (me-select-keys '(:a 1 :b 2 :c 3) '(:a :c))
+
+(defun me-merge (join-when-you-can? &rest plists)
+  "Merge keys of PLISTS when possible.
+If JOIN-WHEN-YOU-CAN? is true, if keys contain lists,
+ we append their results instead of substituting."
+  (--reduce
+   (-reduce-from
+    (lambda (acc1 key)
+      (let ((a (plist-get acc key))
+            (b (plist-get it key)))
+        (if (and join-when-you-can? (listp a) (listp b))
+            (append acc1 (list key (-union a b)))
+          (append acc1 (list key b)))))
+    nil
+    (-union (me-keys it) (me-keys acc)))
+   plists))
+;(me-merge t '(:a ("1") :b "2") '(:a ("3") :b "3"))
+
 
 ;; organize screens better
 
