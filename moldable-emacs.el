@@ -1726,16 +1726,12 @@ If JOIN-WHEN-YOU-CAN? is true, if keys contain lists,
 
 (add-hook 'me-mold-before-hook #'me-set-me-mold-start-buffer)
 
-(defun me-show-buffer-and-mold ()
-  "Show only start buffer (on the left) and mold (on the right).
-This stores the original screen configuration in the `m' register."
-  (let ((old-buffer me-mold-start-buffer)
-        (mold-buffer (current-buffer)))
-    (window-configuration-to-register "m") ; store starting configuration - this overrides it every time
-    (delete-other-windows)
-    (switch-to-buffer old-buffer)
-    (switch-to-buffer-other-window mold-buffer)
-    (let ((final-window (selected-window))) ; TODO maybe move this in its own me-start-inspector function?
+(defcustom me-show-inspector t "Show inspector to see what is the data in self and mold-data for the running mold.")
+
+(defun me-start-inspector (mold-buffer)
+  "Start inspector for MOLD-BUFFER. This show mold state."
+  (when me-show-inspector
+    (let ((final-window (selected-window)))
       (select-window (split-window-below))
       (switch-to-buffer (get-buffer-create "*moldable-emacs-inspector*"))
       (erase-buffer)
@@ -1749,6 +1745,17 @@ This stores the original screen configuration in the `m' register."
       (hs-minor-mode 1)
       (call-interactively #'hs-hide-level)
       (select-window final-window))))
+
+(defun me-show-buffer-and-mold ()
+  "Show only start buffer (on the left) and mold (on the right).
+This stores the original screen configuration in the `m' register."
+  (let ((old-buffer me-mold-start-buffer)
+        (mold-buffer (current-buffer)))
+    (window-configuration-to-register "m") ; store starting configuration - this overrides it every time
+    (delete-other-windows)
+    (switch-to-buffer old-buffer)
+    (switch-to-buffer-other-window mold-buffer)
+    (me-start-inspector mold-buffer)))
 
 (add-hook 'me-mold-after-hook #'me-show-buffer-and-mold 100)
 
