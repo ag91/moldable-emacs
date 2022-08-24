@@ -242,7 +242,7 @@ following in your lein project.clj
 (defun me-node-to-dot-string (node) ;; TODO probably be flexible: remove :key and use all the other entries as they are after making :xx into 'xx and wrapping values into `=""'?
   (format
    "%s [label=\"%s\" shape=\"%s\" style=\"filled\" fillcolor=\"%s\"]"
-   (plist-get node :key)
+   (s-replace "-" "_" (format "%s" (plist-get node :key)))
    (or (plist-get node :label) (plist-get node :key))
    (or (plist-get node :shape) "")
    (or (plist-get node :color) "")))
@@ -250,8 +250,8 @@ following in your lein project.clj
 (defun me-edge-to-dot-string (edge)
   (format
    "%s -> %s [taillabel=\"%s\"; arrowhead=\"%s\"]"
-   (plist-get edge :from)
-   (plist-get edge :to)
+   (s-replace "-" "_" (format "%s" (plist-get edge :from)))
+   (s-replace "-" "_" (format "%s" (plist-get edge :to)))
    (or (plist-get edge :label) "")
    (or (plist-get edge :shape) "")))
 
