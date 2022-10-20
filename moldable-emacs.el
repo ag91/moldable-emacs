@@ -472,6 +472,20 @@ Optionally use CONTENTS string instead of file contents."
                     :given))
 
 (defvar me-usable-mold-stats nil)
+(defun me-mold-specificity (mold)
+  "An attempt to quantify how specific a MOLD is in this context.
+
+This is a naive implementation because we just count how many parentheses are in the :given of the mold: if there is a lot of nesting molds come on top.
+
+Ideally we want to give a score to the specificity of the
+predicates in the :given (like checking for a major mode has more
+weight than checking for a dependency on the system because you
+must have a specific kind of buffer open, while the dependency is
+always on the system.) "
+  (s-count-matches "(" (format "%s" (let* ((given (plist-get mold :given)))
+                                      (if (ignore-errors (equal 'me-mold-run-given (car (nth 1 given))))
+                                          (plist-get (eval (nth 1 (nth 1 given))) :given)
+                                        given)))))
 
 (defun me-usable-molds (&optional molds buffer)
   "Return the usable molds among the `me-available-molds'.
@@ -481,22 +495,30 @@ Optionally you can pass a BUFFER to use instead of the `current-buffer'."
         (molds (or molds me-available-molds))
         (buffer (or buffer (current-buffer))))
     (with-current-buffer buffer
-      (--filter
-       (let* ((beginning (current-time))
-              (result (save-excursion
-                        (condition-case err
-                            (me-mold-run-given it)
-                          (error (message "me-usable-molds: error in :given of %s:\n   %s" (plist-get it :key) err))))) ; TODO composite molds
-              (ending (current-time))
-              (_ (when me-molds-debug-on
-                   (add-to-list 'me-usable-mold-stats (list :mold (plist-get it :key)
-                                                            :time
-                                                            (time-to-seconds
-                                                             (time-subtract
-                                                              ending
-                                                              beginning)))))))
-         result) ;; TODO run this in parallel when time goes over 100ms)
-       molds))))
+      (--> molds
+           (--filter
+            (let* ((beginning (current-time))
+                   (result (save-excursion
+                             (condition-case err
+                                 (me-mold-run-given it)
+                               (error (message "me-usable-molds: error in :given of %s:\n   %s" (plist-get it :key) err))))) ; TODO composite molds
+                   (ending (current-time))
+                   (_ (when me-molds-debug-on
+                        (let ((key (plist-get it :key))
+                              (expended-time (time-to-seconds
+                                              (time-subtract
+                                               ending
+                                               beginning))))
+                          (add-to-list 'me-usable-mold-stats (list :mold key
+                                                                   :time
+                                                                   expended-time))
+                          (when (>= expended-time 1) (warn (format "%s took over 1 sec: %s" key expended-time)))))))
+              result) ;; TODO run this in parallel when time goes over 100ms)
+            it)
+           ;; sort by specificity of molds: TODO using n of parentheses in :then as a shortcut
+           (--sort (> (me-mold-specificity it)
+                      (me-mold-specificity other))
+                   it)))))
 
 (defun me-usable-p (mold-key)
   "Check if MOLD-KEY mold is usable."
@@ -608,7 +630,7 @@ When a :when clause is defined on the mold and the relevant buffers are visible,
            "CompositionOf%sAnd%s"
            (plist-get mold1 :key)
            (plist-get mold2 :key))
-    :given (:fn (me-mold-run-given ',mold1))
+    :given (:fn (me-mold-run-given ',mold1)) ;; we need me-mold-run-given because we need to propagate the :let bindings
     :then (:fn
            (progn (me-mold-run-then ',mold1)
                   (me-mold-run-then ',mold2)

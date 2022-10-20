@@ -152,12 +152,16 @@ following in your lein project.clj
                   (s-starts-with-p "(defn" (plist-get it :text)))
                  it)))
 
+(defun me-extract-functions (tree)
+  "Extract functions from syntax TREE."
+  (if-let ((clj-fns (me-clojure-function-macro-nodes tree)))
+      clj-fns
+    (me-by-type 'function_definition tree)))
+
 (defun me-functions-complexity (tree complexity-fn)
   "Calculate complexity of functions in TREE by using COMPLEXITY-FN."
   (--> tree
-       (if-let ((clj-fns (me-clojure-function-macro-nodes it)))
-           clj-fns
-         (me-by-type 'function_definition it))
+       me-extract-functions
        (--map
         (let ((text (plist-get it :text)))
           (list
@@ -193,42 +197,43 @@ following in your lein project.clj
 
 (me-register-mold
  :key "FunctionsComplexity"
- :let ((complexities
-        (ignore-errors (me-functions-complexity
-                        (me-mold-treesitter-to-parse-tree)
-                        #'c/calculate-complexity-stats))))
  :given (:fn (and
               (me-require 'code-compass)
               (me-require 'tree-sitter)
               (not (eq major-mode 'json-mode))
               (not (eq major-mode 'csv-mode))
               (not (eq major-mode 'yaml-mode))
-              complexities))
+              ;; calculating complexities may take 4 secs on certain files, so we just look for functions
+              (me-extract-functions (me-mold-treesitter-to-parse-tree))))
  :then (:fn
         (with-current-buffer buffername
-          (erase-buffer)
-          (org-mode)
-          (setq-local self complexities)
-          (me-insert-org-table
-           `(("Function" .
-              (:extractor
-               (lambda (obj) obj)
-               :handler
-               (lambda (obj) (me-make-elisp-navigation-link
-                              (plist-get obj :identifier)
-                              (plist-get (plist-get obj :node) :buffer-file)))))
-             ("Complexity" .
-              (:extractor
-               (lambda (obj) (alist-get 'total (plist-get obj :complexity)))
-               :handler
-               (lambda (s) (me-highlight-function-complexity s))))
-             ("Length" .
-              (:extractor
-               (lambda (obj) (alist-get 'n-lines (plist-get obj :complexity)))
-               :handler
-               (lambda (s) (me-highlight-function-length s))))
-             )
-           complexities)
+          (let ((complexities
+                 (ignore-errors (me-functions-complexity
+                                 (me-mold-treesitter-to-parse-tree)
+                                 #'c/calculate-complexity-stats))))
+            (erase-buffer)
+            (org-mode)
+            (setq-local self complexities)
+            (me-insert-org-table
+             `(("Function" .
+                (:extractor
+                 (lambda (obj) obj)
+                 :handler
+                 (lambda (obj) (me-make-elisp-navigation-link
+                                (plist-get obj :identifier)
+                                (plist-get (plist-get obj :node) :buffer-file)))))
+               ("Complexity" .
+                (:extractor
+                 (lambda (obj) (alist-get 'total (plist-get obj :complexity)))
+                 :handler
+                 (lambda (s) (me-highlight-function-complexity s))))
+               ("Length" .
+                (:extractor
+                 (lambda (obj) (alist-get 'n-lines (plist-get obj :complexity)))
+                 :handler
+                 (lambda (s) (me-highlight-function-length s))))
+               )
+             complexities))
           ))
  :docs "Show a table showing code complexity for the functions in the buffer.")
 
