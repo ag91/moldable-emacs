@@ -1726,7 +1726,7 @@ For '(:a 1 :b 2 :c 3) and '(:a :c) this yields '(:a 1 :c 3)."
 (defun me-merge (join-when-you-can? &rest plists)
   "Merge keys of PLISTS when possible.
 If JOIN-WHEN-YOU-CAN? is true, if keys contain lists,
- we append their results instead of substituting."
+ we append their results instead of replacing."
   (--reduce
    (-reduce-from
     (lambda (acc1 key)
