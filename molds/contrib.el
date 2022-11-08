@@ -1,12 +1,13 @@
 (defun me-highlight-unit-test-time (time-as-string)
   "Highlight TIME-AS-STRING according to unit tests."
-  (and (ignore-errors (string-to-number time-as-string))
-       (let* ((time (string-to-number time-as-string))
-              (color (cond
-                      ((>= time (/ 10.0 1000)) "red")
-                      ((>= time (/ 2.0 1000)) "orange")
-                      ('otherwise "green"))))
-         (me-color-string time-as-string color))))
+  (and
+   (ignore-errors (string-to-number time-as-string))
+   (let* ((time (string-to-number time-as-string))
+          (color (cond
+                  ((>= time (/ 10.0 1000)) "red")
+                  ((>= time (/ 2.0 1000)) "orange")
+                  ('otherwise "green"))))
+     (me-color-string time-as-string color))))
 
 (me-register-mold
  :key "TestRunningStats"
@@ -143,6 +144,32 @@ following in your lein project.clj
         (equal (plist-get it :type) type)
         it)))
 
+(defun me-find-parents (node tree)
+  "Find children of NODE in TREE."
+  (--filter
+   (progn
+     (and
+      (< (plist-get it :begin) (plist-get node :begin) )
+      (> (plist-get it :end) (plist-get node :end))))
+   tree))
+
+(defun me-find-parent-with-type (type node tree)
+  "Find child of NODE with TYPE belonging to TREE."
+  (--> (me-find-parents node tree)
+       (--find
+        (equal (plist-get it :type) type)
+        it)))
+
+(defun me-find-earlier-node-with-type (type node tree)
+  (--> tree
+       (--filter
+        (< (plist-get it :end) (plist-get node :begin))
+        it)
+       reverse
+       (--find
+        (equal (plist-get it :type) type)
+        it)))
+
 (defun me-clojure-function-macro-nodes (clojure-flattened-tree)
   "Filter only functions and macros from CLOJURE-FLATTENED-TREE."
   (--> clojure-flattened-tree
@@ -156,7 +183,23 @@ following in your lein project.clj
   "Extract functions from syntax TREE."
   (if-let ((clj-fns (me-clojure-function-macro-nodes tree)))
       clj-fns
-    (me-by-type 'function_definition tree)))
+    (me-by-types '(function_definition arrow_function) tree)))
+
+(defun me-extract-fn-identifier (it tree)
+  "Given a function node IT in TREE and the TREE, try to find the identifier of the function by finding the smaller node."
+  (plist-get
+   (or (when (eq 'arrow_function (plist-get it :type))
+         (me-find-earlier-node-with-type 'identifier it tree)) ; T/JS arrow functions sometimes have the identifier in the parent
+       (me-find-child-with-type 'identifier it tree)
+       (me-find-child-with-type 'symbol it tree)
+       (me-find-child-with-type ; clojure hack: find the name of the fn, but avoid to pick the defn/defmacro sym_lit
+        'sym_lit it
+        (--remove (and (or (equal "defun" (plist-get it :text))
+                           (equal "defn" (plist-get it :text))
+                           (equal "defmacro" (plist-get it :text)))
+                       (eq 'sym_lit (plist-get it :type)))
+                  tree)))
+   :text))
 
 (defun me-functions-complexity (tree complexity-fn)
   "Calculate complexity of functions in TREE by using COMPLEXITY-FN."
@@ -165,16 +208,8 @@ following in your lein project.clj
        (--map
         (let ((text (plist-get it :text)))
           (list
-           :identifier (plist-get
-                        (or (me-find-child-with-type 'identifier it tree)
-                            (me-find-child-with-type ; clojure hack: find the name of the fn, but avoid to pick the defn/defmacro sym_lit
-                             'sym_lit it
-                             (--remove (and (or (equal "defn" (plist-get it :text))
-                                                (equal "defmacro" (plist-get it :text)))
-                                            (eq 'sym_lit (plist-get it :type)))
-                                       tree)))
-                        :text)
-           :complexity (funcall complexity-fn text) ;; TODO this is a dependency on code-compass!
+           :identifier (me-extract-fn-identifier it tree)
+           :complexity (funcall complexity-fn text)
            :node it))
         it)))
 
@@ -206,11 +241,11 @@ following in your lein project.clj
               ;; calculating complexities may take 4 secs on certain files, so we just look for functions
               (me-extract-functions (me-mold-treesitter-to-parse-tree))))
  :then (:fn
-        (with-current-buffer buffername
-          (let ((complexities
-                 (ignore-errors (me-functions-complexity
-                                 (me-mold-treesitter-to-parse-tree)
-                                 #'c/calculate-complexity-stats))))
+        (let ((complexities
+               (ignore-errors (me-functions-complexity
+                               (me-mold-treesitter-to-parse-tree)
+                               #'c/calculate-complexity-stats))))
+          (with-current-buffer buffername
             (erase-buffer)
             (org-mode)
             (setq-local self complexities)

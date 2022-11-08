@@ -297,6 +297,10 @@ An example of input is: '((:a 1 :b 2) (:a 3 :b 4))"
   (when (symbolp type)
     (--filter (eq (plist-get it :type) type) tree)))
 
+(defun me-by-types (types tree)
+  "Filter TREE entries by any of the TYPES."
+  (--filter (-contains? types (plist-get it :type)) tree))
+
 (defun me-count-by-key (key list)
   "Group LIST by KEY and count groups. Given ((:a \"x\") (:a \"x\") (:a \"y\")) and :a, it returns ((:a \"x\" :count 2) (:a \"y\" :count 1))"
   (--> list
