@@ -1941,5 +1941,22 @@ Example:
     (me-keys (car plists-list)))
    plists-list))
 
+;; begin - restore window configuration
+(defvar me-last-window-configuration nil "Stores last window configuration from when you firstly invoked me-mold.")
+
+(defun me-store-window-configuration ()
+  "Store current window configuration when not in a mold."
+  (unless (ignore-errors (or self mold-data))
+    (setq me-last-window-configuration (current-window-configuration))))
+
+(add-hook 'me-mold-before-hook 'me-store-window-configuration)
+
+(defun me-restore-starting-window-configuration ()
+  "Restore window configuration saved before running `me-mold' for the first time."
+  (interactive)
+  (if me-last-window-configuration (set-window-configuration me-last-window-configuration)
+    (error "No window configuration stored in `me-last-window-configuration'!")))
+;; end - restore window configuration
+
 (provide 'moldable-emacs)
 ;;; moldable-emacs.el ends here
