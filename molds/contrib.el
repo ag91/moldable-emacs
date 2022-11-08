@@ -303,13 +303,12 @@ following in your lein project.clj
  :let ((tables (me-all-flat-org-tables)))
  :given (:fn (and
               (eq major-mode 'org-mode)
+              tables
               (>= (length tables) 1)
-              (<= (length tables) 3)
-              't ;; TODO check for tables
-              ;; TODO check for buffer name since probably I can avoid to make these by hand..
+              ;; (<= (length tables) 3) ; TODO this makes sense only if I stop using me-all-flat-org-table and I make a me-closest-diagram-tables
               ))
  :then (:fn
-        (let* ((diagram (me-tables-to-diagram tables)))
+        (let* ((diagram (me-tables-to-diagram (reverse tables))))
           (with-current-buffer buffername
             (erase-buffer)
             (insert (me-diagram-to-dot-string diagram))
