@@ -230,6 +230,14 @@ following in your lein project.clj
                  ('otherwise "green"))))
     (me-color-string str color)))
 
+(defun me-file-updated-last-1-sec-p (file)
+  "If FILE was modified more than a sec ago."
+  (> (time-to-seconds
+      (time-since
+       (file-attribute-modification-time
+        (file-attributes (file-truename (buffer-file-name))))))
+     1))
+
 (me-register-mold
  :key "FunctionsComplexity"
  :given (:fn (and
@@ -240,6 +248,8 @@ following in your lein project.clj
               (not (eq major-mode 'yaml-mode))
               ;; calculating complexities may take 4 secs on certain files, so we just look for functions
               (me-extract-functions (me-mold-treesitter-to-parse-tree))))
+ :when (:fn
+        (me-file-updated-last-1-sec-p (buffer-file-name)))
  :then (:fn
         (let ((complexities
                (ignore-errors (me-functions-complexity
