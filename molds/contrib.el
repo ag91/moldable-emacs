@@ -232,11 +232,11 @@ following in your lein project.clj
 
 (defun me-file-updated-last-1-sec-p (file)
   "If FILE was modified more than a sec ago."
-  (> (time-to-seconds
-      (time-since
-       (file-attribute-modification-time
-        (file-attributes (file-truename (buffer-file-name))))))
-     1))
+  (<= (time-to-seconds
+       (time-since
+        (file-attribute-modification-time
+         (file-attributes (file-truename file)))))
+      1))
 
 (me-register-mold
  :key "FunctionsComplexity"
@@ -246,6 +246,8 @@ following in your lein project.clj
               (not (eq major-mode 'json-mode))
               (not (eq major-mode 'csv-mode))
               (not (eq major-mode 'yaml-mode))
+              ;; ignore files over 8kb
+              (<= (/ (buffer-size) 1024) 800)
               ;; calculating complexities may take 4 secs on certain files, so we just look for functions
               (me-extract-functions (me-mold-treesitter-to-parse-tree))))
  :when (:fn
@@ -278,7 +280,10 @@ following in your lein project.clj
                  :handler
                  (lambda (s) (me-highlight-function-length s))))
                )
-             complexities))
+             (--sort (> (alist-get 'total (plist-get it :complexity))
+                        (alist-get 'total (plist-get other :complexity)))
+                     complexities))
+            (goto-char (point-min)))
           ))
  :docs "Show a table showing code complexity for the functions in the buffer.")
 
@@ -663,6 +668,7 @@ following in your lein project.clj
  :key "Playground JS with Nyxt"
  :given (:fn (and
               (me-require 'emacs-with-nyxt)
+              (not (s-blank-p (shell-command-to-string "pgrep nyxt")))
               (emacs-with-nyxt-connected-p)
               (emacs-with-nyxt-send-sexps '(find-mode (current-buffer) 'web-mode))))
  :then (:fn
@@ -804,6 +810,8 @@ following in your lein project.clj
                    :handler
                    (lambda (s) (me-make-elisp-file-link s (format "//duckduckgo.com/?q=%s" s) "https")))))
                missing-deps-molds))
+            (unless truncate-lines (toggle-truncate-lines))
+            (goto-char (point-min))
             (setq-local self molds))))
  :docs "You can see examples and demos of the molds you can use."
  :examples nil)

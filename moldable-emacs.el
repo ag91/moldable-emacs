@@ -67,7 +67,6 @@
 
 (defun me-get-in (plist keys)
   "Navigate PLIST's KEYS in sequence.
-
 For example, (me-get-in '(:a (:b (:c 1))) '(:a :b :c)) yields 1."
   (ignore-errors
     (--reduce-from
@@ -323,24 +322,25 @@ Optionally start from NODE."
                node
                (ignore-errors (tsc-root-node tree-sitter-tree)))))
     (when root
-      (cl-labels ((fn (node level)
-                      (tsc-mapc-children
-                       (lambda (n)
-                         (setq acc (cons
-                                    (list
-                                     :type (tsc-node-type n)
-                                     :text (tsc-node-text n)
-                                     :begin (tsc-node-start-position n)
-                                     :end (tsc-node-end-position n)
-                                     :buffer (buffer-name)
-                                     :buffer-file (when buffer-file-name
-                                                    (s-replace (getenv "HOME") "~"
-                                                               buffer-file-name))
-                                     :mode major-mode
-                                     :level level)
-                                    acc))
-                         (fn n (1+ level)))
-                       node)))
+      (cl-labels
+          ((fn (node level)
+               (tsc-mapc-children
+                (lambda (n)
+                  (setq acc (cons
+                             (list
+                              :type (tsc-node-type n)
+                              :text (tsc-node-text n)
+                              :begin (tsc-node-start-position n)
+                              :end (tsc-node-end-position n)
+                              :buffer (buffer-name)
+                              :buffer-file (when buffer-file-name
+                                             (s-replace (getenv "HOME") "~"
+                                                        buffer-file-name))
+                              :mode major-mode
+                              :level level)
+                             acc))
+                  (fn n (1+ level)))
+                node)))
         (setq-local acc nil)
         (fn root 0)
         (reverse acc)))))
@@ -672,19 +672,31 @@ Add PROPS (e.g.,  `(:docs \"...\" :examples nil)') to it."
 
 (add-hook 'me-mold-before-hook #'me-setup-self-mold-data)
 
+(defun me-get-marked-dired-files ()
+  "Get marked `dired' files."
+  (goto-char (point-min))
+  (dired-get-marked-files))
+
+(defun me-get-all-dired-files ()
+  "Get all `dired' files."
+  (mark-whole-buffer)
+  (call-interactively #'dired-mark)
+  (let ((files (dired-get-marked-files)))
+    (call-interactively #'dired-unmark-all-files)
+    files))
+
+
 (defun me-set-dired-self-for-playground ()
   "Set Playground `self' to dired list of files."
-  (when (and
-         (s-starts-with-p "Playground" me-last-used-mold)
-         (ignore-errors mold-data)
-         (eq (plist-get mold-data :old-mode) 'dired-mode))
-    (setq-local self (with-current-buffer (plist-get mold-data :old-buffer)
-                       (or (progn (goto-char (point-min)) (dired-get-marked-files))
-                           (progn (mark-whole-buffer)
-                                  (call-interactively #'dired-mark)
-                                  (let ((files (dired-get-marked-files)))
-                                    (call-interactively #'dired-unmark-all-files)
-                                    files)))))))
+  (when
+      (and
+       (s-starts-with-p "Playground" me-last-used-mold)
+       (ignore-errors mold-data)
+       (eq (plist-get mold-data :old-mode) 'dired-mode))
+    (setq-local self
+                (with-current-buffer (plist-get mold-data :old-buffer)
+                  (or (me-get-marked-dired-files)
+                      (me-get-all-dired-files))))))
 (add-hook 'me-mold-after-hook #'me-set-dired-self-for-playground) ;; the order is important: keep before me-set-self-mold-data
 
 (defun me-set-self-mold-data ()

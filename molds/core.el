@@ -168,7 +168,9 @@ This is a more focused view than `CodeToTree.'"
 
 (me-register-mold
  :key "ElispListToOrgTable"
- :let ((l (list-at-point)))
+ :let ((l (and
+           (> (/ (buffer-size) 1024) 500)
+           (list-at-point))))
  :given (:fn (ignore-errors
                (and
                 (>= (length l) 2)
@@ -435,9 +437,9 @@ It specializes for source code."
                (reading-time (me-get-reading-time contents))
                (word-analysis (--filter (> (length (car it)) 2) (me-word-stats contents)))
                (word-analysis-stats (-concat (-take 3 word-analysis) (reverse (-take 3 (reverse word-analysis)))))
-               (funs (when self (length (me-by-type 'function_definition self))))
+               (funs (when self (length (me-extract-functions self))))
                (methods (when self (length (me-by-type 'method_declaration self))))
-               (ifs (when self (length (--filter (or (eq (plist-get it :type) 'if_expression) (eq (plist-get it :type) 'if_statement)) self))))
+               (ifs (when self (length (--filter (or (eq (plist-get it :type) 'if_expression) (eq (plist-get it :type) 'if_statement) (s-starts-with-p "(if" (plist-get it :text))) self))))
                (classes (when self (length (--filter (or (eq (plist-get it :type) 'class_definition) (eq (plist-get it :type) 'class_declaration)) self))))
                (comments (when self (length (me-by-type 'comment self)))))
           (with-current-buffer buffername
@@ -475,10 +477,10 @@ It specializes for source code."
                 (me-insert-treesitter-follow-overlay
                  nodes-with-duplication
                  (lambda (node)
-                   (let ((type (plist-get node :type))
-                         (texts (--map
-                                 (ignore-errors (plist-get it :text))
-                                 (me-by-type type nodes-with-duplication))))
+                   (let* ((type (plist-get node :type))
+                          (texts (--map
+                                  (ignore-errors (plist-get it :text))
+                                  (me-by-type type nodes-with-duplication))))
                      (format
                       "%s: %s/%s\n"
                       type
