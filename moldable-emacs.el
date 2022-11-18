@@ -1924,12 +1924,12 @@ Optionally provide DEPTH to define the number of additions asterisks to prepend 
                          (--max-by (> (nth 1 it) (nth 1 other)) it)
                          car))
          (keys (--> (thing-at-point 'line t)
-                    (s-split separator it)
+                    (s-split separator it) ;; TODO splitting doesn't take in account of "bla , lol",123 entries
                     (--map (intern (concat ":" (s-replace "\"" "" (s-trim it)))) it)))
          (plist nil)
          (_ (while (ignore-errors (not (next-logical-line)))
               (--> (thing-at-point 'line t)
-                   (s-split separator it)
+                   (s-split separator it) ;; TODO splitting doesn't take in account of "bla , lol",123 entries
                    (-map #'s-trim it)
                    (-zip-lists keys it)
                    -flatten
