@@ -1974,5 +1974,16 @@ Example:
     (error "No window configuration stored in `me-last-window-configuration'!")))
 ;; end - restore window configuration
 
+(defun me-stats (number-list)
+  "Calculate some basic stats on NUMBER-LIST."
+  (let ((mean (/ (-sum number-list) (length number-list))))
+    (list :mean mean
+          :median (nth (/ (+ (length number-list) 1) 2) (--sort (> it other) number-list))
+          :min (-min number-list)
+          :max (-max number-list)
+          :standard-deviation (sqrt (/ (-sum (--map (expt (- it mean) 2) number-list)) (length number-list)))
+          ;; TODO percentiles
+          )))
+
 (provide 'moldable-emacs)
 ;;; moldable-emacs.el ends here
