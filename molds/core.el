@@ -354,14 +354,14 @@ This is a more focused view than `CodeToTree.'"
  :given (:fn (eq major-mode 'emacs-lisp-mode))
  :then (:fn
         (let* ((orig-point (point))
-               (tree (progn (unless (list-at-point)
+               (tree (progn (unless (or (me-get-region) (list-at-point))
                               (progn (goto-char (point-min)) (search-forward "(" nil t)))
-                            (or (ignore-errors (eval (list-at-point))) (list-at-point))))
+                            (or (ignore-errors (eval (read (me-get-region)))) (ignore-errors (eval (list-at-point))) (list-at-point))))
                (_ (remove-overlays))
                (_ (overlay-put
                    (make-overlay
-                    (car (thing-at-point-bounds-of-list-at-point))
-                    (cdr (thing-at-point-bounds-of-list-at-point)))
+                    (car (or (car (region-bounds)) (thing-at-point-bounds-of-list-at-point)))
+                    (cdr (or (car (region-bounds)) (thing-at-point-bounds-of-list-at-point))))
                    'face
                    'bold))
                (_ (goto-char orig-point)))
