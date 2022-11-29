@@ -266,9 +266,11 @@ following in your lein project.clj
                 (:extractor
                  (lambda (obj) obj)
                  :handler
-                 (lambda (obj) (me-make-elisp-navigation-link
-                                (plist-get obj :identifier)
-                                (plist-get (plist-get obj :node) :buffer-file)))))
+                 (lambda (obj) (ignore-errors
+                                 (message "%s" (list obj (plist-get obj :identifier) (plist-get (plist-get obj :node) :buffer-file)))
+                                 (me-make-elisp-navigation-link
+                                  (plist-get obj :identifier)
+                                  (plist-get (plist-get obj :node) :buffer-file))))))
                ("Complexity" .
                 (:extractor
                  (lambda (obj) (alist-get 'total (plist-get obj :complexity)))
@@ -1038,4 +1040,26 @@ following in your lein project.clj
             (json-pretty-print-buffer)
             (setq-local self tree))))
  :docs "You can translate a YAML buffer to JSON."
+ :examples nil)
+
+(me-register-mold
+ :key "WebLinksToOrg"
+ :let ((urls (or (me-urls-in-region)
+                 (list (thing-at-point 'url t))
+                 (me-urls-in-clipboard)))) ; TODO my function
+ :given (:fn (and (executable-find "pandoc")
+                  urls))
+ :then (:fn
+        (with-current-buffer buffername
+          (org-mode)
+          (erase-buffer)
+          (insert "Wait a sec... Pandoc is working for you!")
+          (async-shell-command-to-string (concat "pandoc -t org " (s-join " " urls))
+                                         `(lambda (output)
+                                            (with-current-buffer ,buffername
+                                              (erase-buffer)
+                                              (insert output)
+                                              (beginning-of-buffer))))
+          (setq-local self urls)))
+ :docs "You can transform your web links to Org headings with Pandoc."
  :examples nil)

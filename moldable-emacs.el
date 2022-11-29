@@ -1985,5 +1985,38 @@ Example:
           ;; TODO percentiles
           )))
 
+;; begin urls collection
+(defun me-re-seq (regexp string)
+  "Get a list of all REGEXP matches in a STRING."
+  (save-match-data
+    (let ((pos 0)
+          matches)
+      (while (string-match regexp string pos)
+        (push (match-string 0 string) matches)
+        (setq pos (match-end 0)))
+      matches)))
+
+(defun me-re-url-seq (string)
+  "Get a list of all urls in STRING."
+  (let ((urlreg "https?://\\(www\\)?\\(?:[./#\+-]?\\w*\\)+"))
+    (me-re-seq urlreg string)))
+
+(defun me-urls-in-clipboard ()
+  "Get a list of all urls in the kill ring head."
+  (let (text)
+    (with-temp-buffer
+      (clipboard-yank)
+      (setq text (buffer-string)))
+    (reverse (me-re-url-seq text))))
+
+(defun me-urls-in-region ()
+  "Get a list of all urls in region."
+  (reverse (me-re-url-seq (when (region-active-p)
+                            (buffer-substring-no-properties
+                             (caar (region-bounds))
+                             (cdar (region-bounds)))))))
+
+;; end urls collection
+
 (provide 'moldable-emacs)
 ;;; moldable-emacs.el ends here
