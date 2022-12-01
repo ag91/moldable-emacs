@@ -1044,8 +1044,9 @@ following in your lein project.clj
 
 (me-register-mold
  :key "WebLinksToOrg"
- :let ((urls (or (me-urls-in-region)
-                 (list (thing-at-point 'url t))
+ :let ((urls (or (ignore-errors
+                   (me-urls-in-region))
+                 (-some-> (thing-at-point 'url t) list)
                  (me-urls-in-clipboard)))) ; TODO my function
  :given (:fn (and (executable-find "pandoc")
                   urls))
