@@ -402,25 +402,25 @@ following in your lein project.clj
 
 (me-register-mold
  :key "Image To Text"
- :docs "Extracts text from the image using `imageclip'."
+ :docs "Extracts text from the image using `tesseract'."
  :let ((file-name (buffer-file-name))
        (buf-name (buffer-name)))
  :given (:fn (and
               (eq major-mode 'image-mode)
-              (executable-find "imgclip")))
+              (executable-find "tesseract")))
  :then
  (
-  :async ((_ (shell-command-to-string
-              (format "imgclip -p '%s' --lang eng"
-                      (or file-name
-                          ;; otherwise store the open image in /tmp for imgclip to work on a file
-                          (let ((path (concat "/tmp/" buf-name)))
-                            (write-region (point-min) (point-max) path)
-                            path))))))
+  :async ((ocr-text (shell-command-to-string
+                     (format "tesseract '%s' -"
+                             (or file-name
+                                 ;; otherwise store the open image in /tmp for imgclip to work on a file
+                                 (let ((path (concat "/tmp/" buf-name)))
+                                   (write-region (point-min) (point-max) path)
+                                   path))))))
   :fn (let* ((img (list :img (or (buffer-file-name) (buffer-name)))))
         (with-current-buffer buffername
           (erase-buffer)
-          (clipboard-yank)
+          (insert ocr-text)
           (setq-local self img)
           (plist-put self :text (buffer-substring-no-properties (point-min) (point-max))))))
  :examples nil)
