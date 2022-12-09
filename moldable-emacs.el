@@ -1936,6 +1936,20 @@ Optionally provide DEPTH to define the number of additions asterisks to prepend 
                    (setq plist (cons it plist))))))
     plist))
 
+(defun me-plist-to-csv-string (plist)
+  "Make PLIST into a CSV string."
+  (let ((keys (me-keys (car plist))))
+    (concat
+     ;; header
+     (s-join "," (--map (s-drop 1 (symbol-name it)) keys))
+     ;; entries
+     "\n"
+     (--> plist
+          (--map
+           (s-join "," (--map (format (if (and (stringp it) (s-contains-p "," it)) "\"%s\"" "%s") it) (-remove 'symbolp (me-select-keys it keys))))
+           it)
+          (s-join "\n" it)))))
+
 (defun me-heatmap (plists-list intervals)
   "Insert a heatmap as an org table, given a PLISTS-LIST and INTERVALS.
 Example:

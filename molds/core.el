@@ -214,6 +214,22 @@ This is a more focused view than `CodeToTree.'"
 
 
 (me-register-mold
+ :key "PlistToCsv"
+ :let ((list (list-at-point)))
+ :given (:fn (and list
+                  (ignore-errors (me-keys (car list)))))
+ :then (:fn
+        (let* ((tree (list-at-point)))
+          (with-current-buffer buffername
+            (csv-mode)
+            (erase-buffer)
+            (insert (me-plist-to-csv-string tree))
+            (setq-local self tree))))
+ :docs "You can make a plist into a CSV."
+ :examples nil)
+
+
+(me-register-mold
  :key "CSVtoPlist"
  :given (:fn (and (me-require 'csv-mode) (eq major-mode 'csv-mode)))
  :then (:fn
