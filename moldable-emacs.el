@@ -1545,7 +1545,7 @@ These contain a :before node and an :after node."
   (-each (reverse transitions)
     #'me-change-node))
 
-(defun me-transitate-node-text (node fn)
+(defun me-transit-node-text (node fn)
   "Create a transition changing text of NODE via FN.
 FN is a function taking the text of NODE and generating new text."
   (list
@@ -1555,9 +1555,9 @@ FN is a function taking the text of NODE and generating new text."
            :text
            (funcall fn (plist-get node :text)))))
 
-(defun me-transitate-node-texts (nodes fn)
+(defun me-transit-node-texts (nodes fn)
   "Create transitions changing texts of NODES via FN."
-  (--map (me-transitate-node-text it fn) nodes))
+  (--map (me-transit-node-text it fn) nodes))
 
 (defun me-node-children (node nodes)
   "Get children of NODE in NODES."
