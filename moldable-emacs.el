@@ -237,7 +237,7 @@ Make sure table is also indented."
     (let ((table (org-table-to-lisp))
           result)
       (dolist (r table result)
-        (setq result (plist-put result (intern (concat ":" (s-replace "\"" "" (car r)))) (cdr r)))))))
+        (when (listp r) (setq result (plist-put result (intern (concat ":" (s-replace "\"" "" (car r)))) (cdr r))))))))
 
 (defun me-org-table-to-flat-plist (table-string)
   "Convert Org mode table TABLE-STRING to a list of plists."
