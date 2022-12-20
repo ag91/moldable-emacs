@@ -290,6 +290,11 @@ An example of input is: '((:a 1 :b 2) (:a 3 :b 4))"
                         result)))
           result)))))
 
+(defun me-types (tree)
+  "List types in current syntax TREE."
+  (--> tree
+       (--map (plist-get it :type) it)
+       -distinct))
 
 (defun me-by-type (type tree)
   "Filter TREE entries by TYPE."
