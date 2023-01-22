@@ -102,6 +102,7 @@ Numbers in SYMBOLS are considered indeces of sequences."
        (progn
          (when kill-buffer-p (kill-buffer))
          (switch-to-buffer old-buffer)))))
+(put 'me-with-file 'lisp-indent-function 1)
 
 (defun me-async-map--finish (futures post-fn too-late-p poll-time)
   "Run FUTURES and apply POST-FN on their results.
@@ -467,6 +468,7 @@ Optionally use CONTENTS string instead of file contents."
          't))
       ,m
       ',clause)))
+(put 'me-with-mold-let 'lisp-indent-function 1)
 
 ;; (me-print-to-buffer (let ((mold (me-find-mold "PlistToJson")))
 ;;                       (me-with-mold-let mold
@@ -820,6 +822,7 @@ This should simplify the testing and documentation of molds.")
                   (,(if mode mode 'fundamental-mode))
                   (if ,point (goto-char ,point) (goto-char (point-min)))
                   ,@body))))))
+(put 'me-given 'lisp-indent-function 1)
 
 (defun me-check-then-clause (then)
   "Run THEN clause and return list with success and issues.
@@ -1071,6 +1074,7 @@ This is a function used to test mold examples."
   `(progn
      (--each me-before-register-mold-hook (funcall it ',mold))
      (me-add-to-available-molds ',mold)))
+(put 'me-register-mold 'lisp-indent-function 1)
 
 (defun me-find-relative-test-report (filepath)
   "Find Clojure test report for FILEPATH." ;; TODO refactor a bit for supporting Clojure with https://github.com/ruedigergad/test2junit
@@ -1644,6 +1648,7 @@ This is useful for plotting."
      (goto-char url-http-end-of-headers)
      (delete-region (point-min) (point))
      ,@body))
+(put 'me-with-url-contents 'lisp-indent-function 1)
 
 (defun me-get-json-from-url (url)
   "Retrieve json from URL as a plist."
