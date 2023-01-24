@@ -523,7 +523,12 @@ Optionally you can pass a BUFFER to use instead of the `current-buffer'."
                           (add-to-list 'me-usable-mold-stats (list :mold key
                                                                    :time
                                                                    expended-time))
-                          (when (>= expended-time 1) (warn (format "%s took over 1 sec: %s" key expended-time)))))))
+                          (when (>= expended-time 1)
+                            (warn
+                             (button-buttonize
+                              (format "%s took over 1 sec: %s" key expended-time)
+                              `(lambda (x)
+                                 (me-goto-mold-source ,key)))))))))
               result) ;; TODO run this in parallel when time goes over 100ms)
             it)
            ;; sort by specificity of molds: TODO using n of parentheses in :then as a shortcut
@@ -783,14 +788,20 @@ This should simplify the testing and documentation of molds.")
 (defun me-warn-on-run-if-no-example (mold)
   "Emit warning if MOLD has no examples."
   (unless (or (not me-molds-debug-on) (plist-get mold :examples))
-    (warn "Mold %s has no examples! Would you mind to add one?\nYou can use TODO now to add the last usage as an example.\n"
-          (plist-get mold :key))))
+    (warn
+     (button-buttonize
+      (format "Mold %s has no examples! Would you mind to add one?\nYou can use TODO now to add the last usage as an example.\n" (plist-get mold :key))
+      `(lambda (x)
+         (me-goto-mold-source ,(plist-get mold :key)))))))
 
 (defun me-warn-on-run-if-no-docs (mold)
   "Emit warning if MOLD has no examples."
   (unless (or (not me-molds-debug-on) (plist-get mold :docs))
-    (warn "Mold %s has no docs! Would you mind to add a line to tell what it is for?\n"
-          (plist-get mold :key))))
+    (warn
+     (button-buttonize
+      (format "Mold %s has no docs! Would you mind to add a line to tell what it is for?\n" (plist-get mold :key))
+      `(lambda (x)
+         (me-goto-mold-source ,(plist-get mold :key)))))))
 
 (add-hook 'me-mold-before-mold-runs-hook #'me-warn-on-run-if-no-example)
 (add-hook 'me-mold-before-mold-runs-hook #'me-warn-on-run-if-no-docs)
