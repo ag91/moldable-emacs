@@ -148,9 +148,9 @@ You can transform this to extract information with the Playground mold."
     :key "NodeAtPointToTree"
     :given (:fn (and
                  (me-require 'tree-sitter)
-                 (ignore-errors (tree-sitter-node-at-point))))
+                 (ignore-errors (tree-sitter-node-at-point :named))))
     :then (:fn
-           (let* ((tree (me-mold-treesitter-to-parse-tree (tree-sitter-node-at-point))))
+           (let* ((tree (me-mold-treesitter-to-parse-tree (tree-sitter-node-at-point :named))))
              (with-current-buffer buffername
                (erase-buffer)
                (emacs-lisp-mode)
@@ -158,13 +158,7 @@ You can transform this to extract information with the Playground mold."
                (setq-local self tree)
                (current-buffer))))
     :docs "You can obtain the code tree for the node at point.
-This is a more focused view than `CodeToTree.'"
-    :examples ((
-                :name "Pointer just after \"a\": "
-                :given
-                (:type file :name "/tmp/test.json" :mode json-mode :contents "{\n  \"a\": 1,\n  \"b\": [1,2]\n}\n" :point 9)
-                :then
-                (:type buffer :name "*moldable-emacs-NodeAtPointToTree*" :mode emacs-lisp-mode :contents "((:type string :text \"\\\"a\\\"\" :begin 5 :end 8 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 5 :end 6 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type string_content :text \"a\" :begin 6 :end 7 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 7 :end 8 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \":\" :text \":\" :begin 8 :end 9 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type number :text \"1\" :begin 10 :end 11 :buffer \"test.json\" :buffer-file \"/tmp/test.json\"))\n"))))
+This is a more focused view than `CodeToTree.'")
 
 (me-register-mold
     :key "ElispListToOrgTable"

@@ -349,7 +349,18 @@ Optionally start from NODE."
                 node)))
         (setq-local acc nil)
         (fn root 0)
-        (reverse acc)))))
+        (cons (list
+               :type (tsc-node-type root)
+               :text (tsc-node-text root)
+               :begin (tsc-node-start-position root)
+               :end (tsc-node-end-position root)
+               :buffer (buffer-name)
+               :buffer-file (when buffer-file-name
+                              (s-replace (getenv "HOME") "~"
+                                         buffer-file-name))
+               :mode major-mode
+               :level 0)
+              (reverse acc))))))
 
 (defun me-extension-to-major-mode (extension)
   "Find `major-mode' for EXTENSION.
