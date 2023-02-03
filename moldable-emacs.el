@@ -2053,5 +2053,46 @@ Example:
 
 ;; end urls collection
 
+;; begin utilities org ql - org transclusion
+(defun me-org-ql-to-org-transclusion (org-ql-headlines)
+  "Transform ORG-QL-HEADLINES into something manageable by `org-transclusion'."
+  (--map (format "#+transclude: [[id:%s][%s]]\n\n"
+                 (org-element-property :ID it)
+                 (org-element-property :raw-value it))
+         org-ql-headlines))
+
+(defun me-org-transclude-in-buffer (org-transclusion-headings &optional buffer switch? hook)
+  "Set up BUFFER using `org-transclusion' on ORG-TRANSCLUSION-HEADINGS.
+
+When SWITCH? it switches to BUFFER.
+HOOK is a (lambda () ...) to run some side effects.
+
+NOTE: this does nothing if you don't have org-transclusion installed."
+  (and
+   (me-require 'org-transclusion)
+   (let ((buffer (or buffer (get-buffer-create "*moldable emacs org transclusion*"))))
+     (with-current-buffer buffer
+       (org-mode)
+       (org-transclusion-remove-all)
+       (erase-buffer)
+       (insert (s-join "\n\n" org-transclusion-headings))
+       (org-transclusion-add-all)
+       (goto-char (point-min))
+       (when hook (funcall hook)))
+     (when switch? (switch-to-buffer-other-window buffer)))))
+
+(defun me-org-roam-backlink-to-org-transclusion (backlink)
+  "Format `org-roam' BACKLINK to `org-transclusion' format.
+
+Note: nil if org-roam is not installed."
+  (and (me-require 'org-roam)
+       (format
+        "#+transclude: [[id:%s][%s]]\n\n"
+        (org-roam-node-id (org-roam-backlink-source-node backlink))
+        (org-roam-node-title (org-roam-backlink-source-node backlink)))))
+;; end utilities org ql - org transclusion
+
+
+
 (provide 'moldable-emacs)
 ;;; moldable-emacs.el ends here

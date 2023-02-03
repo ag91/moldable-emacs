@@ -838,42 +838,35 @@ following in your lein project.clj
  :examples nil)
 
 (me-register-mold
- :key "Backlinks as Org With transclusion"
- :given (:fn (and
-              (me-require 'org-roam)
-              (me-require 'org-transclusion)
-              (org-roam-node-p (org-roam-node-at-point))))
- :then (:fn
-        (let* ((backlinks (org-roam-backlinks-get (org-roam-node-at-point))))
-          (with-current-buffer buffername
-            (org-mode)
-            (org-transclusion-remove-all)
-            (erase-buffer)
-            (--each backlinks
-              (insert (format "#+transclude: [[id:%s][%s]]\n\n" (org-roam-node-id (org-roam-backlink-source-node it)) (org-roam-node-title (org-roam-backlink-source-node it))))
-              )
-            (org-transclusion-add-all)
-            (goto-char (point-min))
-            (setq-local self backlinks))))
- :docs "You can check backlinks for current org-roam node."
- :examples nil)
+    :key "Backlinks as Org With transclusion"
+    :given (:fn (and
+                 (me-require 'org-roam)
+                 (me-require 'org-transclusion)
+                 (org-roam-node-p (org-roam-node-at-point))))
+    :then (:fn
+           (let* ((backlinks (org-roam-backlinks-get (org-roam-node-at-point)))
+                  (org-transclusion-links
+                   (-map 'me-org-roam-backlink-to-org-transclusion backlinks)))
+             (me-org-transclude-in-buffer org-transclusion-links buffername nil (lambda () (setq-local self backlinks)))))
+    :docs "You can check backlinks for current org-roam node."
+    :examples nil)
 
 (defcustom me-backlinks-depth 2 "Define how deep you want to search for backlinks for \"Deep Backlinks as Org\" mold.")
 
 (me-register-mold
- :key "Deep Backlinks as Org"
- :given (:fn (and
-              (me-require 'org-roam)
-              (org-roam-node-p (org-roam-node-at-point))))
- :then (:fn
-        (let* ((backlinks-contents (me-org-roam-backlinks-contents (org-roam-node-at-point) me-backlinks-depth)))
-          (with-current-buffer buffername
-            (org-mode)
-            (erase-buffer)
-            (insert (me-org-roam-format-backlinks-contents backlinks-contents))
-            (setq-local self backlinks-contents))))
- :docs "You can format nested backlinks as a single Org mode buffer."
- :examples nil)
+    :key "Deep Backlinks as Org"
+    :given (:fn (and
+                 (me-require 'org-roam)
+                 (org-roam-node-p (org-roam-node-at-point))))
+    :then (:fn
+           (let* ((backlinks-contents (me-org-roam-backlinks-contents (org-roam-node-at-point) me-backlinks-depth)))
+             (with-current-buffer buffername
+               (org-mode)
+               (erase-buffer)
+               (insert (me-org-roam-format-backlinks-contents backlinks-contents))
+               (setq-local self backlinks-contents))))
+    :docs "You can format nested backlinks as a single Org mode buffer."
+    :examples nil)
 
 
 (defcustom me-languages
