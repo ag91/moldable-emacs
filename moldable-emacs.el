@@ -1007,11 +1007,11 @@ This is a function used to test mold examples."
   "Demo mold after find it using its KEY."
   (me-mold-demo (me-find-mold key)))
 
-(defun me-open-at-point ()
+(defun me-open-node-at-point (node)
   "Follow node at point."
-  (interactive)
-  (let* ((node (list-at-point))
-         (buffer (plist-get node :buffer))
+  (interactive
+   (list (list-at-point)))
+  (let* ((buffer (plist-get node :buffer))
          (file (plist-get node :buffer-file)))
     (if (and node buffer (plist-get node :begin))
         (if (-contains-p (--map (format "%s" it) (buffer-list)) buffer)
@@ -1735,6 +1735,31 @@ Optionally filter for files with FILE-EXTENSION."
 (defun me-project-to-flattened-nodes (dir &optional file-extension)
   "Create a list of all the syntax elements nodes of files in DIR filtering by FILE-EXTENSION (e.g, 'clj')."
   (-flatten-n 1 (me-project-to-nodes dir file-extension)))
+
+(defun me-node-complexity-stats (node)
+  "Use code-compass `calculate-complexity-stats' to get complexity stats of NODE."
+  (if (me-require 'code-compass)
+      (c/calculate-complexity-stats (plist-get node :text))
+    (error "install code-compass for this from https://github.com/ag91/code-compass")))
+
+(defun me-node-complexity (node)
+  "Use code-compass `calculate-complexity-stats' to get complexity of NODE."
+  (alist-get 'total (me-node-complexity-stats node)))
+
+(defun me-project-function-nodes-by-complexity (dir &optional extension)
+  "Gather (possible) function nodes for project DIR. Optionally filter nodes by EXTENSION."
+  (--> (me-project-to-flattened-nodes dir extension) ;; TODO cache this
+       (me-by-types
+        (-keep
+         (lambda (type)
+           (and (s-contains-p "function" (or (ignore-errors (symbol-name type)) ""))
+                type))
+         (me-types it))
+        it)
+       (--sort
+        (> (me-node-complexity it)
+           (me-node-complexity other))
+        it)))
 
 (defun me-clj-project-to-nodes-categories (dir &optional file-extension) ; TODO this works for Clojure now, I need to bind the predicates according to the extension/grammar instead. If 'python `me-node-fn-p' should behave differently than me-clj-fn-p
   "Produce categories of nodes for project DIR.
