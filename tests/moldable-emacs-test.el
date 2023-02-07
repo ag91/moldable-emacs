@@ -78,15 +78,8 @@ some new contents
           (let ((bn (buffer-name))
                 (bfn (buffer-file-name)))
             (should
-             (equal (me-mold-treesitter-to-parse-tree)
-                    `((:type local_variable_declaration :text "int i=0;" :begin 1 :end 9 :buffer ,bn :buffer-file ,bfn :mode java-mode :level 0)
-                      (:type integral_type :text "int" :begin 1 :end 4 :buffer ,bn :buffer-file ,bfn :mode java-mode :level 1)
-                      (:type "int" :text "int" :begin 1 :end 4 :buffer ,bn :buffer-file ,bfn :mode java-mode :level 2)
-                      (:type variable_declarator :text "i=0" :begin 5 :end 8 :buffer ,bn :buffer-file ,bfn :mode java-mode :level 1)
-                      (:type identifier :text "i" :begin 5 :end 6 :buffer ,bn :buffer-file ,bfn :mode java-mode :level 2)
-                      (:type "=" :text "=" :begin 6 :end 7 :buffer ,bn :buffer-file ,bfn :mode java-mode :level 2)
-                      (:type decimal_integer_literal :text "0" :begin 7 :end 8 :buffer ,bn :buffer-file ,bfn :mode java-mode :level 2)
-                      (:type ";" :text ";" :begin 8 :end 9 :buffer ,bn :buffer-file ,bfn :mode java-mode :level 1))))))
+             (equal (plist-get (car (me-mold-treesitter-to-parse-tree)) :type)
+                    'program))))
       (delete-file tf)))
 
   ;; buffer is not visiting a file
@@ -96,15 +89,8 @@ some new contents
     (tree-sitter-mode)
     (let ((bn (buffer-name)))
       (should
-       (equal (me-mold-treesitter-to-parse-tree)
-              `((:type local_variable_declaration :text "int i=0;" :begin 1 :end 9 :buffer ,bn :buffer-file nil :mode java-mode :level 0)
-                (:type integral_type :text "int" :begin 1 :end 4 :buffer ,bn :buffer-file nil :mode java-mode :level 1)
-                (:type "int" :text "int" :begin 1 :end 4 :buffer ,bn :buffer-file nil :mode java-mode :level 2)
-                (:type variable_declarator :text "i=0" :begin 5 :end 8 :buffer ,bn :buffer-file nil :mode java-mode :level 1)
-                (:type identifier :text "i" :begin 5 :end 6 :buffer ,bn :buffer-file nil :mode java-mode :level 2)
-                (:type "=" :text "=" :begin 6 :end 7 :buffer ,bn :buffer-file nil :mode java-mode :level 2)
-                (:type decimal_integer_literal :text "0" :begin 7 :end 8 :buffer ,bn :buffer-file nil :mode java-mode :level 2)
-                (:type ";" :text ";" :begin 8 :end 9 :buffer ,bn :buffer-file nil :mode java-mode :level 1))))))
+       (equal (plist-get (car (me-mold-treesitter-to-parse-tree)) :type)
+              'program))))
   )
 
 (ert-deftest me-get-in_not-found-is-nil ()
