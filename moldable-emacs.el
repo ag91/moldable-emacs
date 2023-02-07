@@ -2128,7 +2128,42 @@ Note: nil if org-roam is not installed."
         (org-roam-node-title (org-roam-backlink-source-node backlink)))))
 ;; end utilities org ql - org transclusion
 
+;; begin similar nodes
+(defun me-child-p (node possible-parent)
+  "Check if NODE is a child of POSSIBLE-PARENT."
+  (let ((node-begin (plist-get node :begin))
+        (node-end (plist-get node :end))
+        (possible-parent-begin (plist-get possible-parent :begin))
+        (possible-parent-end (plist-get possible-parent :end)))
+    (and
+     (> node-begin possible-parent-begin)
+     (< node-end possible-parent-end))))
 
+(defun me-find-similar-nodes (node tree)
+  "Given a NODE and a TREE, finds the elements with the same type and that have most in common (adds a :similarity score as well)."
+  (--> tree
+       ;; only same type
+       (me-by-type (plist-get node :type) it)
+       ;; remove node from similar nodes
+       (-difference it (list node))
+       ;; remove parents of node OR parents of similar nodes (we want the smallest similar nodes otherwise the wrapping of a parent wouldn't bring anything to the similarity score)
+       (-remove
+        (lambda (possible-parent) (or
+                                   (me-child-p node possible-parent)
+                                   (--any (me-child-p it possible-parent) it)))
+        it)
+       ;; calculate similarity score
+       (--map
+        (and
+         (append it
+                 (list
+                  :similarity-score
+                  (length (-intersection (--map (me-plist-focus it '(:type :text :buffer)) (me-node-children node tree))
+                                         (--map (me-plist-focus it '(:type :text :buffer)) (me-node-children it tree)))))))
+        it)
+       ;; sort by it
+       (--sort (> (plist-get it :similarity-score) (plist-get other :similarity-score)) it)))
+;; end similar nodes
 
 (provide 'moldable-emacs)
 ;;; moldable-emacs.el ends here

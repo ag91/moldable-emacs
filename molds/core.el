@@ -879,6 +879,24 @@ It specializes for source code."
                 :then
                 (:type buffer :name "Node at point" :mode emacs-lisp-mode :contents "(list 1 2 3)\n"))))
 
+
+(me-register-mold
+    :key "SimilarToNodeAtPoint"
+    :given (:fn (and
+                 (-elem-index 'tree-sitter-mode minor-mode-list)
+                 (ignore-errors (tree-sitter-node-at-point :named))))
+    :then (:fn
+           (let* ((tree (me-find-similar-nodes
+                         (car (me-mold-treesitter-to-parse-tree (tree-sitter-node-at-point :named)))
+                         (me-mold-treesitter-to-parse-tree))))
+             (with-current-buffer buffername
+               (emacs-lisp-mode)
+               (erase-buffer)
+               (me-print-to-buffer tree)
+               (setq-local self tree))))
+    :docs "You can gather all the nodes similar to the current one ordered by similarity."
+    :examples nil)
+
 (me-register-mold
     :key "Evaluate Arithmetic Expression"
     :let ((expression (me-arithmetic-at-point))) ;; TODO this is naive: does not support neither square root! Actually it does: 4^1/2. Still it breaks for things like ". 1 + 2" because the expression starts with a dot...
