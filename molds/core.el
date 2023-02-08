@@ -898,6 +898,43 @@ It specializes for source code."
     :examples nil)
 
 (me-register-mold
+    :key "ProjectNodesToPlayground"
+    :given (:fn (and
+                 (-elem-index 'tree-sitter-mode minor-mode-list)
+                 (me-require 'projectile)
+                 (ignore-errors (projectile-project-root))))
+    :then (:fn
+           (let* ((tree (me-project-to-flattened-nodes (projectile-project-root))))
+             (with-current-buffer buffername
+               (emacs-lisp-mode)
+               (erase-buffer)
+               (insert ";;;  \n\n(--> self\n\n)")
+               (goto-char (point-max))
+               (forward-line -1)
+               (setq-local self tree))))
+    :docs "You can gather all the nodes of a project in a Playground."
+    :examples nil)
+
+(me-register-mold
+    :key "ProjectNodesSameLanguageToPlayground"
+    :given (:fn (and
+                 (-elem-index 'tree-sitter-mode minor-mode-list)
+                 (me-require 'projectile)
+                 (ignore-errors (projectile-project-root))
+                 (buffer-file-name)))
+    :then (:fn
+           (let* ((tree (me-project-to-flattened-nodes (projectile-project-root) (file-name-extension (buffer-file-name)))))
+             (with-current-buffer buffername
+               (emacs-lisp-mode)
+               (erase-buffer)
+               (insert ";;; You can find the nodes in the `self' variable \n\n(--> self\n\n)")
+               (goto-char (point-max))
+               (forward-line -1)
+               (setq-local self tree))))
+    :docs "You can gather all the nodes of a project in a Playground."
+    :examples nil)
+
+(me-register-mold
     :key "Evaluate Arithmetic Expression"
     :let ((expression (me-arithmetic-at-point))) ;; TODO this is naive: does not support neither square root! Actually it does: 4^1/2. Still it breaks for things like ". 1 + 2" because the expression starts with a dot...
     :given (:fn expression)
