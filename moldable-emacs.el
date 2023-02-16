@@ -1,6 +1,6 @@
 ;;; moldable-emacs.el --- Moldable Development Extension -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2021 Andrea
+;; Copyright (C) 2023 Andrea
 
 ;; Author: Andrea <andrea-dev@hotmail.com>
 ;; Version: 20211115-snapshot
@@ -1739,7 +1739,7 @@ Optionally filter for files with FILE-EXTENSION."
 (defun me-node-complexity-stats (node)
   "Use code-compass `calculate-complexity-stats' to get complexity stats of NODE."
   (if (me-require 'code-compass)
-      (c/calculate-complexity-stats (plist-get node :text))
+      (code-compass-calculate-complexity-stats (plist-get node :text))
     (error "install code-compass for this from https://github.com/ag91/code-compass")))
 
 (defun me-node-complexity (node)

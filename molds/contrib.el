@@ -239,55 +239,55 @@ following in your lein project.clj
       1))
 
 (me-register-mold
-    :key "FunctionsComplexity"
-    :given (:fn (and
-                 (me-require 'code-compass)
-                 (me-require 'tree-sitter)
-                 (not (eq major-mode 'json-mode))
-                 (not (eq major-mode 'csv-mode))
-                 (not (eq major-mode 'yaml-mode))
-                 ;; ignore files over 8kb
-                 (<= (/ (buffer-size) 1024) 800)
-                 ;; calculating complexities may take 4 secs on certain files, so we just look for functions
-                 (me-extract-functions (me-mold-treesitter-to-parse-tree))))
-    :when (:fn
-           (me-file-updated-last-1-sec-p (buffer-file-name)))
-    :then (:fn
-           (let ((complexities
-                  (ignore-errors (me-functions-complexity
-                                  (me-mold-treesitter-to-parse-tree)
-                                  #'c/calculate-complexity-stats))))
-             (with-current-buffer buffername
-               (erase-buffer)
-               (org-mode)
-               (setq-local self complexities)
-               (me-insert-org-table
-                `(("Function" .
-                   (:extractor
-                    (lambda (obj) obj)
-                    :handler
-                    (lambda (obj) (ignore-errors
-                                    (message "%s" (list obj (plist-get obj :identifier) (plist-get (plist-get obj :node) :buffer-file)))
-                                    (me-make-elisp-navigation-link
-                                     (plist-get obj :identifier)
-                                     (plist-get (plist-get obj :node) :buffer-file))))))
-                  ("Complexity" .
-                   (:extractor
-                    (lambda (obj) (alist-get 'total (plist-get obj :complexity)))
-                    :handler
-                    (lambda (s) (me-highlight-function-complexity s))))
-                  ("Length" .
-                   (:extractor
-                    (lambda (obj) (alist-get 'n-lines (plist-get obj :complexity)))
-                    :handler
-                    (lambda (s) (me-highlight-function-length s))))
-                  )
-                (--sort (> (alist-get 'total (plist-get it :complexity))
-                           (alist-get 'total (plist-get other :complexity)))
-                        complexities))
-               (goto-char (point-min)))
-             ))
-    :docs "Show a table showing code complexity for the functions in the buffer.")
+ :key "FunctionsComplexity"
+ :given (:fn (and
+              (me-require 'code-compass)
+              (me-require 'tree-sitter)
+              (not (eq major-mode 'json-mode))
+              (not (eq major-mode 'csv-mode))
+              (not (eq major-mode 'yaml-mode))
+              ;; ignore files over 8kb
+              (<= (/ (buffer-size) 1024) 800)
+              ;; calculating complexities may take 4 secs on certain files, so we just look for functions
+              (me-extract-functions (me-mold-treesitter-to-parse-tree))))
+ :when (:fn
+        (me-file-updated-last-1-sec-p (buffer-file-name)))
+ :then (:fn
+        (let ((complexities
+               (ignore-errors (me-functions-complexity
+                               (me-mold-treesitter-to-parse-tree)
+                               #'code-compass-calculate-complexity-stats))))
+          (with-current-buffer buffername
+            (erase-buffer)
+            (org-mode)
+            (setq-local self complexities)
+            (me-insert-org-table
+             `(("Function" .
+                (:extractor
+                 (lambda (obj) obj)
+                 :handler
+                 (lambda (obj) (ignore-errors
+                                 (message "%s" (list obj (plist-get obj :identifier) (plist-get (plist-get obj :node) :buffer-file)))
+                                 (me-make-elisp-navigation-link
+                                  (plist-get obj :identifier)
+                                  (plist-get (plist-get obj :node) :buffer-file))))))
+               ("Complexity" .
+                (:extractor
+                 (lambda (obj) (alist-get 'total (plist-get obj :complexity)))
+                 :handler
+                 (lambda (s) (me-highlight-function-complexity s))))
+               ("Length" .
+                (:extractor
+                 (lambda (obj) (alist-get 'n-lines (plist-get obj :complexity)))
+                 :handler
+                 (lambda (s) (me-highlight-function-length s))))
+               )
+             (--sort (> (alist-get 'total (plist-get it :complexity))
+                        (alist-get 'total (plist-get other :complexity)))
+                     complexities))
+            (goto-char (point-min)))
+          ))
+ :docs "Show a table showing code complexity for the functions in the buffer.")
 
 ;; TODO make mold that let you open a note, this should add a warning if the note is outdated (i.e., the position cannot be found anymore)
 (defun me-structure-to-dot-string (structure)
@@ -426,49 +426,49 @@ following in your lein project.clj
     :examples nil)
 
 (me-register-mold
-    :key "List Files To Edit After This"
-    :let ((bufferfile (buffer-file-name)))
-    :given (:fn (and
-                 bufferfile
-                 (me-require 'code-compass)
-                 (me-require 'vc)
-                 (vc-root-dir)))
-    :then (:fn
-           (with-current-buffer buffername
-             (read-only-mode -1)
-             (emacs-lisp-mode)
-             (erase-buffer)
-             (insert "Loading coupled files...")
-             )
-           (c/get-coupled-files-alist
-            (vc-root-dir)
-            `(lambda (files)
-               (with-current-buffer ,buffername
-                 (erase-buffer)
-                 (me-print-to-buffer
-                  (c/get-matching-coupled-files files ,bufferfile)
-                  ,buffername)
-                 (setq-local self files)))))
-    :docs "You can list the files coupled to the file you are visiting."
-    :examples nil)
+ :key "List Files To Edit After This"
+ :let ((bufferfile (buffer-file-name)))
+ :given (:fn (and
+              bufferfile
+              (me-require 'code-compass)
+              (me-require 'vc)
+              (vc-root-dir)))
+ :then (:fn
+        (with-current-buffer buffername
+          (read-only-mode -1)
+          (emacs-lisp-mode)
+          (erase-buffer)
+          (insert "Loading coupled files...")
+          )
+        (code-compass-get-coupled-files-alist
+         (vc-root-dir)
+         `(lambda (files)
+            (with-current-buffer ,buffername
+              (erase-buffer)
+              (me-print-to-buffer
+               (code-compass--get-matching-coupled-files files ,bufferfile)
+               ,buffername)
+              (setq-local self files)))))
+ :docs "You can list the files coupled to the file you are visiting."
+ :examples nil)
 
 (me-register-mold
-    :key "Files To Edit As Org Todos"
-    :let ((old-file (plist-get (ignore-errors mold-data) :old-file)))
-    :given (:fn
-            (and
-             (me-require 'code-compass)
-             (s-contains-p "Files To Edit After " (buffer-name))
-             self
-             old-file))
-    :then (:fn
-           (let* ((current-buffer (current-buffer))
-                  (tree (-map 'car self))
-                  (buffer (let ((buffer (c/show-todo-buffer tree old-file)))
-                            (switch-to-buffer current-buffer)
-                            buffer)))))    ;; TODO likely broken in refactoring!
-    :docs "You can make a TODO list of files to edit next."
-    :examples nil)
+ :key "Files To Edit As Org Todos"
+ :let ((old-file (plist-get (ignore-errors mold-data) :old-file)))
+ :given (:fn
+         (and
+          (me-require 'code-compass)
+          (s-contains-p "Files To Edit After " (buffer-name))
+          self
+          old-file))
+ :then (:fn
+        (let* ((current-buffer (current-buffer))
+               (tree (-map 'car self))
+               (buffer (let ((buffer (code-compass--show-todo-buffer tree old-file)))
+                         (switch-to-buffer current-buffer)
+                         buffer)))))    ;; TODO likely broken in refactoring!
+ :docs "You can make a TODO list of files to edit next."
+ :examples nil)
 
 (me-register-mold
     :key "Clojure examples for function at point"
