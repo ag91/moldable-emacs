@@ -898,6 +898,25 @@ It specializes for source code."
     :examples nil)
 
 (me-register-mold
+    :key "SamePrefixToNodeAtPoint"
+    :given (:fn (and
+                 (-elem-index 'tree-sitter-mode minor-mode-list)
+                 (ignore-errors (tree-sitter-node-at-point :named))))
+    :then (:fn
+           (let* ((tree (--filter
+                         (s-prefix-p
+                          (substring (plist-get (car (me-mold-treesitter-to-parse-tree (tree-sitter-node-at-point :named))) :text) 0 3) ; hardcoding 3 chars, also probably want just to add a same prefix option to my similarity function
+                          (plist-get it :text))
+                         (me-mold-treesitter-to-parse-tree))))
+             (with-current-buffer buffername
+               (emacs-lisp-mode)
+               (erase-buffer)
+               (me-print-to-buffer tree)
+               (setq-local self tree))))
+    :docs "You can gather all the nodes similar to the current one ordered by similarity."
+    :examples nil)
+
+(me-register-mold
     :key "ProjectNodesToPlayground"
     :given (:fn (and
                  (-elem-index 'tree-sitter-mode minor-mode-list)
