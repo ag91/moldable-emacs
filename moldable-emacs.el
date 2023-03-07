@@ -189,8 +189,8 @@ Optionally define a POLL-TIME to look for results and a TIMEOUT to fail."
 (defun me-make-org-table (headlines objects)
   "Make an Org Table with OBJECTS formats and HEADLINES."
   (concat
-   (concat "| " (s-join " | " (-map #'car headlines))  " | \n")
-   (concat "|-" (format (s-repeat (- (length headlines) 1) "-+-")) "-| \n")
+   (concat "| " (s-join " | " (-map #'car headlines))  " |\n")
+   (concat "|-" (format (s-repeat (- (length headlines) 1) "-+-")) "-|\n")
    (s-join
     "\n"
     (--map (concat
@@ -230,8 +230,16 @@ Make sure table is also indented."
         (--map (-flatten (-zip-lists keys it)) (cdr alist))
       alist)))
 
+
 (defun me-org-table-to-plist (table-string)
-  "Make TABLE-STRING a plist."
+  "Make TABLE-STRING a plist.
+
+>> (me-org-table-to-plist \"| a | b |
+|---+---|
+| x | y |
+| w | z |
+\")
+=> (:a (\"x\" \"w\") :b (\"y\" \"z\"))"
   (with-temp-buffer
     (save-excursion (insert table-string))
     (org-table-transpose-table-at-point)
@@ -252,7 +260,11 @@ Make sure table is also indented."
 (defun me-flat-org-table-to-string (flat-org-table)
   "Make a string out of FLAT-ORG-TABLE.
 
-An example of input is: '((:a 1 :b 2) (:a 3 :b 4))"
+>> (me-flat-org-table-to-string '((:a 1 :b 2) (:a 3 :b 4)))
+=> \"| a | b |
+|--+--|
+| 1 | 2 |
+| 3 | 4 |\""
   (me-make-org-table
    (--map
     (list (substring (symbol-name it) 1) . (:extractor `(lambda (x) (format "%s" (plist-get x ,it)))))
@@ -292,13 +304,19 @@ An example of input is: '((:a 1 :b 2) (:a 3 :b 4))"
           result)))))
 
 (defun me-types (tree)
-  "List types in current syntax TREE."
+  "List types in current syntax TREE.
+
+>> (me-types '((:type a) (:type b)))
+=> (a b)"
   (--> tree
        (--map (plist-get it :type) it)
        -distinct))
 
 (defun me-by-type (type tree)
-  "Filter TREE entries by TYPE."
+  "Filter TREE entries by TYPE.
+
+>> (me-by-type 'a '((:type a :text \"hi\") (:type b)))
+=> ((:type a :text \"hi\"))"
   (when (symbolp type)
     (--filter (eq (plist-get it :type) type) tree)))
 
@@ -307,19 +325,14 @@ An example of input is: '((:a 1 :b 2) (:a 3 :b 4))"
   (--filter (-contains? types (plist-get it :type)) tree))
 
 (defun me-count-by-key (key list)
-  "Group LIST by KEY and count groups. Given ((:a \"x\") (:a \"x\") (:a \"y\")) and :a, it returns ((:a \"x\" :count 2) (:a \"y\" :count 1))"
+  "Group LIST by KEY and count groups.
+
+>> (me-count-by-key :a '((:a \"x\") (:a \"x\") (:a \"y\")))
+=> ((:a \"x\" :count 2) (:a \"y\" :count 1))"
   (--> list
        (--group-by (plist-get it key) it)
        (--map (list key (car it) :count (length (cdr it))) it)
        (--sort (> (plist-get it :count) (plist-get other :count)) it)))
-
-;; (with-temp-buffer
-;;   (save-excursion (insert "| a | b |
-;;     |---+---|
-;;     | x | y |
-;;     | w | z |
-;;     "))
-;;   (call-interactively 'my/org-table-to-plist))
 
 (defun me-mold-treesitter-to-parse-tree (&optional node)
   "Return list of all abstract syntax tree nodes one step away from leaf nodes.
