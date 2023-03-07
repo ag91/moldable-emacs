@@ -114,8 +114,8 @@ some new contents
                             (concat "hello " s "!")))))
              '((:a 1 :b 2)
                (:a 2 :b 3)))
-            "| A | B | 
-|--+--| 
+            "| A | B |
+|--+--|
 | 1 | hello 2! |
 | 2 | hello 3! |" )))
 
@@ -237,8 +237,8 @@ some new contents
 (ert-deftest me-flat-org-table-to-string_get-string ()
   (should
    (string= (me-flat-org-table-to-string '((:a "1" :b "2") (:a "3" :b "4")))
-            "| a | b | 
-|--+--| 
+            "| a | b |
+|--+--|
 | 1 | 2 |
 | 3 | 4 |" )))
 
