@@ -1040,7 +1040,7 @@ following in your lein project.clj
     :let ((urls (or (ignore-errors
                       (me-urls-in-region))
                     (-some-> (thing-at-point 'url t) list)
-                    (me-urls-in-clipboard)))) ; TODO my function
+                    (ignore-errors (me-urls-in-clipboard)))))
     :given (:fn (and (executable-find "pandoc")
                      urls))
     :then (:fn
