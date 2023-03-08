@@ -2104,7 +2104,13 @@ Example:
 
 ;; begin utilities org ql - org transclusion
 (defun me-org-ql-to-org-transclusion (org-ql-headlines)
-  "Transform ORG-QL-HEADLINES into something manageable by `org-transclusion'."
+  "Transform ORG-QL-HEADLINES into something manageable by `org-transclusion'.
+
+>> (me-org-ql-to-org-transclusion '((headline (:ID \"some-id\" :raw-value \"some heading\"))))
+=> (\"#+transclude: [[id:some-id][some heading]]
+
+\")
+"
   (--map (format "#+transclude: [[id:%s][%s]]\n\n"
                  (org-element-property :ID it)
                  (org-element-property :raw-value it))
