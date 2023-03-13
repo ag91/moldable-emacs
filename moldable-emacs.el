@@ -270,6 +270,7 @@ Make sure table is also indented."
     (list (substring (symbol-name it) 1) . (:extractor `(lambda (x) (format "%s" (plist-get x ,it)))))
     (-filter #'keywordp (car flat-org-table)))
    flat-org-table))
+(defalias 'me-plist-table-to-org-table 'me-flat-org-table-to-string)
 
 (defun me-insert-flat-org-table (flat-org-table)
   "Insert FLAT-ORG-TABLE in current buffer."
