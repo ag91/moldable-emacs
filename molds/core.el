@@ -1088,3 +1088,39 @@ It specializes for source code."
                (setq-local self tree))))
     :docs "You can convert an epoch number to date."
     :examples nil)
+
+(me-register-mold
+    :key "ShowElispAPI"
+    :given (:fn (ignore-errors (and
+                                (equal major-mode 'emacs-lisp-mode)
+                                (me-mold-treesitter-to-parse-tree))))
+    :then (:fn
+           (let* ((buffer (buffer-name))
+                  (api (me-elisp-extract-api (me-mold-treesitter-to-parse-tree))))
+             (with-current-buffer buffername
+               (org-mode)
+               (erase-buffer)
+               (insert (or (plist-get api :description) "")
+                       "\n\n"
+                       "* defcustoms \n\n"
+                       (s-join
+                        "\n"
+                        (--map
+                         (concat "- " (me-make-elisp-navigation-link (nth 1 (s-split " " (plist-get it :text))) it))
+                         (plist-get api :defcustoms)))
+                       "\n\n* functions \n\n"
+                       (s-join
+                        "\n"
+                        (--map
+                         (concat "- " (me-make-elisp-navigation-link (nth 1 (s-split " " (plist-get it :text))) it))
+                         (plist-get api :functions)))
+                       "\n\n* macros \n\n"
+                       (s-join
+                        "\n"
+                        (--map
+                         (concat "- " (me-make-elisp-navigation-link (nth 1 (s-split " " (plist-get it :text))) it))
+                         (plist-get api :macros)))
+                       )
+               (setq-local self api))))
+    :docs "You can show (Elisp for now) public API for buffer."
+    :examples nil)
