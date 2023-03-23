@@ -831,7 +831,7 @@ This should simplify the testing and documentation of molds.")
 (add-hook 'me-mold-before-mold-runs-hook #'me-warn-on-run-if-no-example)
 (add-hook 'me-mold-before-mold-runs-hook #'me-warn-on-run-if-no-docs)
 
-(defmacro me-given (given &rest body)
+(defmacro me--given (given &rest body)
   "Setup according to GIVEN and run BODY."
   `(let* ((given (eval ',given))
           (type (plist-get  given :type))
@@ -858,7 +858,7 @@ This should simplify the testing and documentation of molds.")
                   (,(if mode mode 'fundamental-mode))
                   (if ,point (goto-char ,point) (goto-char (point-min)))
                   ,@body))))))
-(put 'me-given 'lisp-indent-function 1)
+(put 'me--given 'lisp-indent-function 1)
 
 (defun me-check-then-clause (then)
   "Run THEN clause and return list with success and issues.
@@ -882,13 +882,13 @@ This is a function used to test mold examples."
                 (pos ,(point))
                 (beg (plist-get ',example :given))
                 (end (plist-get ',example :then)))
-            (me-given beg
-                      (funcall ',run-fn)
-                      (let ((result (me-check-then-clause end)))
-                        (kill-buffer)
-                        (switch-to-buffer buf)
-                        (goto-char pos)
-                        result))))))
+            (me--given beg
+                       (funcall ',run-fn)
+                       (let ((result (me-check-then-clause end)))
+                         (kill-buffer)
+                         (switch-to-buffer buf)
+                         (goto-char pos)
+                         result))))))
 
 (defun me-check-mold-examples (mold)
   "Check that MOLD's examples are working, returning test reports for each of them."
@@ -970,9 +970,9 @@ This is a function used to test mold examples."
   (let* ((name (plist-get example :name))
          (start (plist-get example :given))
          (end (plist-get example :then)))
-    (me-given start
-              (funcall run-fn)
-              (me-then-assert end))))
+    (me--given start
+               (funcall run-fn)
+               (me-then-assert end))))
 
 
 (defun me-demo-example (example)

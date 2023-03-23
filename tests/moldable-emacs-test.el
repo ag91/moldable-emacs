@@ -11,16 +11,16 @@
 ;;   (should
 ;;    (equal (me-alist-to-lists-of-plist '(("A" . "b") (1 . 2) (3 . 4))) '((:A 1 :b 2) (:A 3 :b 4)))))
 
-(ert-deftest me-given_valid-with-buffer ()
+(ert-deftest me--given_valid-with-buffer ()
   (should
    (equal
-    (me-given '(:type buffer :name "some.txt" :contents "bla" :mode emacs-lisp-mode) (format "%s %s" (buffer-name) major-mode))
+    (me--given '(:type buffer :name "some.txt" :contents "bla" :mode emacs-lisp-mode) (format "%s %s" (buffer-name) major-mode))
     "some.txt emacs-lisp-mode")))
 
-(ert-deftest me-given_valid-with-buffer-param ()
+(ert-deftest me--given_valid-with-buffer-param ()
   (should
    (equal
-    (let ((x '(:type buffer :name "some.txt" :contents "bla" :mode emacs-lisp-mode))) (me-given x (format "%s %s" (buffer-name) major-mode)))
+    (let ((x '(:type buffer :name "some.txt" :contents "bla" :mode emacs-lisp-mode))) (me--given x (format "%s %s" (buffer-name) major-mode)))
     "some.txt emacs-lisp-mode")))
 
 (ert-deftest me-example-to-docstring_produce-doc-string ()

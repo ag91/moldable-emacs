@@ -55,7 +55,7 @@ in the local variable `self'."
                (me-print-to-buffer sexps))))
     :docs "Evaluate Elisp sexp showing the result in a new Elisp buffer.
 Useful to run Elisp on the fly without a Playground."
-    :examples nil                          ; TODO need to extend me-given for this to insert text in the minibuffer
+    :examples nil                          ; TODO need to extend me--given for this to insert text in the minibuffer
     )
 
 (me-register-mold
