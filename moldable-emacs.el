@@ -1189,7 +1189,7 @@ TARGET can be a buffer, file or tree node.
                           (goto-char (point-min))
                           (list (search-forward name) target)))))))
     (me-make-elisp-file-link
-     name
+     (s-replace "\n" "" name)
      (format
       "(progn (%s \"%s\") (goto-char %s))"
       (if filep "find-file-other-window" "switch-to-buffer-other-window")
