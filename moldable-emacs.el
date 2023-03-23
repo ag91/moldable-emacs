@@ -1133,19 +1133,66 @@ This is a function used to test mold examples."
 
 (defun me-make-elisp-file-link (description target &optional link-type)
   "Make Org file link with DESCRIPTION and TARGET.
-Optionally pass the LINK-TYPE instead of file."
+Optionally pass the LINK-TYPE instead of file.
+
+>> (me-make-elisp-file-link \"description\" \"/tmp/test.el::10\")
+=> \"[[file:/tmp/test.el::10][description]]\"
+
+>> (me-make-elisp-file-link \"description\" \"(goto-char 10)\" \"elisp\")
+=> \"[[elisp:(goto-char 10)][description]]\""
   (format "[[%s:%s][%s]]" (or link-type "file") target description))
 
-(defun me-make-elisp-navigation-link (name file-name)
-  "Make an Elisp Org link that navigates to a position of NAME in FILE-NAME."
-  (let* ((pos-file (with-temp-buffer
-                     (insert-file-contents-literally file-name)
-                     (goto-char (point-min))
-                     (list (search-forward (format "%s" name)) file-name))))
+(defun me-make-elisp-navigation-link (name target)
+  "Make an Elisp Org link that navigates to a position of NAME in TARGET.
+
+TARGET can be a buffer, file or tree node.
+
+; invalidated the test because I didn't store the file
+> (me-make-elisp-navigation-link \"defmacro\" \"/tmp/test.el\")
+> \"[[elisp:(progn (find-file-other-window \\\"/tmp/test.el\\\") (goto-char 441))][defmacro]]\"
+
+> (me-make-elisp-navigation-link \"defmacro\" \"test.el\")
+> \"[[elisp:(progn (switch-to-buffer-other-window \\\"test.el\\\") (goto-char 441))][defmacro]]\"
+
+>> (me-make-elisp-navigation-link \"defmacro\"
+  '(:type symbol
+    :text \"defmacro\"
+    :begin 433
+    :end 441
+    :buffer \"test.el\"
+    :mode emacs-lisp-mode
+    :level 1))
+=> \"[[elisp:(progn (switch-to-buffer-other-window \\\"test.el\\\") (goto-char 433))][defmacro]]\"
+
+>> (me-make-elisp-navigation-link \"defmacro\"
+  '(:type symbol
+    :text \"defmacro\"
+    :begin 433
+    :end 441
+    :buffer \"test.el\"
+    :buffer-file \"/tmp/test.el\"
+    :mode emacs-lisp-mode
+    :level 1))
+=> \"[[elisp:(progn (find-file-other-window \\\"/tmp/test.el\\\") (goto-char 433))][defmacro]]\""
+  (let* ((filep (or (plist-get target :buffer-file) (ignore-errors (file-exists-p target))))
+         (pos-file (if filep
+                       (or
+                        (and (plist-get target :begin) (list (plist-get target :begin) (plist-get target :buffer-file)))
+                        (with-temp-buffer
+                          (insert-file-contents-literally target)
+                          (goto-char (point-min))
+                          (list (search-forward name) target)))
+                     (or
+                      (and (plist-get target :begin) (list (plist-get target :begin) (plist-get target :buffer)))
+                      (save-excursion
+                        (with-current-buffer target
+                          (goto-char (point-min))
+                          (list (search-forward name) target)))))))
     (me-make-elisp-file-link
      name
      (format
-      "(progn (find-file-other-window \"%s\") (goto-char %s))"
+      "(progn (%s \"%s\") (goto-char %s))"
+      (if filep "find-file-other-window" "switch-to-buffer-other-window")
       (nth 1 pos-file)
       (nth 0 pos-file))
      "elisp")))
