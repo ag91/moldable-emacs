@@ -111,10 +111,7 @@ Optionally:
 - ... (check these via the mold "WhatMoldsCanIUse?")
 
 
-*** TODO (Optional) External Dependencies
-:PROPERTIES:
-:CREATED:  [2021-06-23 Wed 00:15]
-:END:
+*** (Optional) External Dependencies
 
 - graph-cli
 - graphviz

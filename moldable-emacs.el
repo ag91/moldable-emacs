@@ -1667,15 +1667,18 @@ FN is a function taking the text of NODE and generating new text."
 
 (defun me-hash-to-plist (hash-table)
   ;; from http://ergoemacs.org/emacs/elisp_hash_table.html (this is a recursive version)
-  "Produce a plist from the HASH-TABLE (recursively)."
+  "Produce a plist from the HASH-TABLE (recursively).
+
+>> (me-hash-to-plist #s(hash-table size 30 data (key1 val1 key2 300)))
+=> (:key1 val1 :key2 300)"
   (let (result)
     (maphash
      (lambda (k v)
-       (push (list (if (stringp k) (intern k) k)
-                   (if (hash-table-p v) (xah-hash-to-list v) v))
+       (push (list (intern (format ":%s" k))
+                   (if (hash-table-p v) (me-hash-to-plist v) v))
              result))
      hash-table)
-    result))
+    (-flatten-n 1 (reverse result))))
 
 (defun me-plist-focus (plist keys)
   "Focus only on KEYS of PLIST.
@@ -1694,9 +1697,7 @@ This is useful for plotting."
 (defun me-get-region ()
   "Get the active region's string."
   (when (region-active-p)
-    (buffer-substring-no-properties
-     (caar (region-bounds))
-     (cdar (region-bounds)))))
+    (substring-no-properties (funcall region-extract-function))))
 
 ;; https://emacs.stackexchange.com/questions/10707/in-org-mode-how-to-remove-a-link
 (defun me-org-replace-link-by-link-description ()
