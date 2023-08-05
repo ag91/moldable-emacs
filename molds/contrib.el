@@ -935,7 +935,7 @@ following in your lein project.clj
                (org-transclusion-remove-all)
                (erase-buffer)
                (--each notes
-                 (insert (format "#+transclude: [[id:%s][%s]]\n\n" (org-roam-node-id it) (org-roam-node-title it))))
+                 (insert (format "#+TRANSCLUDE: [[id:%s][%s]]\n\n" (org-roam-node-id it) (org-roam-node-title it))))
                (org-transclusion-add-all)
                (goto-char (point-min))
                (setq-local self tags-and-notes))))

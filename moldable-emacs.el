@@ -220,7 +220,6 @@ Make sure table is also indented."
 (defun me-insert-org-table (headlines objects)
   "Produce org table of OBJECTS formatting with HEADLINES."
   (me-insert-string-table (me-make-org-table headlines objects)))
-
 (defun me-alist-to-lists-of-plist (alist)
   "Convert ALIST to a `plist'."
   (let ((keys (ignore-errors
@@ -2190,7 +2189,7 @@ NOTE: this does nothing if you don't have org-transclusion installed."
 Note: nil if org-roam is not installed."
   (and (me-require 'org-roam)
        (format
-        "#+transclude: [[id:%s][%s]]\n\n"
+        "#+TRANSCLUDE: [[id:%s][%s]]\n\n"
         (org-roam-node-id (org-roam-backlink-source-node backlink))
         (org-roam-node-title (org-roam-backlink-source-node backlink)))))
 ;; end utilities org ql - org transclusion
@@ -2392,3 +2391,20 @@ Note: nil if org-roam is not installed."
 
 (provide 'moldable-emacs)
 ;;; moldable-emacs.el ends here
+
+(defun me-plist-org-table-to-table-with-headings (&optional org-table-lisp)
+  "Transform a table obtained from a plist (ORG-TABLE-LISP),
+so with keyword entries, into a org table with headings.
+
+>> (me-plist-org-table-to-table-with-headings '((\":a\" \"9\" \":b\" \"8\")))
+=> \"|a|b|
+|9|8|\""
+  (let ((lisp-table (or org-table-lisp (org-table-to-lisp))))
+    (--> lisp-table
+         (--map
+          (--> (-map 'substring-no-properties it)
+               (--remove (s-starts-with-p ":" it) it))
+          it)
+         (cons (--keep (and (s-starts-with-p ":" it) (s-replace ":" "" (substring-no-properties it))) (car lisp-table)) it)
+         (--map (format "|%s|" (s-join "|" it)) it)
+         (s-join "\n" it))))

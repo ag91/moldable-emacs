@@ -1125,3 +1125,18 @@ It specializes for source code."
                (setq-local self api))))
     :docs "You can show (Elisp for now) public API for buffer."
     :examples nil)
+
+
+(me-register-mold
+    :key "PlistOrgTableToOrgTableWithHeadings"
+    :given (:fn (ignore-errors (s-contains-p "::" (symbol-name (caar (me-first-org-table))))))
+    :then (:fn
+           (let* ((tree (org-table-to-lisp))
+                  (new-table (me-plist-org-table-to-table-with-headings)))
+             (with-current-buffer buffername
+               (org-mode)
+               (erase-buffer)
+               (insert new-table)
+               (setq-local self tree))))
+    :docs "You can produce an org table with headings from one obtained from a list of plists."
+    :examples nil)
