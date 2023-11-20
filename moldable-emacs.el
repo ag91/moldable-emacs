@@ -281,27 +281,40 @@ Make sure table is also indented."
        (orgtbl-to-orgtbl it nil)
        (me-org-table-to-flat-plist it)))
 
+(defmacro me-with-org-parent-heading (&rest body)
+  "Execute BODY with narrowing on the upmost parent heading if it exists."
+  `(save-excursion
+     (while (org-up-heading-safe))
+     (ignore-errors (org-narrow-to-subtree))
+     (let ((r__ (progn ,@body)))
+       (widen)
+       r__)))
+
 (defun me-first-org-table (&optional buffer)
   "Find first org table.  Optionally in BUFFER."
   (ignore-errors
     (with-current-buffer (or buffer (current-buffer)) ;; TODO remove org links in table!
-      (save-excursion
-        (re-search-forward org-table-line-regexp nil t)
-        (me-org-tabletolisp-to-plist (org-table-to-lisp))))))
+      (me-with-org-parent-heading
+       (re-search-forward org-table-line-regexp nil t)
+       (me-org-tabletolisp-to-plist (org-table-to-lisp))))))
 
-(defun me-all-flat-org-tables (&optional buffer)
-  "Find first org table.  Optionally in BUFFER."
+(defun me-all-flat-org-tables (&optional buffer whole-buffer)
+  "Find org tables within current headline or in whole buffer if no headline found.
+Optionally in input BUFFER. Search in WHOLE-BUFFER, if t."
   (ignore-errors
     (with-current-buffer (or buffer (current-buffer)) ;; TODO remove org links in table!
-      (save-excursion
-        (let (result)
-          (while (and
-                  (re-search-forward org-table-line-regexp nil t)
-                  (goto-char (- (org-table-end) 1)))
-            (setq result
-                  (cons (me-org-tabletolisp-to-plist (org-table-to-lisp))
-                        result)))
-          result)))))
+      (me-with-org-parent-heading
+       (when whole-buffer
+         (goto-char 0)
+         (widen))
+       (let (result)
+         (while (and
+                 (re-search-forward org-table-line-regexp nil t)
+                 (goto-char (- (org-table-end) 1)))
+           (setq result
+                 (cons (me-org-tabletolisp-to-plist (org-table-to-lisp))
+                       result)))
+         result)))))
 
 (defun me-types (tree)
   "List types in current syntax TREE.
