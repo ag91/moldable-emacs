@@ -220,8 +220,38 @@ Make sure table is also indented."
 (defun me-insert-org-table (headlines objects)
   "Produce org table of OBJECTS formatting with HEADLINES."
   (me-insert-string-table (me-make-org-table headlines objects)))
-(defun me-alist-to-lists-of-plist (alist)
-  "Convert ALIST to a `plist'."
+
+(defun me-alist-to-plist (alist)
+  "Convert ALIST to a `plist'.
+>> (me-alist-to-plist '((a . 1) (b . 2)))
+=> (:a 1 :b 2)
+
+>> (me-alist-to-plist '((:a . 1) (:b . 2)))
+=> (:a 1 :b 2)
+
+>> (me-alist-to-plist '((\"a\" . 1) (\"b\" . 2)))
+=> (:a 1 :b 2)"
+  (when (-every? #'consp alist)
+    (-flatten
+     (--map
+      (list
+       (intern
+        (s-replace
+         "\""
+         ""
+         (let ((key (prin1-to-string (car it))))
+
+           (if (s-starts-with-p ":" key)
+               key
+             (concat ":" key)))))
+       (cdr it))
+      alist))))
+
+(defun org-table-as-alist-to-plist (alist)
+  "Convert ALIST to a `plist'.
+>> (org-table-as-alist-to-plist '((\"a\" \"1\") (\"b\" \"2\") (\"c\" \"3\")))
+=> ((:a \"1\" :b \"2\" :c \"3\"))
+"
   (let ((keys (ignore-errors
                 (and (= (length (car alist)) (length (-filter #'stringp (car alist))))
                      (--map (intern (concat ":" it)) (car alist))))))
@@ -229,6 +259,8 @@ Make sure table is also indented."
         (--map (-flatten (-zip-lists keys it)) (cdr alist))
       alist)))
 
+(let ((alist '(("a" "b"))))
+  (= (length (car alist)) (length (-filter #'stringp (car alist)))))
 
 (defun me-org-table-to-plist (table-string)
   "Make TABLE-STRING a plist.

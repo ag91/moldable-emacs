@@ -179,8 +179,8 @@ This is a more focused view than `CodeToTree.'")
                     (--all? (equal (-filter #'symbolp (car l)) (-filter #'symbolp it)) l)))))
     :then (:fn
            (let* ((list (if (ignore-errors (length (car l)))
-                            (me-alist-to-lists-of-plist l)
-                          (me-alist-to-lists-of-plist (-map #'-cons-to-list l)))))
+                            (org-table-as-alist-to-plist l)
+                          (org-table-as-alist-to-plist (-map #'-cons-to-list l)))))
              (with-current-buffer buffername
                (org-mode)
                (erase-buffer)
