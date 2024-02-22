@@ -526,19 +526,26 @@ It specializes for source code."
 
 (me-register-mold
     :key "JsonAsPlist"
-    :given (:fn (eq major-mode 'json-mode)) ;; TODO or region contains json
+    :let ((json
+           (ignore-errors
+             (let ((region (if (region-active-p)
+                               (substring-no-properties (funcall region-extract-function))
+                             (buffer-string))) ;; TODO not sure if this is a good idea performance-wise
+                   (json-object-type 'plist)
+                   (json-array-type 'list))
+               (with-temp-buffer
+                 (insert region)
+                 (goto-char (point-min))
+                 (json-read))
+               ))))
+    :given (:fn (and
+                 json))
     :then (:fn
-           (let ((json
-                  (save-excursion
-                    (let ((json-object-type 'plist)
-                          (json-array-type 'list))
-                      (goto-char (point-min))
-                      (json-read)))))
-             (with-current-buffer buffername
-               (erase-buffer)
-               (emacs-lisp-mode)
-               (me-print-to-buffer json)
-               (setq-local self json)))))
+           (with-current-buffer buffername
+             (erase-buffer)
+             (emacs-lisp-mode)
+             (me-print-to-buffer json)
+             (setq-local self json))))
 
 (me-register-mold
     :key "PlistToJson"
