@@ -247,9 +247,10 @@ Make sure table is also indented."
        (cdr it))
       alist))))
 
-(defun org-table-as-alist-to-plist (alist)
+
+(defun me-org-table-as-alist-to-plist (alist)
   "Convert ALIST to a `plist'.
->> (org-table-as-alist-to-plist '((\"a\" \"1\") (\"b\" \"2\") (\"c\" \"3\")))
+>> (me-org-table-as-alist-to-plist '((\"a\" \"b\" \"c\") (\"1\" \"2\" \"3\")))
 => ((:a \"1\" :b \"2\" :c \"3\"))
 "
   (let ((keys (ignore-errors
@@ -259,8 +260,22 @@ Make sure table is also indented."
         (--map (-flatten (-zip-lists keys it)) (cdr alist))
       alist)))
 
-(let ((alist '(("a" "b"))))
-  (= (length (car alist)) (length (-filter #'stringp (car alist)))))
+(defun me-plist-org-table-to-table-with-headings (&optional org-table-lisp)
+  "Transform a table obtained from a plist (ORG-TABLE-LISP),
+so with keyword entries, into a org table with headings.
+
+>> (me-plist-org-table-to-table-with-headings '((\":a\" \"9\" \":b\" \"8\")))
+=> \"|a|b|
+|9|8|\""
+  (let ((lisp-table (or org-table-lisp (org-table-to-lisp))))
+    (--> lisp-table
+         (--map
+          (--> (-map 'substring-no-properties it)
+               (--remove (s-starts-with-p ":" it) it))
+          it)
+         (cons (--keep (and (s-starts-with-p ":" it) (s-replace ":" "" (substring-no-properties it))) (car lisp-table)) it)
+         (--map (format "|%s|" (s-join "|" it)) it)
+         (s-join "\n" it))))
 
 (defun me-org-table-to-plist (table-string)
   "Make TABLE-STRING a plist.
@@ -2078,27 +2093,6 @@ Optionally provide DEPTH to define the number of additions asterisks to prepend 
     :description)
    (format "[[elisp:(browse-web \"%s %s\")][Search for description]]" language type)))
 
-(defun me-csv-buffer-to-plist ()
-  "Turn CSV buffer in a list of plists."
-  (let* ((separator (--> (thing-at-point 'line t)
-                         (list (list "," (length (s-split "," it)))
-                               (list ";" (length (s-split ";" it)))
-                               (list "\t" (length (s-split "\t" it))))
-                         (--max-by (> (nth 1 it) (nth 1 other)) it)
-                         car))
-         (keys (--> (thing-at-point 'line t)
-                    (s-split separator it) ;; TODO splitting doesn't take in account of "bla , lol",123 entries
-                    (--map (intern (concat ":" (s-replace "\"" "" (s-trim it)))) it)))
-         (plist nil)
-         (_ (while (ignore-errors (not (next-logical-line)))
-              (--> (thing-at-point 'line t)
-                   (s-split separator it) ;; TODO splitting doesn't take in account of "bla , lol",123 entries
-                   (-map #'s-trim it)
-                   (-zip-lists keys it)
-                   -flatten
-                   (setq plist (cons it plist))))))
-    plist))
-
 (defun me-plist-to-csv-string (plist)
   "Make PLIST into a CSV string."
   (let ((keys (me-keys (car plist))))
@@ -2436,20 +2430,3 @@ Note: nil if org-roam is not installed."
 
 (provide 'moldable-emacs)
 ;;; moldable-emacs.el ends here
-
-(defun me-plist-org-table-to-table-with-headings (&optional org-table-lisp)
-  "Transform a table obtained from a plist (ORG-TABLE-LISP),
-so with keyword entries, into a org table with headings.
-
->> (me-plist-org-table-to-table-with-headings '((\":a\" \"9\" \":b\" \"8\")))
-=> \"|a|b|
-|9|8|\""
-  (let ((lisp-table (or org-table-lisp (org-table-to-lisp))))
-    (--> lisp-table
-         (--map
-          (--> (-map 'substring-no-properties it)
-               (--remove (s-starts-with-p ":" it) it))
-          it)
-         (cons (--keep (and (s-starts-with-p ":" it) (s-replace ":" "" (substring-no-properties it))) (car lisp-table)) it)
-         (--map (format "|%s|" (s-join "|" it)) it)
-         (s-join "\n" it))))

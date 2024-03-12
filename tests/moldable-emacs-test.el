@@ -3,13 +3,13 @@
 (require 'tree-sitter)
 
 
-(ert-deftest org-table-as-alist-to-plist_convert-alist-to-plist ()
+(ert-deftest me-org-table-as-alist-to-plist_convert-alist-to-plist ()
   (should
-   (equal (org-table-as-alist-to-plist '(("A" "b") (1 2) (3 4))) '((:A 1 :b 2) (:A 3 :b 4)))))
+   (equal (me-org-table-as-alist-to-plist '(("A" "b") (1 2) (3 4))) '((:A 1 :b 2) (:A 3 :b 4)))))
 
-;; (ert-deftest org-table-as-alist-to-plist_convert-alist-to-plist+1 ()
+;; (ert-deftest me-org-table-as-alist-to-plist_convert-alist-to-plist+1 ()
 ;;   (should
-;;    (equal (org-table-as-alist-to-plist '(("A" . "b") (1 . 2) (3 . 4))) '((:A 1 :b 2) (:A 3 :b 4)))))
+;;    (equal (me-org-table-as-alist-to-plist '(("A" . "b") (1 . 2) (3 . 4))) '((:A 1 :b 2) (:A 3 :b 4)))))
 
 (ert-deftest me--given_valid-with-buffer ()
   (should

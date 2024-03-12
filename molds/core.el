@@ -179,8 +179,8 @@ This is a more focused view than `CodeToTree.'")
                     (--all? (equal (-filter #'symbolp (car l)) (-filter #'symbolp it)) l)))))
     :then (:fn
            (let* ((list (if (ignore-errors (length (car l)))
-                            (org-table-as-alist-to-plist l)
-                          (org-table-as-alist-to-plist (-map #'-cons-to-list l)))))
+                            (me-org-table-as-alist-to-plist l)
+                          (me-org-table-as-alist-to-plist (-map #'-cons-to-list l)))))
              (with-current-buffer buffername
                (org-mode)
                (erase-buffer)
@@ -222,14 +222,16 @@ This is a more focused view than `CodeToTree.'")
     :docs "You can make a plist into a CSV."
     :examples nil)
 
-
 (me-register-mold
     :key "CSVtoPlist"
-    :given (:fn (and (me-require 'csv-mode) (eq major-mode 'csv-mode)))
+    :given (:fn (and (me-require 'csv-mode)
+                     (me-require 'pcsv)
+                     (eq major-mode 'csv-mode)))
     :then (:fn
            (save-excursion
              (goto-char (point-min))
-             (let* ((plist (me-csv-buffer-to-plist)))
+             (let* ((plist (--> (pcsv-parse-buffer)
+                                (me-org-table-as-alist-to-plist it))))
                (with-current-buffer buffername
                  (emacs-lisp-mode)
                  (erase-buffer)
