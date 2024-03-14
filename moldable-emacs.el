@@ -65,8 +65,41 @@
   "Load molds from `me-files-with-molds'."
   (-each me-files-with-molds #'load-file))
 
+(defun me-plistp (list)
+  "Tell if LIST is a property list.
+>> (me-plistp '(:a 1 :b 2))
+=> t
+
+>> (me-plistp '(:a 1 :b))
+=> nil
+
+>> (me-plistp '(1))
+=> nil"
+  (let ((evenp (lambda (x) (= 0 (mod x 2))))
+        (all-keys t))
+    (and
+     (listp list)
+     (funcall evenp (length list))
+     (= (/ (length list) 2)
+        (length
+         (--keep
+          (and
+           (funcall evenp it-index)
+           (setq
+            all-keys
+            (and
+             all-keys
+             (symbolp it)
+             (s-starts-with-p
+              ":"
+              (symbol-name it))))
+           it)
+          list))
+        )
+     all-keys)))
+
 (defun me-get-in (plist keys)
-  "Navigate PLIST's KEYS in sequence.
+"Navigate PLIST's KEYS in sequence.
 For example, (me-get-in '(:a (:b (:c 1))) '(:a :b :c)) yields 1.
 
 >> (me-get-in '(:a (:b 1)) '(:a :b))
@@ -77,16 +110,16 @@ For example, (me-get-in '(:a (:b (:c 1))) '(:a :b :c)) yields 1.
 
 >> (me-get-in '((a . ((b . 1)))) '(a b))
 => 1"
-  (let ((access
-         (lambda (key list) (if (plistp plist)
-                                (plist-get list key)
-                              (alist-get key list)))))
-    (--reduce-from
-     (if (numberp it)
-         (nth it acc)
-       (funcall access it acc))
-     plist
-     keys)))
+(let ((access
+       (lambda (key list) (if (me-plistp plist)
+                              (plist-get list key)
+                            (alist-get key list)))))
+  (--reduce-from
+   (if (numberp it)
+       (nth it acc)
+     (funcall access it acc))
+   plist
+   keys)))
 
 (defmacro me-with-file (file &rest body)
   "Open FILE, execute BODY close FILE if it was not already open."
