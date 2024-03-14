@@ -67,29 +67,26 @@
 
 (defun me-get-in (plist keys)
   "Navigate PLIST's KEYS in sequence.
-For example, (me-get-in '(:a (:b (:c 1))) '(:a :b :c)) yields 1."
-  (ignore-errors
+For example, (me-get-in '(:a (:b (:c 1))) '(:a :b :c)) yields 1.
+
+>> (me-get-in '(:a (:b 1)) '(:a :b))
+=> 1
+
+>> (me-get-in '(:a (:b 1)) '(1 :b))
+=> 1
+
+>> (me-get-in '((a . ((b . 1)))) '(a b))
+=> 1"
+  (let ((access
+         (lambda (key list) (if (plistp plist)
+                                (plist-get list key)
+                              (alist-get key list)))))
     (--reduce-from
      (if (numberp it)
          (nth it acc)
-       (plist-get acc it))
+       (funcall access it acc))
      plist
      keys)))
-
-;; (me-get-in '(:a (1 2 (:b result))) '(:a 2 :b))
-
-(defun me-alist-get-in (alist keys)
-  "Navigate an ALIST via KEYS.
-Numbers in SYMBOLS are considered indeces of sequences."
-  (ignore-errors
-    (--reduce-from
-     (if (numberp it)
-         (nth it acc)
-       (alist-get it acc))
-     alist
-     keys)))
-
-;; (me-alist-get-in '((a . (1 2 3 ((c . result))))) '(a 3 c))
 
 (defmacro me-with-file (file &rest body)
   "Open FILE, execute BODY close FILE if it was not already open."
@@ -187,7 +184,13 @@ Optionally define a POLL-TIME to look for results and a TIMEOUT to fail."
     (pp-display-expression object (or buffer (current-buffer)))))
 
 (defun me-make-org-table (headlines objects)
-  "Make an Org Table with OBJECTS formats and HEADLINES."
+  "Make an Org Table with OBJECTS formats and HEADLINES.
+
+>> (me-make-org-table '((\"a\" . (:extractor identity)) (\"b\" . (:extractor identity :handler (lambda (x) (concat x \"hi\"))))) '(\"1\" \"2\"))
+=> \"| a | b |
+|--+--|
+| 1 | 1hi |
+| 2 | 2hi |\""
   (concat
    (concat "| " (s-join " | " (-map #'car headlines))  " |\n")
    (concat "|-" (format (s-repeat (- (length headlines) 1) "-+-")) "-|\n")
@@ -251,8 +254,7 @@ Make sure table is also indented."
 (defun me-org-table-as-alist-to-plist (alist)
   "Convert ALIST to a `plist'.
 >> (me-org-table-as-alist-to-plist '((\"a\" \"b\" \"c\") (\"1\" \"2\" \"3\")))
-=> ((:a \"1\" :b \"2\" :c \"3\"))
-"
+=> ((:a \"1\" :b \"2\" :c \"3\"))"
   (let ((keys (ignore-errors
                 (and (= (length (car alist)) (length (-filter #'stringp (car alist))))
                      (--map (intern (concat ":" it)) (car alist))))))
@@ -381,7 +383,10 @@ Optionally in input BUFFER. Search in WHOLE-BUFFER, if t."
     (--filter (eq (plist-get it :type) type) tree)))
 
 (defun me-by-types (types tree)
-  "Filter TREE entries by any of the TYPES."
+  "Filter TREE entries by any of the TYPES.
+
+>> (me-by-types '(a b) '((:type a :text \"hi\") (:type b)))
+=> ((:type a :text \"hi\") (:type b))"
   (--filter (-contains? types (plist-get it :type)) tree))
 
 (defun me-count-by-key (key list)
@@ -437,7 +442,9 @@ Optionally start from NODE."
 
 (defun me-extension-to-major-mode (extension)
   "Find `major-mode' for EXTENSION.
-For example: \".scala\" => scala-mode."
+
+>> (me-extension-to-major-mode \".el\")
+=> emacs-lisp-mode"
   (cdr (--find (s-match (car it) extension) auto-mode-alist)))
 
 (defun me-major-mode-to-tree-sitter-grammar (major-mode)
