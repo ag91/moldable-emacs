@@ -2138,7 +2138,7 @@ Optionally provide DEPTH to define the number of additions asterisks to prepend 
   (let ((keys (me-keys (car plist))))
     (concat
      ;; header
-     (s-join "," (--map (s-drop 1 (symbol-name it)) keys))
+     (s-join "," (--map (s-chop-left 1 (symbol-name it)) keys))
      ;; entries
      "\n"
      (--> plist

@@ -254,3 +254,10 @@ some new contents
                 (list :example (plist-get it :name) :success t :issues nil)
                 (plist-get mold :examples)))
              molds-with-examples)))))
+
+(ert-deftest me-plist-to-csv-string_returns-csv ()
+  (should
+   (string= (me-plist-to-csv-string '((:a "1" :b "2") (:a "3" :b "4")))
+            "a,b
+1,2
+3,4")))
