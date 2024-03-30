@@ -165,12 +165,12 @@ Optionally define a POLL-TIME to look for results and a TIMEOUT to fail."
   (let* ((start (current-time))
          (futures (mapcar
                    (lambda (el)
-                     (async-start `(lambda ()
-                                     (setq load-path ',load-path)
-                                     (funcall ,fn ,el))))
+                     (async-start (lambda ()
+                                     (setq load-path load-path)
+                                     (funcall fn el))))
                    els))
          (too-late-p
-          `(lambda () (>= (time-to-seconds (time-since ',start)) (or ,timeout 300)))))
+          (lambda () (>= (time-to-seconds (time-since start)) (or timeout 300)))))
     (me-async-map--finish
      futures
      (or post-fn (lambda (results)
