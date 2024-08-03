@@ -375,10 +375,11 @@ so with keyword entries, into a org table with headings.
 (defun me-first-org-table (&optional buffer)
   "Find first org table.  Optionally in BUFFER."
   (ignore-errors
-    (with-current-buffer (or buffer (current-buffer)) ;; TODO remove org links in table!
-      (me-with-org-parent-heading
-       (re-search-forward org-table-line-regexp nil t)
-       (me-org-tabletolisp-to-plist (org-table-to-lisp))))))
+    (when (equal major-mode 'org-mode)
+      (with-current-buffer (or buffer (current-buffer)) ;; TODO remove org links in table!
+        (me-with-org-parent-heading
+         (re-search-forward org-table-line-regexp nil t)
+         (me-org-tabletolisp-to-plist (org-table-to-lisp)))))))
 
 (defun me-all-flat-org-tables (&optional buffer whole-buffer)
   "Find org tables within current headline or in whole buffer if no headline found.

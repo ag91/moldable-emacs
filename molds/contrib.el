@@ -821,6 +821,7 @@ following in your lein project.clj
 (me-register-mold
     :key "Backlinks as Org"
     :given (:fn (and
+                 (equal major-mode 'org-mode)
                  (me-require 'org-roam)
                  (org-roam-node-p (org-roam-node-at-point))))
     :then (:fn
@@ -840,6 +841,7 @@ following in your lein project.clj
 (me-register-mold
     :key "Backlinks as Org With transclusion"
     :given (:fn (and
+                 (equal major-mode 'org-mode)
                  (me-require 'org-roam)
                  (me-require 'org-transclusion)
                  (org-roam-node-p (org-roam-node-at-point))))
@@ -856,6 +858,7 @@ following in your lein project.clj
 (me-register-mold
     :key "Deep Backlinks as Org"
     :given (:fn (and
+                 (equal major-mode 'org-mode)
                  (me-require 'org-roam)
                  (org-roam-node-p (org-roam-node-at-point))))
     :then (:fn
