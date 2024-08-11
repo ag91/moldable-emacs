@@ -1025,6 +1025,13 @@ It specializes for source code."
                (emacs-lisp-mode)
                (erase-buffer)
                (me-print-to-buffer stats)
+               (me-override-keybiding-in-buffer
+                (kbd "C-c C-o")
+                '(lambda ()
+                   (interactive)
+                   (let ((entry (read (when-let ((line (thing-at-point 'line))) (and (s-starts-with-p "(:mold" (s-trim line)) line)))))
+                     (message "xxxx %s" (list entry (plist-get entry :mold)))
+                     (me-goto-mold-source (plist-get entry :mold)))))
                (setq-local self stats))))
     :docs "You can see how long did the mold take to evaluate the given clause."
     :examples nil)
@@ -1102,6 +1109,7 @@ It specializes for source code."
 (me-register-mold
     :key "ShowElispAPI"
     :given (:fn (ignore-errors (and
+                                nil ;; didn't find this useful, I will delete it later
                                 (equal major-mode 'emacs-lisp-mode)
                                 (me-mold-treesitter-to-parse-tree))))
     :then (:fn

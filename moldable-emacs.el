@@ -99,7 +99,7 @@
      all-keys)))
 
 (defun me-get-in (plist keys)
-"Navigate PLIST's KEYS in sequence.
+  "Navigate PLIST's KEYS in sequence.
 For example, (me-get-in '(:a (:b (:c 1))) '(:a :b :c)) yields 1.
 
 >> (me-get-in '(:a (:b 1)) '(:a :b))
@@ -109,17 +109,22 @@ For example, (me-get-in '(:a (:b (:c 1))) '(:a :b :c)) yields 1.
 => 1
 
 >> (me-get-in '((a . ((b . 1)))) '(a b))
-=> 1"
-(let ((access
-       (lambda (key list) (if (me-plistp plist)
-                              (plist-get list key)
-                            (alist-get key list)))))
-  (--reduce-from
-   (if (numberp it)
-       (nth it acc)
-     (funcall access it acc))
-   plist
-   keys)))
+=> 1
+
+>> (me-get-in '(:a (1 2 3)) '(:a))
+=> (1 2 3)
+"
+  (let ((access
+         (lambda (key list)
+           (if (me-plistp plist)
+               (plist-get list key)
+             (alist-get key list)))))
+    (--reduce-from
+     (if (numberp it)
+         (nth it acc)
+       (funcall access it acc))
+     plist
+     keys)))
 
 (defmacro me-with-file (file &rest body)
   "Open FILE, execute BODY close FILE if it was not already open."
@@ -2019,24 +2024,21 @@ This stores the original screen configuration in the `m' register."
 (defun me-goto-mold-source (mold)
   "Go to source code of MOLD."
   (interactive
-   (list nil))
-  (let* ((molds me-available-molds)
-         (keys (--map (plist-get it :key) molds))
-         (picked-mold (or mold
-                          (completing-read
-                           "Pick the mold you need:"
-                           keys))))
-    (--> picked-mold
-         (-find
-          (lambda (x)
-            (string=
-             (plist-get x :key)
-             it))
-          molds)
-         (plist-get it :origin)
-         (find-file it))
-    (goto-char (point-min))
-    (search-forward picked-mold)))
+   (list
+    (completing-read
+     "Pick the mold you need:"
+     (--map (plist-get it :key) me-available-molds))))
+  (--> mold
+       (-find
+        (lambda (x)
+          (string=
+           (plist-get x :key)
+           it))
+        me-available-molds)
+       (plist-get it :origin)
+       (find-file it))
+  (goto-char (point-min))
+  (search-forward mold))
 
 (defun me-org-roam-backlinks-contents (node &optional depth)
   "Collect NODE backlink contents.
