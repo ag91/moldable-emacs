@@ -1702,32 +1702,16 @@ NIL if not there."
         (buffer (plist-get node :buffer))
         (file (plist-get node :buffer-file)))
     (with-current-buffer buffer
-      (delete-region begin end))
-    ;; (if file
-    ;;     (me-with-file file (delete-region begin end)))
-    ;; (when (and buffer (get-buffer buffer))
-    ;;   (with-current-buffer buffer
-    ;;     (delete-region begin end)))
-    ))
+      (delete-region begin end))))
 
 (defun me-add-node (node)
   "Add NODE to :buffer or :buffer-file using its :begin position as an anchor."
   (let ((begin (plist-get node :begin))
         (text (plist-get node :text))
-        (buffer (plist-get node :buffer))
-        (file (plist-get node :buffer-file)))
+        (buffer (plist-get node :buffer)))
     (with-current-buffer buffer
       (goto-char begin)
-      (insert text))
-    ;; (if file
-    ;;     (me-with-file
-    ;;      (goto-char begin)
-    ;;      (insert text))
-    ;;   (when (and buffer (get-buffer buffer))
-    ;;     (with-current-buffer buffer
-    ;;       (goto-char begin)
-    ;;       (insert text))))
-    ))
+      (insert text))))
 
 (defun me-change-node (transition)
   "Run a TRANSITION to change a node.  This must contain a :before and an :after node."
@@ -1953,9 +1937,21 @@ Optionally filter for files with FILE-EXTENSION."
    ((lambda (x) (concat (substring x 0 3) ":" (substring x 3 5)))
     (format-time-string "%z" time))))
 
-(defun me-keys (plist)
-  "Return keys of PLIST."
-  (--filter (and (symbolp it) (s-starts-with-p ":" (symbol-name it))) plist))
+(defun me-keys (map)
+  "Return keys of PLIST and ALIST.
+
+>> (me-keys '((a . 1) (b . 2)))
+=> (a b)
+
+>> (me-keys '(:a 1 :b 2))
+=> (:a :b)
+
+>> (let* ((h (make-hash-table)) (_ (puthash :a 1 h)) (_ (puthash :b 2 h))) (me-keys h))
+=> (:b :a)"
+  (cond
+   ((hash-table-p map) (hash-table-keys map))
+   ((me-plistp map) (--filter (and (symbolp it) (s-starts-with-p ":" (symbol-name it))) map))
+   (t (-map 'car map))))
 
 (defun me-select-keys (plist keys)
   "Select subset of KEYS from PLIST.
