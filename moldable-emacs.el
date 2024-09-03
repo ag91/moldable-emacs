@@ -372,10 +372,15 @@ so with keyword entries, into a org table with headings.
   "Execute BODY with narrowing on the upmost parent heading if it exists."
   `(save-excursion
      (while (org-up-heading-safe))
-     (ignore-errors (org-narrow-to-subtree))
-     (let ((r__ (progn ,@body)))
-       (widen)
-       r__)))
+     (with-demoted-errors (org-narrow-to-subtree))
+     (condition-case err
+         (let ((r__ (progn ,@body)))
+           (widen)
+           r__)
+       (error
+        (widen)
+        (error err)))
+     ))
 
 (defun me-first-org-table (&optional buffer)
   "Find first org table.  Optionally in BUFFER."
