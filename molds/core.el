@@ -1157,3 +1157,30 @@ It specializes for source code."
                (setq-local self tree))))
     :docs "You can produce an org table with headings from one obtained from a list of plists."
     :examples nil)
+
+(me-register-mold
+    :key "RegionToCodeTree"
+    :given (:fn (region-active-p))
+    :then (:fn
+           (let* ((filename (read-file-name
+                             "Store in" "/tmp/"
+                             nil
+                             nil
+                             (concat "/tmp/moldable-emacs-"
+                                     (with-temp-buffer
+                                       (uuidgen t)
+                                       (s-trim (buffer-string)))
+                                     ".")))
+                  (selection (me-get-region))
+                  (_ (with-temp-file filename
+                       (insert selection)))
+                  (tree (me-with-file filename
+                          (me-mold-treesitter-to-parse-tree))))
+             (with-current-buffer buffername
+               (emacs-lisp-mode)
+               (erase-buffer)
+               (me-print-to-buffer tree)
+               (setq-local self tree))
+             ))
+    :docs "You can turn a region to a code tree."
+    :examples nil)

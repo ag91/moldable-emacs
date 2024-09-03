@@ -1891,8 +1891,8 @@ Optionally filter for files with FILE-EXTENSION."
         (let ((filename (let ((default-directory dir)) (expand-file-name it))))
           (or
            (ignore-errors (me-filepath-to-flattened-tree filename)) ; sometimes there is an encoding issue with this that I can fix me-mold-treesitter-to-parse-tree
-           (ignore-errors (with-file filename
-                                     (me-mold-treesitter-to-parse-tree)))))
+           (ignore-errors (me-with-file filename
+                            (me-mold-treesitter-to-parse-tree)))))
         it)))
 
 (defun me-project-to-flattened-nodes (dir &optional file-extension)
