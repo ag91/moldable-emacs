@@ -433,6 +433,13 @@ Optionally in input BUFFER. Search in WHOLE-BUFFER, if t."
 => ((:type a :text \"hi\") (:type b))"
   (--filter (-contains? types (plist-get it :type)) tree))
 
+(defun me-by-node-text (pred tree)
+  "Filter TREE entries by a PRED on node text.
+
+>> (me-by-node-text (lambda (it) (equal \"hi\" it)) '((:type a :text \"hi\") (:type b)))
+=> ((:type a :text \"hi\"))"
+  (--filter (funcall pred (plist-get it :text)) tree))
+
 (defun me-count-by-key (key list)
   "Group LIST by KEY and count groups.
 
