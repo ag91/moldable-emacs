@@ -249,13 +249,13 @@ following in your lein project.clj
               ;; ignore files over 8kb
               (<= (/ (buffer-size) 1024) 800)
               ;; calculating complexities may take 4 secs on certain files, so we just look for functions
-              (me-extract-functions (me-mold-treesitter-to-parse-tree))))
+              (me-extract-functions (me-to-parse-tree))))
  :when (:fn
         (me-file-updated-last-1-sec-p (buffer-file-name)))
  :then (:fn
         (let ((complexities
                (ignore-errors (me-functions-complexity
-                               (me-mold-treesitter-to-parse-tree)
+                               (me-to-parse-tree)
                                #'code-compass-calculate-complexity-stats))))
           (with-current-buffer buffername
             (erase-buffer)

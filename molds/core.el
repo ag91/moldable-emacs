@@ -1,39 +1,39 @@
 (defvar me-playground-self nil "With this you can inject self in the Playground mold.")
 
 (me-register-mold
-    :key "Playground"
-    :given (:fn 't)
-    :then (:fn
-           (let ((region (me-get-region))
-                 (tree (or
-                        me-playground-self
-                        (ignore-errors self)
-                        (ignore-errors
-                          (me-mold-treesitter-to-parse-tree))
-                        (ignore-errors (me-org-to-flatten-tree (current-buffer)))
-                        (ignore-errors
-                          (save-excursion
-                            (goto-char (point-min))
-                            (eval `',(read (current-buffer))))))))
-             (with-current-buffer buffername
-               (emacs-lisp-mode)
-               (auto-save-mode)
-               (erase-buffer)
-               (insert ";; Tips:\n;;    Use `self' to access the mold context.\n;;    You can access the previous mold context through `mold-data'.\n\n")
-               (when region
-                 (insert (format "(--> \"%s\"\n)" (replace-regexp-in-string "\"" "\\\\\"" region))))
-               (goto-char (point-max))
-               (setq-local self tree))))
-    ;; TODO experimental for auto-completion: how can I make molds easy to autocomplete?
-    :actions (me-by-type identity)
-    :docs "You can write any Elisp here.
+ :key "Playground"
+ :given (:fn 't)
+ :then (:fn
+        (let ((region (me-get-region))
+              (tree (or
+                     me-playground-self
+                     (ignore-errors self)
+                     (ignore-errors
+                       (me-to-parse-tree))
+                     (ignore-errors (me-org-to-flatten-tree (current-buffer)))
+                     (ignore-errors
+                       (save-excursion
+                         (goto-char (point-min))
+                         (eval `',(read (current-buffer))))))))
+          (with-current-buffer buffername
+            (emacs-lisp-mode)
+            (auto-save-mode)
+            (erase-buffer)
+            (insert ";; Tips:\n;;    Use `self' to access the mold context.\n;;    You can access the previous mold context through `mold-data'.\n\n")
+            (when region
+              (insert (format "(--> \"%s\"\n)" (replace-regexp-in-string "\"" "\\\\\"" region))))
+            (goto-char (point-max))
+            (setq-local self tree))))
+ ;; TODO experimental for auto-completion: how can I make molds easy to autocomplete?
+ :actions (me-by-type identity)
+ :docs "You can write any Elisp here.
 Then you can evaluate with `EvalSexp'.
 This mold saves structured data of the previous buffer
 in the local variable `self'."
-    :examples ((
-                :name "Empty file"
-                :given (:type file :name "/tmp/test.txt" :mode text-mode :contents "")
-                :then (:type buffer :name "Playground" :mode emacs-lisp-mode :contents ";; Tips:
+ :examples ((
+             :name "Empty file"
+             :given (:type file :name "/tmp/test.txt" :mode text-mode :contents "")
+             :then (:type buffer :name "Playground" :mode emacs-lisp-mode :contents ";; Tips:
 ;;    Use `self' to access the mold context.
 ;;    You can access the previous mold context through `mold-data'.
 
@@ -123,41 +123,41 @@ Useful to run Elisp on the fly without a Playground."
     :examples nil)
 
 (me-register-mold
-    :key "CodeAsTree"
-    :given (:fn (and
-                 (me-require 'tree-sitter)
-                 (bound-and-true-p tree-sitter-mode)))
-    :then (:fn
-           (let* ((tree (me-mold-treesitter-to-parse-tree)))
-             (with-current-buffer buffername
-               (erase-buffer)
-               (emacs-lisp-mode)
-               (me-print-to-buffer tree)
-               (setq-local self tree))))
-    :docs "You get a flattened tree of all parsed elements.
+ :key "CodeAsTree"
+ :given (:fn (and
+              (me-require 'tree-sitter)
+              (bound-and-true-p tree-sitter-mode)))
+ :then (:fn
+        (let* ((tree (me-to-parse-tree)))
+          (with-current-buffer buffername
+            (erase-buffer)
+            (emacs-lisp-mode)
+            (me-print-to-buffer tree)
+            (setq-local self tree))))
+ :docs "You get a flattened tree of all parsed elements.
 You can transform this to extract information with the Playground mold."
-    :examples ((
-                :name "JSON to code flattened tree"
-                :given
-                (:type file :name "/tmp/test.json" :mode json-mode :contents "{\n  \"a\": 1,\n  \"b\": [1,2]\n}\n")
-                :then
-                (:type buffer :name "CodeAsTree" :mode emacs-lisp-mode :contents "((:type object :text \"{\\n  \\\"a\\\": 1,\\n  \\\"b\\\": [1,2]\\n}\" :begin 1 :end 27 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"{\" :text \"{\" :begin 1 :end 2 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type pair :text \"\\\"a\\\": 1\" :begin 5 :end 11 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type string :text \"\\\"a\\\"\" :begin 5 :end 8 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 5 :end 6 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type string_content :text \"a\" :begin 6 :end 7 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 7 :end 8 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \":\" :text \":\" :begin 8 :end 9 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type number :text \"1\" :begin 10 :end 11 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \",\" :text \",\" :begin 11 :end 12 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type pair :text \"\\\"b\\\": [1,2]\" :begin 15 :end 25 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type string :text \"\\\"b\\\"\" :begin 15 :end 18 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 15 :end 16 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type string_content :text \"b\" :begin 16 :end 17 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 17 :end 18 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \":\" :text \":\" :begin 18 :end 19 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type array :text \"[1,2]\" :begin 20 :end 25 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"[\" :text \"[\" :begin 20 :end 21 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type number :text \"1\" :begin 21 :end 22 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \",\" :text \",\" :begin 22 :end 23 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type number :text \"2\" :begin 23 :end 24 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"]\" :text \"]\" :begin 24 :end 25 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"}\" :text \"}\" :begin 26 :end 27 :buffer \"test.json\" :buffer-file \"/tmp/test.json\"))\n"))
-               ))
+ :examples ((
+             :name "JSON to code flattened tree"
+             :given
+             (:type file :name "/tmp/test.json" :mode json-mode :contents "{\n  \"a\": 1,\n  \"b\": [1,2]\n}\n")
+             :then
+             (:type buffer :name "CodeAsTree" :mode emacs-lisp-mode :contents "((:type object :text \"{\\n  \\\"a\\\": 1,\\n  \\\"b\\\": [1,2]\\n}\" :begin 1 :end 27 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"{\" :text \"{\" :begin 1 :end 2 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type pair :text \"\\\"a\\\": 1\" :begin 5 :end 11 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type string :text \"\\\"a\\\"\" :begin 5 :end 8 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 5 :end 6 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type string_content :text \"a\" :begin 6 :end 7 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 7 :end 8 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \":\" :text \":\" :begin 8 :end 9 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type number :text \"1\" :begin 10 :end 11 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \",\" :text \",\" :begin 11 :end 12 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type pair :text \"\\\"b\\\": [1,2]\" :begin 15 :end 25 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type string :text \"\\\"b\\\"\" :begin 15 :end 18 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 15 :end 16 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type string_content :text \"b\" :begin 16 :end 17 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 17 :end 18 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \":\" :text \":\" :begin 18 :end 19 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type array :text \"[1,2]\" :begin 20 :end 25 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"[\" :text \"[\" :begin 20 :end 21 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type number :text \"1\" :begin 21 :end 22 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \",\" :text \",\" :begin 22 :end 23 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type number :text \"2\" :begin 23 :end 24 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"]\" :text \"]\" :begin 24 :end 25 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"}\" :text \"}\" :begin 26 :end 27 :buffer \"test.json\" :buffer-file \"/tmp/test.json\"))\n"))
+            ))
 
 (me-register-mold
-    :key "NodeAtPointToTree"
-    :given (:fn (and
-                 (me-require 'tree-sitter)
-                 (ignore-errors (tree-sitter-node-at-point :named))))
-    :then (:fn
-           (let* ((tree (me-mold-treesitter-to-parse-tree (tree-sitter-node-at-point :named))))
-             (with-current-buffer buffername
-               (erase-buffer)
-               (emacs-lisp-mode)
-               (me-print-to-buffer tree)
-               (setq-local self tree)
-               (current-buffer))))
-    :docs "You can obtain the code tree for the node at point.
+ :key "NodeAtPointToTree"
+ :given (:fn (and
+              (me-require 'tree-sitter)
+              (ignore-errors (tree-sitter-node-at-point :named))))
+ :then (:fn
+        (let* ((tree (me-to-parse-tree (tree-sitter-node-at-point :named))))
+          (with-current-buffer buffername
+            (erase-buffer)
+            (emacs-lisp-mode)
+            (me-print-to-buffer tree)
+            (setq-local self tree)
+            (current-buffer))))
+ :docs "You can obtain the code tree for the node at point.
 This is a more focused view than `CodeToTree.'")
 
 (me-register-mold
@@ -434,81 +434,81 @@ This is a more focused view than `CodeToTree.'")
 - [ ] [[elisp:(progn (find-file-other-window \"/tmp/my.cc\") (goto-char 12))][include]]"))))
 
 (me-register-mold
-    :key "Stats"
-    :docs "View some generic buffer stats like reading time and most frequent words.
+ :key "Stats"
+ :docs "View some generic buffer stats like reading time and most frequent words.
 It specializes for source code."
-    :given (:fn 't)
-    :then (:fn ;; TODO deliver this in org-mode buffer because later I can interpret that in a tree and run new molds on it!
-           (let* ((old-buffer (buffer-name))
-                  (buffer (get-buffer-create "Statistics"))
-                  (buffersize (buffer-size))
-                  (self (me-mold-treesitter-to-parse-tree))
-                  (contents (buffer-substring-no-properties (point-min) (point-max)))
-                  (lines (count-lines-page))
-                  (words (call-interactively 'count-words))
-                  (book-pages (me-get-book-pages contents))
-                  (reading-time (me-get-reading-time contents))
-                  (word-analysis (--filter (> (length (car it)) 2) (me-word-stats contents)))
-                  (word-analysis-stats (-concat (-take 3 word-analysis) (reverse (-take 3 (reverse word-analysis)))))
-                  (funs (when self (length (me-extract-functions self))))
-                  (methods (when self (length (me-by-type 'method_declaration self))))
-                  (ifs (when self (length (--filter (or (eq (plist-get it :type) 'if_expression) (eq (plist-get it :type) 'if_statement) (s-starts-with-p "(if" (plist-get it :text))) self))))
-                  (classes (when self (length (--filter (or (eq (plist-get it :type) 'class_definition) (eq (plist-get it :type) 'class_declaration)) self))))
-                  (comments (when self (length (me-by-type 'comment self)))))
-             (with-current-buffer buffername
-               (erase-buffer)
-               (org-mode)
-               (insert "* Generic Stats\n\n")
-               (insert (format "- Reading time: %s minutes \n" reading-time))
-               (insert (format "- %s\n" lines))
-               (insert (format "- %s\n" words))
-               (insert (format "- Average book pages for this text: %s\n\n" book-pages))
-               (insert (format "- Buffer size in KiloBytes: %s\n\n" buffersize))
-               (insert "- Up to three most and least used words:\n\n") ;; TODO maybe add an org link that can rerun the complete analysis keeping track of the previous buffer by creating a link [[(elisp: c/analyswords old-buffer; navigate to new buffer)][click here for all the analysis]] OR I could just implement the linking of mold buffers for at least last buffer!!
-               (--each word-analysis-stats
-                 (insert (format "  %s | %s\n" (substring (concat (number-to-string (cdr it)) (s-repeat 5 " ")) 0 3) (car it))))
-               (insert "\n")
-               (when funs
-                 (insert "* Programming Stats\n\n")
-                 (insert "\n")
-                 (insert "-- Code Stats --\n\n")
-                 (insert (format "#Functions: %s \n" funs))
-                 (insert (format "#Methods: %s \n" methods))
-                 (insert (format "#If-else: %s \n" ifs))
-                 (insert (format "#Classes: %s \n" classes))
-                 (insert (format "#Comments: %s \n" comments)))
-               (insert "\n")
-               (when self
-                 (insert "* Duplication Stats\n\n")
-                 (insert "-- Code Duplication By Token Type --\n\n")
-                 (let* ((nodes-with-duplication (me-nodes-with-duplication self))
-                        (texts-by-type
-                         (--map
-                          (cons (car it) (-map (lambda (x) (plist-get x :text)) (cdr it)))
-                          (--group-by (plist-get it :type) self))))
-                   (me-require 'tree-sitter-query)
-                   (me-insert-treesitter-follow-overlay
-                    nodes-with-duplication
-                    (lambda (node)
-                      (let* ((type (plist-get node :type))
-                             (texts (--map
-                                     (ignore-errors (plist-get it :text))
-                                     (me-by-type type nodes-with-duplication))))
-                        (format
-                         "%s: %s/%s\n"
-                         type
-                         (length (--filter
-                                  (-contains-p texts it)
-                                  (--find (eq (car it) type) texts-by-type)))
-                         (length (cdr (-find (lambda (x) (eq (car x) type)) texts-by-type)))))))
-                   )))))
-    :docs "You can extract information from the original buffer without reading it."
-    :examples ((
-                :name "Basic stats"
-                :given
-                (:type file :name "/tmp/test.txt" :mode text-mode :contents "This is a little test file. Test!\n")
-                :then
-                (:type buffer :name "Statistics" :mode org-mode :contents "* Generic Stats\n\n- Reading time: 0 minutes \n- Page has 1 line (0 + 1)\n- Buffer has 1 line, 7 words, and 34 characters.\n- Average book pages for this text: 0\n\n- Buffer size in KiloBytes: 34\n\n- Up to three most and least used words:\n\n  1   | file\n  1   | little\n  1   | test\n  1   | test\n  1   | test!\n  1   | this\n\n\n"))))
+ :given (:fn 't)
+ :then (:fn ;; TODO deliver this in org-mode buffer because later I can interpret that in a tree and run new molds on it!
+        (let* ((old-buffer (buffer-name))
+               (buffer (get-buffer-create "Statistics"))
+               (buffersize (buffer-size))
+               (self (me-to-parse-tree))
+               (contents (buffer-substring-no-properties (point-min) (point-max)))
+               (lines (count-lines-page))
+               (words (call-interactively 'count-words))
+               (book-pages (me-get-book-pages contents))
+               (reading-time (me-get-reading-time contents))
+               (word-analysis (--filter (> (length (car it)) 2) (me-word-stats contents)))
+               (word-analysis-stats (-concat (-take 3 word-analysis) (reverse (-take 3 (reverse word-analysis)))))
+               (funs (when self (length (me-extract-functions self))))
+               (methods (when self (length (me-by-type 'method_declaration self))))
+               (ifs (when self (length (--filter (or (eq (plist-get it :type) 'if_expression) (eq (plist-get it :type) 'if_statement) (s-starts-with-p "(if" (plist-get it :text))) self))))
+               (classes (when self (length (--filter (or (eq (plist-get it :type) 'class_definition) (eq (plist-get it :type) 'class_declaration)) self))))
+               (comments (when self (length (me-by-type 'comment self)))))
+          (with-current-buffer buffername
+            (erase-buffer)
+            (org-mode)
+            (insert "* Generic Stats\n\n")
+            (insert (format "- Reading time: %s minutes \n" reading-time))
+            (insert (format "- %s\n" lines))
+            (insert (format "- %s\n" words))
+            (insert (format "- Average book pages for this text: %s\n\n" book-pages))
+            (insert (format "- Buffer size in KiloBytes: %s\n\n" buffersize))
+            (insert "- Up to three most and least used words:\n\n") ;; TODO maybe add an org link that can rerun the complete analysis keeping track of the previous buffer by creating a link [[(elisp: c/analyswords old-buffer; navigate to new buffer)][click here for all the analysis]] OR I could just implement the linking of mold buffers for at least last buffer!!
+            (--each word-analysis-stats
+              (insert (format "  %s | %s\n" (substring (concat (number-to-string (cdr it)) (s-repeat 5 " ")) 0 3) (car it))))
+            (insert "\n")
+            (when funs
+              (insert "* Programming Stats\n\n")
+              (insert "\n")
+              (insert "-- Code Stats --\n\n")
+              (insert (format "#Functions: %s \n" funs))
+              (insert (format "#Methods: %s \n" methods))
+              (insert (format "#If-else: %s \n" ifs))
+              (insert (format "#Classes: %s \n" classes))
+              (insert (format "#Comments: %s \n" comments)))
+            (insert "\n")
+            (when self
+              (insert "* Duplication Stats\n\n")
+              (insert "-- Code Duplication By Token Type --\n\n")
+              (let* ((nodes-with-duplication (me-nodes-with-duplication self))
+                     (texts-by-type
+                      (--map
+                       (cons (car it) (-map (lambda (x) (plist-get x :text)) (cdr it)))
+                       (--group-by (plist-get it :type) self))))
+                (me-require 'tree-sitter-query)
+                (me-insert-treesitter-follow-overlay
+                 nodes-with-duplication
+                 (lambda (node)
+                   (let* ((type (plist-get node :type))
+                          (texts (--map
+                                  (ignore-errors (plist-get it :text))
+                                  (me-by-type type nodes-with-duplication))))
+                     (format
+                      "%s: %s/%s\n"
+                      type
+                      (length (--filter
+                               (-contains-p texts it)
+                               (--find (eq (car it) type) texts-by-type)))
+                      (length (cdr (-find (lambda (x) (eq (car x) type)) texts-by-type)))))))
+                )))))
+ :docs "You can extract information from the original buffer without reading it."
+ :examples ((
+             :name "Basic stats"
+             :given
+             (:type file :name "/tmp/test.txt" :mode text-mode :contents "This is a little test file. Test!\n")
+             :then
+             (:type buffer :name "Statistics" :mode org-mode :contents "* Generic Stats\n\n- Reading time: 0 minutes \n- Page has 1 line (0 + 1)\n- Buffer has 1 line, 7 words, and 34 characters.\n- Average book pages for this text: 0\n\n- Buffer size in KiloBytes: 34\n\n- Up to three most and least used words:\n\n  1   | file\n  1   | little\n  1   | test\n  1   | test\n  1   | test!\n  1   | this\n\n\n"))))
 
 (me-register-mold
     :key "JsonAsTree"
@@ -891,40 +891,40 @@ It specializes for source code."
 
 
 (me-register-mold
-    :key "SimilarToNodeAtPoint"
-    :given (:fn (and
-                 (-elem-index 'tree-sitter-mode minor-mode-list)
-                 (ignore-errors (tree-sitter-node-at-point :named))))
-    :then (:fn
-           (let* ((tree (me-find-similar-nodes
-                         (car (me-mold-treesitter-to-parse-tree (tree-sitter-node-at-point :named)))
-                         (me-mold-treesitter-to-parse-tree))))
-             (with-current-buffer buffername
-               (emacs-lisp-mode)
-               (erase-buffer)
-               (me-print-to-buffer tree)
-               (setq-local self tree))))
-    :docs "You can gather all the nodes similar to the current one ordered by similarity."
-    :examples nil)
+ :key "SimilarToNodeAtPoint"
+ :given (:fn (and
+              (-elem-index 'tree-sitter-mode minor-mode-list)
+              (ignore-errors (tree-sitter-node-at-point :named))))
+ :then (:fn
+        (let* ((tree (me-find-similar-nodes
+                      (car (me-to-parse-tree (tree-sitter-node-at-point :named)))
+                      (me-to-parse-tree))))
+          (with-current-buffer buffername
+            (emacs-lisp-mode)
+            (erase-buffer)
+            (me-print-to-buffer tree)
+            (setq-local self tree))))
+ :docs "You can gather all the nodes similar to the current one ordered by similarity."
+ :examples nil)
 
 (me-register-mold
-    :key "SamePrefixToNodeAtPoint"
-    :given (:fn (and
-                 (-elem-index 'tree-sitter-mode minor-mode-list)
-                 (ignore-errors (tree-sitter-node-at-point :named))))
-    :then (:fn
-           (let* ((tree (--filter
-                         (s-prefix-p
-                          (substring (plist-get (car (me-mold-treesitter-to-parse-tree (tree-sitter-node-at-point :named))) :text) 0 3) ; hardcoding 3 chars, also probably want just to add a same prefix option to my similarity function
-                          (plist-get it :text))
-                         (me-mold-treesitter-to-parse-tree))))
-             (with-current-buffer buffername
-               (emacs-lisp-mode)
-               (erase-buffer)
-               (me-print-to-buffer tree)
-               (setq-local self tree))))
-    :docs "You can gather all the nodes similar to the current one ordered by similarity."
-    :examples nil)
+ :key "SamePrefixToNodeAtPoint"
+ :given (:fn (and
+              (-elem-index 'tree-sitter-mode minor-mode-list)
+              (ignore-errors (tree-sitter-node-at-point :named))))
+ :then (:fn
+        (let* ((tree (--filter
+                      (s-prefix-p
+                       (substring (plist-get (car (me-to-parse-tree (tree-sitter-node-at-point :named))) :text) 0 3) ; hardcoding 3 chars, also probably want just to add a same prefix option to my similarity function
+                       (plist-get it :text))
+                      (me-to-parse-tree))))
+          (with-current-buffer buffername
+            (emacs-lisp-mode)
+            (erase-buffer)
+            (me-print-to-buffer tree)
+            (setq-local self tree))))
+ :docs "You can gather all the nodes similar to the current one ordered by similarity."
+ :examples nil)
 
 (me-register-mold
     :key "ProjectNodesToPlayground"
@@ -1107,41 +1107,41 @@ It specializes for source code."
     :examples nil)
 
 (me-register-mold
-    :key "ShowElispAPI"
-    :given (:fn (ignore-errors (and
-                                nil ;; didn't find this useful, I will delete it later
-                                (equal major-mode 'emacs-lisp-mode)
-                                (me-mold-treesitter-to-parse-tree))))
-    :then (:fn
-           (let* ((buffer (buffer-name))
-                  (api (me-elisp-extract-api (me-mold-treesitter-to-parse-tree))))
-             (with-current-buffer buffername
-               (org-mode)
-               (erase-buffer)
-               (insert (or (plist-get api :description) "")
-                       "\n\n"
-                       "* defcustoms \n\n"
-                       (s-join
-                        "\n"
-                        (--map
-                         (concat "- " (me-make-elisp-navigation-link (nth 1 (s-split " " (plist-get it :text))) it))
-                         (plist-get api :defcustoms)))
-                       "\n\n* functions \n\n"
-                       (s-join
-                        "\n"
-                        (--map
-                         (concat "- " (me-make-elisp-navigation-link (nth 1 (s-split " " (plist-get it :text))) it))
-                         (plist-get api :functions)))
-                       "\n\n* macros \n\n"
-                       (s-join
-                        "\n"
-                        (--map
-                         (concat "- " (me-make-elisp-navigation-link (nth 1 (s-split " " (plist-get it :text))) it))
-                         (plist-get api :macros)))
-                       )
-               (setq-local self api))))
-    :docs "You can show (Elisp for now) public API for buffer."
-    :examples nil)
+ :key "ShowElispAPI"
+ :given (:fn (ignore-errors (and
+                             nil ;; didn't find this useful, I will delete it later
+                             (equal major-mode 'emacs-lisp-mode)
+                             (me-to-parse-tree))))
+ :then (:fn
+        (let* ((buffer (buffer-name))
+               (api (me-elisp-extract-api (me-to-parse-tree))))
+          (with-current-buffer buffername
+            (org-mode)
+            (erase-buffer)
+            (insert (or (plist-get api :description) "")
+                    "\n\n"
+                    "* defcustoms \n\n"
+                    (s-join
+                     "\n"
+                     (--map
+                      (concat "- " (me-make-elisp-navigation-link (nth 1 (s-split " " (plist-get it :text))) it))
+                      (plist-get api :defcustoms)))
+                    "\n\n* functions \n\n"
+                    (s-join
+                     "\n"
+                     (--map
+                      (concat "- " (me-make-elisp-navigation-link (nth 1 (s-split " " (plist-get it :text))) it))
+                      (plist-get api :functions)))
+                    "\n\n* macros \n\n"
+                    (s-join
+                     "\n"
+                     (--map
+                      (concat "- " (me-make-elisp-navigation-link (nth 1 (s-split " " (plist-get it :text))) it))
+                      (plist-get api :macros)))
+                    )
+            (setq-local self api))))
+ :docs "You can show (Elisp for now) public API for buffer."
+ :examples nil)
 
 
 (me-register-mold
@@ -1159,28 +1159,28 @@ It specializes for source code."
     :examples nil)
 
 (me-register-mold
-    :key "RegionToCodeTree"
-    :given (:fn (region-active-p))
-    :then (:fn
-           (let* ((filename (read-file-name
-                             "Store in" "/tmp/"
-                             nil
-                             nil
-                             (concat "/tmp/moldable-emacs-"
-                                     (with-temp-buffer
-                                       (uuidgen t)
-                                       (s-trim (buffer-string)))
-                                     ".")))
-                  (selection (me-get-region))
-                  (_ (with-temp-file filename
-                       (insert selection)))
-                  (tree (me-with-file filename
-                          (me-mold-treesitter-to-parse-tree))))
-             (with-current-buffer buffername
-               (emacs-lisp-mode)
-               (erase-buffer)
-               (me-print-to-buffer tree)
-               (setq-local self tree))
-             ))
-    :docs "You can turn a region to a code tree."
-    :examples nil)
+ :key "RegionToCodeTree"
+ :given (:fn (region-active-p))
+ :then (:fn
+        (let* ((filename (read-file-name
+                          "Store in" "/tmp/"
+                          nil
+                          nil
+                          (concat "/tmp/moldable-emacs-"
+                                  (with-temp-buffer
+                                    (uuidgen t)
+                                    (s-trim (buffer-string)))
+                                  ".")))
+               (selection (me-get-region))
+               (_ (with-temp-file filename
+                    (insert selection)))
+               (tree (me-with-file filename
+                                   (me-to-parse-tree))))
+          (with-current-buffer buffername
+            (emacs-lisp-mode)
+            (erase-buffer)
+            (me-print-to-buffer tree)
+            (setq-local self tree))
+          ))
+ :docs "You can turn a region to a code tree."
+ :examples nil)

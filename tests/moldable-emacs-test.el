@@ -64,7 +64,7 @@ some new contents
   (should
    (equal (me-focus-on-consistent-keys '((:a 1 :b 1 :c 1) (:a 2 :c 2))) '((:a 1 :c 1) (:a 2 :c 2)))))
 
-(ert-deftest me-mold-treesitter-to-parse-tree_buffers ()
+(ert-deftest me-to-parse-tree_buffers ()
   ;; buffer is visiting a file
   (let ((tf (make-temp-file "moldable-emacs" )))
     (with-temp-file tf
@@ -78,7 +78,7 @@ some new contents
           (let ((bn (buffer-name))
                 (bfn (buffer-file-name)))
             (should
-             (equal (plist-get (car (me-mold-treesitter-to-parse-tree)) :type)
+             (equal (plist-get (car (me-to-parse-tree)) :type)
                     'program))))
       (delete-file tf)))
 
@@ -89,7 +89,7 @@ some new contents
     (tree-sitter-mode)
     (let ((bn (buffer-name)))
       (should
-       (equal (plist-get (car (me-mold-treesitter-to-parse-tree)) :type)
+       (equal (plist-get (car (me-to-parse-tree)) :type)
               'program))))
   )
 

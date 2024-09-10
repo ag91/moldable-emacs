@@ -61,6 +61,10 @@
   "Toggle for debugging information."
   :group 'moldable-emacs)
 
+(defcustom me-use-treesitter t
+  "Use https://github.com/emacs-tree-sitter to produce concrete syntax trees, if nil we will use built-in treesit.el."
+  :group 'moldable-emacs)
+
 (defun me-setup-molds ()
   "Load molds from `me-files-with-molds'."
   (-each me-files-with-molds #'load-file))
@@ -450,6 +454,44 @@ Optionally in input BUFFER. Search in WHOLE-BUFFER, if t."
        (--map (list key (car it) :count (length (cdr it))) it)
        (--sort (> (plist-get it :count) (plist-get other :count)) it)))
 
+(defun me-mold-treesit-to-parse-tree (&optional node)
+  "Return list of all abstract syntax tree nodes one step away from leaf nodes.
+Optionally start from NODE. Note this keeps text properties in
+the :text property of a node."
+  (let ((root (or
+               node
+               (ignore-errors
+                 (treesit-parse-string ;; in treesit we parse the file only if using a lang-ts-mode
+                  (buffer-string)
+                  (me-major-mode-to-tree-sitter-grammar major-mode)))))
+        (make-node (lambda (n level)
+                     (list
+                      :type (intern (treesit-node-type n))
+                      :text (substring-no-properties (treesit-node-text n))
+                      :begin (treesit-node-start n)
+                      :end (treesit-node-end n)
+                      :buffer (buffer-name)
+                      :buffer-file (when buffer-file-name
+                                     (s-replace (getenv "HOME") "~"
+                                                buffer-file-name))
+                      :mode major-mode
+                      :level level))))
+    (when root
+      (cl-labels
+          ((fn (node level)
+             (mapcar (lambda (n)
+                       (setq acc (cons
+                                  (funcall make-node n level)
+                                  acc))
+                       (fn n (1+ level)))
+                     (treesit-node-children node))))
+        (setq-local acc nil)
+        (fn root 0)
+        (cons
+         (funcall make-node root 0)
+         (reverse acc))))))
+
+
 (defun me-mold-treesitter-to-parse-tree (&optional node)
   "Return list of all abstract syntax tree nodes one step away from leaf nodes.
 Optionally start from NODE."
@@ -459,23 +501,23 @@ Optionally start from NODE."
     (when root
       (cl-labels
           ((fn (node level)
-               (tsc-mapc-children
-                (lambda (n)
-                  (setq acc (cons
-                             (list
-                              :type (tsc-node-type n)
-                              :text (tsc-node-text n)
-                              :begin (tsc-node-start-position n)
-                              :end (tsc-node-end-position n)
-                              :buffer (buffer-name)
-                              :buffer-file (when buffer-file-name
-                                             (s-replace (getenv "HOME") "~"
-                                                        buffer-file-name))
-                              :mode major-mode
-                              :level level)
-                             acc))
-                  (fn n (1+ level)))
-                node)))
+             (tsc-mapc-children
+              (lambda (n)
+                (setq acc (cons
+                           (list
+                            :type (tsc-node-type n)
+                            :text (tsc-node-text n)
+                            :begin (tsc-node-start-position n)
+                            :end (tsc-node-end-position n)
+                            :buffer (buffer-name)
+                            :buffer-file (when buffer-file-name
+                                           (s-replace (getenv "HOME") "~"
+                                                      buffer-file-name))
+                            :mode major-mode
+                            :level level)
+                           acc))
+                (fn n (1+ level)))
+              node)))
         (setq-local acc nil)
         (fn root 0)
         (cons (list
@@ -490,6 +532,13 @@ Optionally start from NODE."
                :mode major-mode
                :level 0)
               (reverse acc))))))
+
+(defun me-to-parse-tree (&optional node)
+  "Return list of all abstract syntax tree nodes one step away from leaf nodes.
+Optionally start from NODE."
+  (if me-use-treesitter
+      (me-mold-treesitter-to-parse-tree node)
+    (me-mold-treesit-to-parse-tree node)))
 
 (defun me-extension-to-major-mode (extension)
   "Find `major-mode' for EXTENSION.
@@ -508,9 +557,7 @@ Optionally start from NODE."
        me-extension-to-major-mode
        me-major-mode-to-tree-sitter-grammar))
 
-(defun me-filepath-to-flattened-tree (file &optional contents)
-  "Return the flattened tree for FILE.
-Optionally use CONTENTS string instead of file contents."
+(defun me--treesitter-filepath-to-flattened-tree (file &optional contents)
   (when-let ((grammar (me-extension-to-tree-sitter-grammar (file-name-extension file t))))
     (with-temp-buffer
       (if contents (insert contents) (insert-file-contents-literally file))
@@ -521,7 +568,20 @@ Optionally use CONTENTS string instead of file contents."
         (--> (tsc--without-restriction
                (tsc-parse-chunks tree-sitter-parser #'tsc--buffer-input nil)) ; TODO this seems to break for non unicode files
              tsc-root-node
-             me-mold-treesitter-to-parse-tree)))))
+             me-to-parse-tree)))))
+
+(defun me--treesit-filepath-to-flattened-tree (file &optional contents)
+  (when-let ((grammar (me-extension-to-tree-sitter-grammar (file-name-extension file t))))
+    (--> (or contents (with-temp-buffer (insert-file-contents-literally file) (buffer-string)))
+         (treesit-parse-string it grammar))
+    (treesit-parse-string it grammar)
+    me-to-parse-tree-new))
+
+(defun me-filepath-to-flattened-tree (file &optional contents)
+  "Return the flattened tree for FILE.
+Optionally use CONTENTS string instead of file contents."
+  (if me-use-treesitter (me--treesitter-filepath-to-flattened-tree file contents)
+    (me--treesit-filepath-to-flattened-tree file contents)))
 
 (defun me-nodes-with-duplication (self)
   "Find nodes that are duplicated for SELF."
@@ -1890,9 +1950,9 @@ Optionally filter for files with FILE-EXTENSION."
        (--map
         (let ((filename (let ((default-directory dir)) (expand-file-name it))))
           (or
-           (ignore-errors (me-filepath-to-flattened-tree filename)) ; sometimes there is an encoding issue with this that I can fix me-mold-treesitter-to-parse-tree
+           (ignore-errors (me-filepath-to-flattened-tree filename)) ; sometimes there is an encoding issue with this that I can fix me-to-parse-tree
            (ignore-errors (me-with-file filename
-                            (me-mold-treesitter-to-parse-tree)))))
+                                        (me-to-parse-tree)))))
         it)))
 
 (defun me-project-to-flattened-nodes (dir &optional file-extension)
