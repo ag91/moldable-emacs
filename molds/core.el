@@ -363,8 +363,7 @@ This is a more focused view than `CodeToTree.'")
 
 (me-register-mold
     :key "EvalSexp"
-    :given (:fn (or (eq major-mode 'emacs-lisp-mode)
-                    (eq major-mode 'lisp-interaction-mode)))
+    :given (:fn (thing-at-point 'sexp))
     :then (:fn
            (let* ((orig-point (point))
                   (tree (progn (unless (or (me-get-region) (list-at-point))
