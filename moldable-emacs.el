@@ -460,7 +460,7 @@ Optionally start from NODE. Note this keeps text properties in
 the :text property of a node."
   (let ((root (or
                node
-               (ignore-errors
+               (with-demoted-errors "me-mold-treesit-to-parse-tree: %S"
                  (treesit-parse-string ;; in treesit we parse the file only if using a lang-ts-mode
                   (buffer-string)
                   (me-major-mode-to-tree-sitter-grammar major-mode)))))
@@ -491,6 +491,10 @@ the :text property of a node."
          (funcall make-node root 0)
          (reverse acc))))))
 
+(defun me-tree-node-at-point (point)
+  (if me-use-treesitter
+      (me-to-parse-tree (tree-sitter-node-at-point :named point))
+    (treesit-node-at point nil 'named)))
 
 (defun me-mold-treesitter-to-parse-tree (&optional node)
   "Return list of all abstract syntax tree nodes one step away from leaf nodes.
@@ -549,7 +553,9 @@ Optionally start from NODE."
 
 (defun me-major-mode-to-tree-sitter-grammar (major-mode)
   "Find emacs-tree-sitter grammar for MAJOR-MODE."
-  (alist-get major-mode tree-sitter-major-mode-language-alist))
+  (if me-use-treesitter
+      (alist-get major-mode tree-sitter-major-mode-language-alist)
+    (treesit-language-at (point))))
 
 (defun me-extension-to-tree-sitter-grammar (extension)
   "Find emacs-tree-sitter grammar for EXTENSION."

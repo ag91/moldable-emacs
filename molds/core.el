@@ -123,41 +123,46 @@ Useful to run Elisp on the fly without a Playground."
     :examples nil)
 
 (me-register-mold
- :key "CodeAsTree"
- :given (:fn (and
-              (me-require 'tree-sitter)
-              (bound-and-true-p tree-sitter-mode)))
- :then (:fn
-        (let* ((tree (me-to-parse-tree)))
-          (with-current-buffer buffername
-            (erase-buffer)
-            (emacs-lisp-mode)
-            (me-print-to-buffer tree)
-            (setq-local self tree))))
- :docs "You get a flattened tree of all parsed elements.
+    :key "CodeAsTree"
+    :given (:fn (and
+                 (or (me-require 'tree-sitter)
+                     (me-require 'treesit))
+                 (me-major-mode-to-tree-sitter-grammar major-mode)))
+    :then (:fn
+           (let* ((tree (me-to-parse-tree)))
+             (with-current-buffer buffername
+               (erase-buffer)
+               (emacs-lisp-mode)
+               (me-print-to-buffer tree)
+               (setq-local self tree))))
+    :docs "You get a flattened tree of all parsed elements.
 You can transform this to extract information with the Playground mold."
- :examples ((
-             :name "JSON to code flattened tree"
-             :given
-             (:type file :name "/tmp/test.json" :mode json-mode :contents "{\n  \"a\": 1,\n  \"b\": [1,2]\n}\n")
-             :then
-             (:type buffer :name "CodeAsTree" :mode emacs-lisp-mode :contents "((:type object :text \"{\\n  \\\"a\\\": 1,\\n  \\\"b\\\": [1,2]\\n}\" :begin 1 :end 27 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"{\" :text \"{\" :begin 1 :end 2 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type pair :text \"\\\"a\\\": 1\" :begin 5 :end 11 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type string :text \"\\\"a\\\"\" :begin 5 :end 8 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 5 :end 6 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type string_content :text \"a\" :begin 6 :end 7 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 7 :end 8 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \":\" :text \":\" :begin 8 :end 9 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type number :text \"1\" :begin 10 :end 11 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \",\" :text \",\" :begin 11 :end 12 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type pair :text \"\\\"b\\\": [1,2]\" :begin 15 :end 25 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type string :text \"\\\"b\\\"\" :begin 15 :end 18 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 15 :end 16 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type string_content :text \"b\" :begin 16 :end 17 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 17 :end 18 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \":\" :text \":\" :begin 18 :end 19 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type array :text \"[1,2]\" :begin 20 :end 25 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"[\" :text \"[\" :begin 20 :end 21 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type number :text \"1\" :begin 21 :end 22 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \",\" :text \",\" :begin 22 :end 23 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type number :text \"2\" :begin 23 :end 24 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"]\" :text \"]\" :begin 24 :end 25 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"}\" :text \"}\" :begin 26 :end 27 :buffer \"test.json\" :buffer-file \"/tmp/test.json\"))\n"))
-            ))
+    :examples ((
+                :name "JSON to code flattened tree"
+                :given
+                (:type file :name "/tmp/test.json" :mode json-mode :contents "{\n  \"a\": 1,\n  \"b\": [1,2]\n}\n")
+                :then
+                (:type buffer :name "CodeAsTree" :mode emacs-lisp-mode :contents "((:type object :text \"{\\n  \\\"a\\\": 1,\\n  \\\"b\\\": [1,2]\\n}\" :begin 1 :end 27 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"{\" :text \"{\" :begin 1 :end 2 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type pair :text \"\\\"a\\\": 1\" :begin 5 :end 11 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type string :text \"\\\"a\\\"\" :begin 5 :end 8 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 5 :end 6 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type string_content :text \"a\" :begin 6 :end 7 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 7 :end 8 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \":\" :text \":\" :begin 8 :end 9 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type number :text \"1\" :begin 10 :end 11 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \",\" :text \",\" :begin 11 :end 12 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type pair :text \"\\\"b\\\": [1,2]\" :begin 15 :end 25 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type string :text \"\\\"b\\\"\" :begin 15 :end 18 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 15 :end 16 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type string_content :text \"b\" :begin 16 :end 17 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"\\\"\" :text \"\\\"\" :begin 17 :end 18 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \":\" :text \":\" :begin 18 :end 19 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type array :text \"[1,2]\" :begin 20 :end 25 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"[\" :text \"[\" :begin 20 :end 21 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type number :text \"1\" :begin 21 :end 22 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \",\" :text \",\" :begin 22 :end 23 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type number :text \"2\" :begin 23 :end 24 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"]\" :text \"]\" :begin 24 :end 25 :buffer \"test.json\" :buffer-file \"/tmp/test.json\")\n (:type \"}\" :text \"}\" :begin 26 :end 27 :buffer \"test.json\" :buffer-file \"/tmp/test.json\"))\n"))
+               ))
 
 (me-register-mold
- :key "NodeAtPointToTree"
- :given (:fn (and
-              (me-require 'tree-sitter)
-              (ignore-errors (tree-sitter-node-at-point :named))))
- :then (:fn
-        (let* ((tree (me-to-parse-tree (tree-sitter-node-at-point :named))))
-          (with-current-buffer buffername
-            (erase-buffer)
-            (emacs-lisp-mode)
-            (me-print-to-buffer tree)
-            (setq-local self tree)
-            (current-buffer))))
- :docs "You can obtain the code tree for the node at point.
+    :key "NodeAtPointToTree"
+    :let ((node-at-point (me-tree-node-at-point (point))))
+    :given (:fn (and
+                 (or (me-require 'tree-sitter)
+                     (me-require 'treesit))
+                 (me-major-mode-to-tree-sitter-grammar major-mode)
+                 node-at-point)
+                )
+    :then (:fn
+           (let* ((tree (me-to-parse-tree node-at-point)))
+             (with-current-buffer buffername
+               (erase-buffer)
+               (emacs-lisp-mode)
+               (me-print-to-buffer tree)
+               (setq-local self tree)
+               (current-buffer))))
+    :docs "You can obtain the code tree for the node at point.
 This is a more focused view than `CodeToTree.'")
 
 (me-register-mold
@@ -889,42 +894,45 @@ It specializes for source code."
                 (:type buffer :name "Node at point" :mode emacs-lisp-mode :contents "(list 1 2 3)\n"))))
 
 
+;; TODO fix tree-sitter to work with treesit as well
 (me-register-mold
- :key "SimilarToNodeAtPoint"
- :given (:fn (and
-              (-elem-index 'tree-sitter-mode minor-mode-list)
-              (ignore-errors (tree-sitter-node-at-point :named))))
- :then (:fn
-        (let* ((tree (me-find-similar-nodes
-                      (car (me-to-parse-tree (tree-sitter-node-at-point :named)))
-                      (me-to-parse-tree))))
-          (with-current-buffer buffername
-            (emacs-lisp-mode)
-            (erase-buffer)
-            (me-print-to-buffer tree)
-            (setq-local self tree))))
- :docs "You can gather all the nodes similar to the current one ordered by similarity."
- :examples nil)
+    :key "SimilarToNodeAtPoint"
+    :given (:fn (and
+                 (-elem-index 'tree-sitter-mode minor-mode-list)
+                 (ignore-errors (tree-sitter-node-at-point :named))))
+    :then (:fn
+           (let* ((tree (me-find-similar-nodes
+                         (car (me-to-parse-tree (tree-sitter-node-at-point :named)))
+                         (me-to-parse-tree))))
+             (with-current-buffer buffername
+               (emacs-lisp-mode)
+               (erase-buffer)
+               (me-print-to-buffer tree)
+               (setq-local self tree))))
+    :docs "You can gather all the nodes similar to the current one ordered by similarity."
+    :examples nil)
 
+;; TODO fix tree-sitter to work with treesit as well
 (me-register-mold
- :key "SamePrefixToNodeAtPoint"
- :given (:fn (and
-              (-elem-index 'tree-sitter-mode minor-mode-list)
-              (ignore-errors (tree-sitter-node-at-point :named))))
- :then (:fn
-        (let* ((tree (--filter
-                      (s-prefix-p
-                       (substring (plist-get (car (me-to-parse-tree (tree-sitter-node-at-point :named))) :text) 0 3) ; hardcoding 3 chars, also probably want just to add a same prefix option to my similarity function
-                       (plist-get it :text))
-                      (me-to-parse-tree))))
-          (with-current-buffer buffername
-            (emacs-lisp-mode)
-            (erase-buffer)
-            (me-print-to-buffer tree)
-            (setq-local self tree))))
- :docs "You can gather all the nodes similar to the current one ordered by similarity."
- :examples nil)
+    :key "SamePrefixToNodeAtPoint"
+    :given (:fn (and
+                 (-elem-index 'tree-sitter-mode minor-mode-list)
+                 (ignore-errors (tree-sitter-node-at-point :named))))
+    :then (:fn
+           (let* ((tree (--filter
+                         (s-prefix-p
+                          (substring (plist-get (car (me-to-parse-tree (tree-sitter-node-at-point :named))) :text) 0 3) ; hardcoding 3 chars, also probably want just to add a same prefix option to my similarity function
+                          (plist-get it :text))
+                         (me-to-parse-tree))))
+             (with-current-buffer buffername
+               (emacs-lisp-mode)
+               (erase-buffer)
+               (me-print-to-buffer tree)
+               (setq-local self tree))))
+    :docs "You can gather all the nodes similar to the current one ordered by similarity."
+    :examples nil)
 
+;; TODO fix tree-sitter to work with treesit as well
 (me-register-mold
     :key "ProjectNodesToPlayground"
     :given (:fn (and
@@ -943,6 +951,7 @@ It specializes for source code."
     :docs "You can gather all the nodes of a project in a Playground."
     :examples nil)
 
+;; TODO fix tree-sitter to work with treesit as well
 (me-register-mold
     :key "ProjectNodesSameLanguageToPlayground"
     :given (:fn (and
