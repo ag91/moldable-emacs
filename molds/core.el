@@ -894,15 +894,20 @@ It specializes for source code."
                 (:type buffer :name "Node at point" :mode emacs-lisp-mode :contents "(list 1 2 3)\n"))))
 
 
-;; TODO fix tree-sitter to work with treesit as well
 (me-register-mold
     :key "SimilarToNodeAtPoint"
+    :let ((node-at-point
+           (with-demoted-errors "SamePrefixToNodeAtPoint: %s"
+             (me-tree-node-at-point (point)))))
     :given (:fn (and
-                 (-elem-index 'tree-sitter-mode minor-mode-list)
-                 (ignore-errors (tree-sitter-node-at-point :named))))
+                 (and
+                  (or (me-require 'tree-sitter)
+                      (me-require 'treesit))
+                  (me-major-mode-to-tree-sitter-grammar major-mode))
+                 node-at-point))
     :then (:fn
            (let* ((tree (me-find-similar-nodes
-                         (car (me-to-parse-tree (tree-sitter-node-at-point :named)))
+                         (car (me-to-parse-tree node-at-point))
                          (me-to-parse-tree))))
              (with-current-buffer buffername
                (emacs-lisp-mode)
@@ -912,16 +917,21 @@ It specializes for source code."
     :docs "You can gather all the nodes similar to the current one ordered by similarity."
     :examples nil)
 
-;; TODO fix tree-sitter to work with treesit as well
 (me-register-mold
     :key "SamePrefixToNodeAtPoint"
+    :let ((node-at-point
+           (with-demoted-errors "SamePrefixToNodeAtPoint: %s"
+             (me-tree-node-at-point (point)))))
     :given (:fn (and
-                 (-elem-index 'tree-sitter-mode minor-mode-list)
-                 (ignore-errors (tree-sitter-node-at-point :named))))
+                 (and
+                  (or (me-require 'tree-sitter)
+                      (me-require 'treesit))
+                  (me-major-mode-to-tree-sitter-grammar major-mode))
+                 (ignore-errors node-at-point)))
     :then (:fn
            (let* ((tree (--filter
                          (s-prefix-p
-                          (substring (plist-get (car (me-to-parse-tree (tree-sitter-node-at-point :named))) :text) 0 3) ; hardcoding 3 chars, also probably want just to add a same prefix option to my similarity function
+                          (substring (plist-get (car (me-to-parse-tree node-at-point)) :text) 0 3) ; hardcoding 3 chars, also probably want just to add a same prefix option to my similarity function
                           (plist-get it :text))
                          (me-to-parse-tree))))
              (with-current-buffer buffername
@@ -932,11 +942,13 @@ It specializes for source code."
     :docs "You can gather all the nodes similar to the current one ordered by similarity."
     :examples nil)
 
-;; TODO fix tree-sitter to work with treesit as well
 (me-register-mold
     :key "ProjectNodesToPlayground"
     :given (:fn (and
-                 (-elem-index 'tree-sitter-mode minor-mode-list)
+                 (and
+                  (or (me-require 'tree-sitter)
+                      (me-require 'treesit))
+                  (me-major-mode-to-tree-sitter-grammar major-mode))
                  (me-require 'projectile)
                  (ignore-errors (projectile-project-root))))
     :then (:fn
