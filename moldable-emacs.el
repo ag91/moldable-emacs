@@ -206,7 +206,7 @@ Optionally define a POLL-TIME to look for results and a TIMEOUT to fail."
                    els))
          (too-late-p
           `(lambda () (>= (time-to-seconds (time-since ',start)) (or ,timeout 300)))))
-    (while (some #'null (mapcar #'async-ready futures))
+    (while (-some #'null (mapcar #'async-ready futures))
       (when (funcall too-late-p) (error "Me-pmap has waited too long: timed out"))
       (sleep-for (or poll-time 0.2)))
     (--map
