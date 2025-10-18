@@ -167,9 +167,7 @@ This is a more focused view than `CodeToTree.'")
 
 (me-register-mold
     :key "ElispListToOrgTable"
-    :let ((l (and
-              (> (/ (buffer-size) 1024) 500)
-              (list-at-point))))
+    :let ((l (list-at-point)))
     :given (:fn (ignore-errors
                   (and
                    (>= (length l) 2)
