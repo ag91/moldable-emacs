@@ -3,3 +3,5 @@
 /Eldev-local
 
 *~
+.context/*
+.dir-locals.el

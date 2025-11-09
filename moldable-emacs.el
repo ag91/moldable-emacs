@@ -52,7 +52,8 @@
     it)
    (list
     "molds/core.el"
-    "molds/contrib.el"))
+    "molds/contrib.el"
+    "molds/piper-mold.el"))
   "Files containing molds."
   :group 'moldable-emacs)
 
