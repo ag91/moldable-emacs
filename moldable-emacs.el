@@ -5,7 +5,7 @@
 ;; Author: Andrea <andrea-dev@hotmail.com>
 ;; Version: 20211115-snapshot
 ;; URL: https://github.com/ag91/moldable-emacs
-;; Package-Requires: ((emacs "26.1") (dash "2.19.1") (s "1.12.0") (async "1.9.4"))
+;; Package-Requires: ((emacs "26.1") (dash "2.19.1") (s "1.12.0") (async "1.9.4") (transient "0.3.0"))
 ;; Keywords: convenience
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -2545,6 +2545,10 @@ Note: nil if org-roam is not installed."
    :macros (with-demoted-errors (me-elisp-public-symbols (me-elisp-macros tree)))
    :functions (with-demoted-errors (me-elisp-public-symbols (me-elisp-functions tree)))))
 ;; end elisp API
+
+;; Load transient integration if available
+(when (require 'moldable-emacs-transient nil t)
+  (me-setup-transient-bindings))
 
 (provide 'moldable-emacs)
 ;;; moldable-emacs.el ends here
