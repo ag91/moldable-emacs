@@ -156,9 +156,9 @@ DOCSTRING is optional documentation."
    ("e" "For each line"            me--mold-piper-for-each-line)]
 
   ["Actions"
-   ("y" "Copy to clipboard"        me--mold-piper-to-clipboard)
-   ("q" "Back to main menu"        me-mold-operations-menu)
-   ("Q" "Quit"                     transient-quit-one)])
+   [("y" "Copy to clipboard"        me--mold-piper-to-clipboard)]
+   [("q" "Back to main menu"        me-mold-operations-menu)
+    ("Q" "Quit"                     transient-quit-one)]])
 
 ;;; Data Transform Submenu
 
@@ -191,8 +191,8 @@ DOCSTRING is optional documentation."
    ("Y" "YAML to JSON"             me--mold-yaml-to-json)]
 
   ["Navigation"
-   ("q" "Back to main menu"        me-mold-operations-menu)
-   ("Q" "Quit"                     transient-quit-one)])
+   [("q" "Back to main menu"        me-mold-operations-menu)]
+   [("Q" "Quit"                     transient-quit-one)]])
 
 ;;; Code Analysis Submenu
 
@@ -209,8 +209,8 @@ DOCSTRING is optional documentation."
    ("e" "Flycheck errors tree"     me--mold-flycheck-errors-tree)]
 
   ["Navigation"
-   ("q" "Back to main menu"        me-mold-operations-menu)
-   ("Q" "Quit"                     transient-quit-one)])
+   [("q" "Back to main menu"        me-mold-operations-menu)]
+   [("Q" "Quit"                     transient-quit-one)]])
 
 ;;; Visualization Submenu
 
@@ -226,8 +226,8 @@ DOCSTRING is optional documentation."
    ("d" "Dot to picture"           me--mold-dot-to-picture)]
 
   ["Navigation"
-   ("q" "Back to main menu"        me-mold-operations-menu)
-   ("Q" "Quit"                     transient-quit-one)])
+   [("q" "Back to main menu"        me-mold-operations-menu)]
+   [("Q" "Quit"                     transient-quit-one)]])
 
 ;;; Navigation Submenu
 
@@ -243,8 +243,8 @@ DOCSTRING is optional documentation."
    ("b" "Backlinks as org"         me--mold-backlinks-org)]
 
   ["Navigation"
-   ("q" "Back to main menu"        me-mold-operations-menu)
-   ("Q" "Quit"                     transient-quit-one)])
+   [("q" "Back to main menu"        me-mold-operations-menu)]
+   [("Q" "Quit"                     transient-quit-one)]])
 
 ;;; Playground Submenu
 
@@ -260,8 +260,8 @@ DOCSTRING is optional documentation."
    ("q" "Query"                    me--mold-query)]
 
   ["Navigation"
-   ("b" "Back to main menu"        me-mold-operations-menu)
-   ("Q" "Quit"                     transient-quit-one)])
+   [("b" "Back to main menu"        me-mold-operations-menu)]
+   [("Q" "Quit"                     transient-quit-one)]])
 
 ;;; Main Menu
 
@@ -271,36 +271,35 @@ Navigate to category submenus or access meta operations."
   :transient-suffix 't
   :transient-non-suffix 't
 
-  ["Categories"
-   :description "Mold Categories"
-   ("p" "Piper (text/shell)"
-    me-mold-piper-menu
-    :if (lambda () (me--has-any-molds-usable '("piper-KeepLines" "piper-Pipe" "piper-Sort"))))
-   ("d" "Data transforms"
-    me-mold-data-menu
-    :if (lambda () (me--has-any-molds-usable '("CodeAsTree" "JsonAsPlist" "CSVToOrgTable"))))
-   ("c" "Code analysis"
-    me-mold-code-menu
-    :if (lambda () (me--has-any-molds-usable '("FunctionsComplexity" "Stats"))))
-   ("v" "Visualizations"
-    me-mold-viz-menu
-    :if (lambda () (me--has-any-molds-usable '("CSVToBarChart" "DotToPicture"))))
-   ("n" "Navigate/Search"
-    me-mold-nav-menu
-    :if (lambda () (me--has-any-molds-usable '("SimilarToNodeAtPoint" "Backlinks as Org"))))
-   ("P" "Playground/Eval"
-    me-mold-playground-menu
-    :if (lambda () (me--has-any-molds-usable '("Playground" "EvalSexp"))))]
+  ["Mold Categories"
+   [("p" "Piper (text/shell)"
+     me-mold-piper-menu
+     :if (lambda () (me--has-any-molds-usable '("piper-KeepLines" "piper-Pipe" "piper-Sort"))))
+    ("d" "Data transforms"
+     me-mold-data-menu
+     :if (lambda () (me--has-any-molds-usable '("CodeAsTree" "JsonAsPlist" "CSVToOrgTable"))))
+    ("c" "Code analysis"
+     me-mold-code-menu
+     :if (lambda () (me--has-any-molds-usable '("FunctionsComplexity" "Stats"))))]
+   [("v" "Visualizations"
+     me-mold-viz-menu
+     :if (lambda () (me--has-any-molds-usable '("CSVToBarChart" "DotToPicture"))))
+    ("n" "Navigate/Search"
+     me-mold-nav-menu
+     :if (lambda () (me--has-any-molds-usable '("SimilarToNodeAtPoint" "Backlinks as Org"))))
+    ("P" "Playground/Eval"
+     me-mold-playground-menu
+     :if (lambda () (me--has-any-molds-usable '("Playground" "EvalSexp"))))]]
 
   ["Meta & Help"
-   ("?" "What molds can I use?"    me--mold-what-molds)
-   ("a" "All molds (complete)"     me-mold :transient nil)
-   ("h" "Mold history"             me--mold-history)
-   ("m" "Show all molds list"      me--mold-all-molds)]
+   [("?" "What molds can I use?"    me--mold-what-molds)
+    ("a" "All molds (complete)"     me-mold :transient nil)]
+   [("h" "Mold history"             me--mold-history)
+    ("m" "Show all molds list"      me--mold-all-molds)]]
 
   ["Actions"
-   ("q" "Quit"                     transient-quit-one)
-   ("<escape>" "Quit"              transient-quit-one)])
+   [("q" "Quit"                     transient-quit-one)]
+   [("<escape>" "Quit"              transient-quit-one)]])
 
 ;;; Setup
 
