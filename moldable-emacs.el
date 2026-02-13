@@ -218,6 +218,52 @@ Optionally define a POLL-TIME to look for results and a TIMEOUT to fail."
           (current-buffer))))
      futures)))
 
+;; experimental: only for high latency (not high CPU) network like operations
+(defun me-pmap-threaded (fn els &optional num-threads)
+  "Parallel map FN over ELS using Emacs Lisp threads.
+FN is a function of one argument. ELS is a list.
+NUM-THREADS defaults to min(length ELS, number of CPU cores or 8)."
+  (let* ((n (length els))
+         (num-threads (or num-threads
+                          (min n (max 1 (or (ignore-errors (string-to-number (getenv "NPROC"))) 8)))))
+         (idx 0)
+         (idx-mutex (make-mutex))
+         (results (make-vector n nil))
+         (threads '()))
+    ;; spawn workers
+    (dotimes (_ num-threads)
+      (push
+       (make-thread
+        (lambda ()
+          (while t
+            ;; get next index
+            (let ((i n))
+              (mutex-lock idx-mutex)
+              (unwind-protect
+                  (progn
+                    (if (>= idx n)
+                        (setq i nil)
+                      (setq i idx)
+                      (setq idx (1+ idx))))
+                (mutex-unlock idx-mutex))
+              (if (null i)
+                  (cl-return-from nil) ;; no more work, exit thread
+                (let* ((el (nth i els))
+                       (res (condition-case err
+                                (funcall fn el)
+                              (error (list :error (format "%S" err))))))
+                  (aset results i res)))
+              (setq i n)))))
+       threads))
+    ;; join threads
+    (dolist (th threads)
+      (thread-join th))
+    ;; return results as list
+    (let (out)
+      (dotimes (i n)
+        (push (aref results i) out))
+      (nreverse out))))
+
 
 (defun me-print-to-buffer (object &optional buffer)
   "Print OBJECT in BUFFER without truncation."
