@@ -806,7 +806,7 @@ following in your lein project.clj
                                          (--map
                                           (concat
                                            (when (equal (nth 0 it) 'me-require) "emacs ")
-                                           (pp-to-string (nth 1 it)))
+                                           (prin1-to-string (nth 1 it)))
                                           it)
                                          (s-join ", " it)))
                       :handler
