@@ -649,15 +649,26 @@ It specializes for source code."
     :key "CSVToOrgTable"
     :given (:fn (eq major-mode 'csv-mode))
     :then (:fn
-           (let ((table (buffer-string)))
+           (let* ((sep
+                   ;; this comes from csv-mode
+                   (char-to-string (csv-guess-separator
+                                    (buffer-substring-no-properties
+                                     (point-min)
+                                     ;; We're probably only going to look at the first 2048
+                                     ;; or so chars, but take more than we probably need to
+                                     ;; minimize the chance of breaking the input in the
+                                     ;; middle of a (long) row.
+                                     (min 8192 (point-max)))
+                                    2048)))
+                  (table (concat "|" (s-replace-all `((,sep . "|") ("\n" . "|\n|")) (s-trim (buffer-string))) "|")))
              (with-current-buffer buffername
                (erase-buffer)
                (org-mode)
                (insert table)
-               (mark-whole-buffer)
-               (call-interactively #'org-table-create-or-convert-from-region)
+               (me-format-org-table)
                (goto-char (point-min))
-               (setq-local self (me-org-tabletolisp-to-plist (org-table-to-lisp))))))
+               (setq-local self (me-org-tabletolisp-to-plist (org-table-to-lisp)))
+               )))
     :docs "Transform a CSV buffer in an Org table.")
 
 (me-register-mold

@@ -299,13 +299,18 @@ NUM-THREADS defaults to min(length ELS, number of CPU cores or 8)."
             " |")
            objects))))
 
+(defun me-format-org-table ()
+  "Format table"
+  (save-excursion
+    (and (ignore-errors (search-backward "|" nil nil 2))
+         (ignore-errors (search-forward "|" nil nil 2))) ;; count 2 to avoid an extra (empty) row at the bottom
+    (org-cycle)))
+
 (defun me-insert-string-table (table-string)
   "Insert TABLE-STRING in buffer.
 Make sure table is also indented."
   (insert table-string)
-  (save-excursion
-    (search-backward "|" nil nil 2) ;; count 2 to avoid an extra (empty) row at the bottom
-    (org-cycle))
+  (me-format-org-table)
   (setq-local org-confirm-elisp-link-function nil))
 
 (defun me-insert-org-table (headlines objects)
