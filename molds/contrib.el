@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-
+
 (defun me-highlight-unit-test-time (time-as-string)
   "Highlight TIME-AS-STRING according to unit tests."
   (and
@@ -1041,6 +1043,31 @@ following in your lein project.clj
     :docs "You can translate a YAML buffer to JSON."
     :examples nil)
 
+(defun async-shell-command-to-string (command callback)
+  "Execute shell command COMMAND asynchronously in the
+  background.
+
+Return the temporary output buffer which command is writing to
+during execution.
+
+When the command is finished, call CALLBACK with the resulting
+output as a string."
+  (let
+      ((output-buffer (generate-new-buffer " *temp*"))
+       (callback-fun callback))
+    (set-process-sentinel
+     (start-process "Shell" output-buffer shell-file-name shell-command-switch command)
+     (lambda (process signal)
+       (when (memq (process-status process) '(exit signal))
+         (with-current-buffer output-buffer
+           (let ((output-string
+                  (buffer-substring-no-properties
+                   (point-min)
+                   (point-max))))
+             (funcall callback-fun output-string)))
+         (kill-buffer output-buffer))))
+    output-buffer))
+
 (me-register-mold
     :key "WebLinksToOrg"
     :let ((urls (or (ignore-errors
@@ -1062,4 +1089,27 @@ following in your lein project.clj
                                                  (beginning-of-buffer))))
              (setq-local self urls)))
     :docs "You can transform your web links to Org headings with Pandoc."
+    :examples nil)
+
+(me-register-mold
+    :key "QueryCSV"
+    :given (:fn (and (executable-find "duckdb")
+                     ;; a bit crude, it would be better to have some guidance in the query
+                     ;; (eq major-mode 'csv-mode)
+                     ))
+    :then (:fn
+           (with-current-buffer buffername
+             (text-mode)
+             (erase-buffer)
+             (insert "Wait a sec... DuckDB is working for you!")
+             (async-shell-command-to-string (format "duckdb -table -c %S" (read-string "Query:"))
+                                            `(lambda (output)
+                                               (with-current-buffer ,buffername
+                                                 (erase-buffer)
+                                                 (insert output)
+                                                 (ansi-color-apply-on-region (point-min) (point-max))
+                                                 (beginning-of-buffer))))
+             ;; (setq-local self urls)
+             ))
+    :docs "You can query a CSV file via DuckDB."
     :examples nil)
