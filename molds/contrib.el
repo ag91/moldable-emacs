@@ -1093,23 +1093,45 @@ output as a string."
 
 (me-register-mold
     :key "QueryCSV"
-    :given (:fn (and (executable-find "duckdb")
-                     ;; a bit crude, it would be better to have some guidance in the query
-                     ;; (eq major-mode 'csv-mode)
-                     ))
+    :given (:fn (and
+                 (me-require 'csv-mode)
+                 (executable-find "duckdb")
+                 ;; a bit crude, it would be better to have some guidance in the query
+                 ;; (eq major-mode 'csv-mode)
+                 ))
     :then (:fn
            (with-current-buffer buffername
-             (text-mode)
+             (csv-mode)
              (erase-buffer)
              (insert "Wait a sec... DuckDB is working for you!")
-             (async-shell-command-to-string (format "duckdb -table -c %S" (read-string "Query:"))
+             ;; TODO if in CSV mode and no FROM statement, let's write the csv in a temporary csv and inject the from?
+             (async-shell-command-to-string (format "duckdb -csv -header -c %S" (read-string "Query:"))
                                             `(lambda (output)
                                                (with-current-buffer ,buffername
                                                  (erase-buffer)
                                                  (insert output)
+                                                 ;; remove Operating System Command control characters
+                                                 (ansi-osc-apply-on-region (point-min) (point-max))
+                                                 ;; remove terminal colors characters
                                                  (ansi-color-apply-on-region (point-min) (point-max))
-                                                 (beginning-of-buffer))))
-             ;; (setq-local self urls)
+                                                 (beginning-of-buffer)
+                                                 (setq-local self output))))
+             (me-override-keybiding-in-buffer
+              (kbd "C-c C-c")
+              `(lambda ()
+                 (interactive)
+                 (async-shell-command-to-string (format "duckdb -csv -header -c %S" (read-string "Query:"))
+                                                (lambda (output)
+                                                  (with-current-buffer ,buffername
+                                                    (erase-buffer)
+                                                    (insert output)
+                                                    ;; remove Operating System Command control characters
+                                                    (ansi-osc-apply-on-region (point-min) (point-max))
+                                                    ;; remove terminal colors characters
+                                                    (ansi-color-apply-on-region (point-min) (point-max))
+                                                    (beginning-of-buffer)
+                                                    (setq-local self output))))
+                 ))
              ))
     :docs "You can query a CSV file via DuckDB."
     :examples nil)
