@@ -606,7 +606,13 @@ Optionally start from NODE."
   "Find emacs-tree-sitter grammar for MAJOR-MODE."
   (if me-use-treesitter
       (alist-get major-mode tree-sitter-major-mode-language-alist)
-    (treesit-language-at (point))))
+    (progn
+      ;; this is a little hacky because we create parsers for all grammars we know of (it will likely cause conflicts)
+      ;; at some point treesit must have stopped instantiating a parser for us
+      (--each treesit-language-source-alist
+        (when (treesit-ready-p (car it))
+          (treesit-parser-create (car it))))
+      (treesit-language-at (point)))))
 
 (defun me-extension-to-tree-sitter-grammar (extension)
   "Find emacs-tree-sitter grammar for EXTENSION."
