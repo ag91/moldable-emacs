@@ -1134,4 +1134,8 @@ output as a string."
                  ))
              ))
     :docs "You can query a CSV file via DuckDB."
-    :examples nil)
+    :examples '((
+                 :given (:type file :name "/tmp/my.csv" :mode csv-mode :contents "a,b,c
+1,2,3
+" :point 12)
+                 :then (:type buffer :name "*moldable-emacs-QueryCSV*" :mode csv-mode :contents "d\n6\n"))))

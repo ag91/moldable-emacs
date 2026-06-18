@@ -715,6 +715,7 @@ Optionally use CONTENTS string instead of file contents."
   (concat "*moldable-emacs-" (or (plist-get mold :buffername) (plist-get mold :key)) "*"))
 
 (defmacro me-with-mold-let (mold &rest clause) ;; TODO this must evaluate only once any time is called AND needs to make evaluation of bindings lazy?
+  (declare (indent defun))
   "Wrap BODY in a let with :let and :buffername of MOLD, plus add the body for CLAUSE."
   (let ((m (-clone mold))) ;; for some strange reason, it seems that a mold with (:let ((1 ..) (2 ..) (3 ..))) ends up with (:let ((1 ..))) if I use thunk-let* on the original mold, so I clone it
     `(funcall
@@ -745,23 +746,51 @@ Optionally use CONTENTS string instead of file contents."
   "Run MOLD :given."
   (unless (me-get-in mold '(:given :fn)) (error "For now all molds need to declare :given with :fn"))
   (me-with-mold-let (-clone mold)
-                    :given))
+    :given))
 
 (defvar me-usable-mold-stats nil)
 (defun me-mold-specificity (mold)
   "An attempt to quantify how specific a MOLD is in this context.
 
-This is a naive implementation because we just count how many parentheses are in the :given of the mold: if there is a lot of nesting molds come on top.
+We score to the specificity of the predicates in the :given (like
+checking for a major mode has more weight than checking for a dependency
+on the system because you must have a specific kind of buffer open,
+while the dependency is always on the system.)
 
-Ideally we want to give a score to the specificity of the
-predicates in the :given (like checking for a major mode has more
-weight than checking for a dependency on the system because you
-must have a specific kind of buffer open, while the dependency is
-always on the system.) "
-  (s-count-matches "(" (format "%s" (let* ((given (plist-get mold :given)))
-                                      (if (ignore-errors (equal 'me-mold-run-given (car (nth 1 given))))
-                                          (plist-get (eval (nth 1 (nth 1 given))) :given)
-                                        given)))))
+>> (me-mold-specificity '(:given (:fn (and (eq major-mode 'csv-mode) (me-require 'bla)))))
+=> 7"
+  ;; (s-count-matches "(" (format "%s" (let* ((given (plist-get mold :given)))
+  ;;                                     (if (ignore-errors (equal 'me-mold-run-given (car (nth 1 given))))
+  ;;                                         (plist-get (eval (nth 1 (nth 1 given))) :given)
+  ;;                                       given))))
+  (let* ((given-fn (me-get-in mold '(:given :fn)))
+         (given-fn-str (format "%s" given-fn)))
+    (cond
+     ((null given-fn) 0)
+     ((eq given-fn t) 0)
+     ((equal given-fn ''t) 0)
+     ((and (listp given-fn)
+           (memq (car given-fn) '(and or)))
+      (+
+       ;; how many statements in the :given
+       (length (cdr given-fn))
+       ;; +1 for weak requirements
+       (s-count-matches (rx (or
+                             "(or"
+                             "me-require"
+                             "executable-find"))
+                        given-fn-str)
+       ;; +2 for strong requirements
+       (* 2 (s-count-matches (rx (or
+                                  "(and"
+                                  "major-mode"
+                                  "(buffer-name)"
+                                  ))
+                             given-fn-str))))
+     (t 1))
+    )
+  )
+
 
 (defun me-usable-molds (&optional molds buffer)
   "Return the usable molds among the `me-available-molds'.
@@ -816,6 +845,8 @@ Optionally you can pass a BUFFER to use instead of the `current-buffer'."
 
 (defvar me-mold-whens nil "All :when clauses of molds to check periodically.")
 
+(defvar me-mold-completion-history nil "This holds completion history to order molds by usage.")
+
 (defun me-mold (&optional mold-key view-fn)
   "Propose a list of available molds for the current context.
 Use MOLD-KEY as chosen mold when it is provided and usable.
@@ -835,7 +866,11 @@ Use VIEW-FN to show result buffer when provided."
          (or (when (-contains-p keys mold-key) mold-key)
              (completing-read
               "Pick the mold you need:"
-              it))
+              it
+              nil
+              nil
+              nil
+              'me-mold-completion-history))
          (-find
           (lambda (x)
             (string=
