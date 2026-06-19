@@ -711,8 +711,11 @@ Optionally use CONTENTS string instead of file contents."
             (get-buffer buffername))))))))
 
 (defun me-mold-buffername (mold)
-  "Get the resulting buffer name of MOLD."
-  (concat "*moldable-emacs-" (or (plist-get mold :buffername) (plist-get mold :key)) "*"))
+  "Get the resulting buffer name of MOLD.
+When MOLD has a :when clause, skip the timestamp so auto-refresh can reuse the same buffer."
+  (concat "*moldable-emacs-" (or (plist-get mold :buffername) (plist-get mold :key))
+          (unless (plist-get mold :when) (concat "-" (format-time-string "%Y%m%d%H%M%S")))
+          "*"))
 
 (defmacro me-with-mold-let (mold &rest clause) ;; TODO this must evaluate only once any time is called AND needs to make evaluation of bindings lazy?
   (declare (indent defun))
