@@ -679,29 +679,48 @@ Optionally use CONTENTS string instead of file contents."
   "Interpret MOLD :given clause into a sexp to run."
   (me-get-in mold '(:given :fn)))
 
+(defun me-async-all (producers callback)
+  "Call each function in PRODUCERS with a callback, in parallel.
+When all producers have called their callback, call CALLBACK with
+a list of their results in order.
+
+>> (me-async-all (list (lambda (cb) (funcall cb 1)) (lambda (cb) (funcall cb 2))) (lambda (r) (setq test/r r)))
+=> :assert (equal test/r (list 1 2))"
+  (let ((results (make-vector (length producers) nil)))
+    (--each-indexed producers
+      (funcall
+       it
+       (lambda (result)
+         (aset results it-index result)
+         (when (equal (length results) (length producers))
+           (funcall callback (append results nil))
+           ))))))
+
 (defun me-interpret-then (mold)
   "Interpret MOLD :then clause into a sexp to run."
   (let ((then (plist-get mold :then)))
     (cond
+     ;; when :async is defined, we expect a callback (eg :async
+     ;; (lambda (cb) <async code>)) and we will show a placeholder to
+     ;; not block Emacs
      ((ignore-errors (car (plist-get then :async)))
-      `(let ((_ (async-let ,(plist-get then :async)
-                  (progn
-                    ,(plist-get then :fn)
-                    (ignore-errors
-                      (switch-to-buffer-other-window
-                       (get-buffer buffername)))))))
-         (get-buffer-create buffername)
-         (with-current-buffer buffername
-           (erase-buffer)
-           (insert (format "Loading %s contents..." ,(plist-get mold :key))))))
-     ((ignore-errors (car (plist-get then :no-async)))
-      `(let* ,(plist-get then :no-async)
-         (progn
-           (get-buffer-create buffername)
-           ,(plist-get then :fn)
-           (ignore-errors
-             (switch-to-buffer-other-window
-              (get-buffer buffername))))))
+      (let ((bindings (plist-get then :async)))
+        `(progn
+           (switch-to-buffer
+            (get-buffer-create buffername))
+           (with-current-buffer buffername
+             (erase-buffer)
+             (insert (format "Loading %s contents..." ,(plist-get mold :key))))
+           (me-async-all
+            (list ,@(mapcar #'cadr bindings))
+            (lambda (results)
+              (let ,(--map-indexed
+                     (list (car it) `(nth ,it-index results))
+                     bindings
+                     )
+                (with-current-buffer buffername (erase-buffer))
+                ,(plist-get then :fn)
+                ))))))
      ((-contains-p then :fn)
       `(progn
          (get-buffer-create buffername)

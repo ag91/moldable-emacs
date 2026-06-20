@@ -148,23 +148,17 @@ some new contents
 
 (ert-deftest me-interpret-then_expand-async ()
   (should
-   (equal (let ((load-path '("some-load-path")))
-            (me-interpret-then '(:key "Test" :then (:async ((bind1 'slow-binding)  (bind2 'slow-binding)) :fn 'some-body))))
-
-          '(let
-               ((_
-                 (async-let
-                     ((bind1 'slow-binding)
-                      (bind2 'slow-binding))
-                   (progn 'some-body
-                          (ignore-errors
-                            (switch-to-buffer-other-window
-                             (get-buffer buffername)))))))
-             (get-buffer-create buffername)
+   (equal (me-interpret-then '(:key "Test" :then (:async ((bind1 'slow-binding) (bind2 'slow-binding)) :fn 'some-body)))
+          '(progn
+             (switch-to-buffer (get-buffer-create buffername))
              (with-current-buffer buffername
-               (erase-buffer)
-               (insert
-                (format "Loading %s contents..." "Test")))))))
+               (erase-buffer) (insert (format "Loading %s contents..." "Test")))
+             (me-async-all (list 'slow-binding 'slow-binding)
+                           (lambda (results)
+                             (let
+                                 ((bind1 (nth 0 results)) (bind2 (nth 1 results)))
+                               (with-current-buffer buffername (erase-buffer))
+                               'some-body)))))))
 
 (ert-deftest me-with-mold-let-evals ()
   (let ((mold '(

@@ -415,13 +415,14 @@ following in your lein project.clj
                  (executable-find "tesseract")))
     :then
     (
-     :async ((ocr-text (shell-command-to-string
-                        (format "tesseract '%s' -"
-                                (or file-name
-                                    ;; otherwise store the open image in /tmp for imgclip to work on a file
-                                    (let ((path (concat "/tmp/" buf-name)))
-                                      (write-region (point-min) (point-max) path)
-                                      path))))))
+     :async ((ocr-text (lambda (cb)
+                         (async-shell-command-to-string
+                          (format "tesseract '%s' -"
+                                  (or file-name
+                                      (let ((path (concat "/tmp/" buf-name)))
+                                        (write-region (point-min) (point-max) path)
+                                        path)))
+                          cb))))
      :fn (let* ((img (list :img (or (buffer-file-name) (buffer-name)))))
            (with-current-buffer buffername
              (erase-buffer)
@@ -438,22 +439,18 @@ following in your lein project.clj
               (me-require 'code-compass)
               (me-require 'vc)
               (vc-root-dir)))
- :then (:fn
-        (with-current-buffer buffername
-          (read-only-mode -1)
-          (emacs-lisp-mode)
-          (erase-buffer)
-          (insert "Loading coupled files...")
-          )
-        (code-compass-get-coupled-files-alist
-         (vc-root-dir)
-         `(lambda (files)
-            (with-current-buffer ,buffername
-              (erase-buffer)
-              (me-print-to-buffer
-               (code-compass--get-matching-coupled-files files ,bufferfile)
-               ,buffername)
-              (setq-local self files)))))
+ :then (:async ((files (lambda (cb)
+                         (code-compass-get-coupled-files-alist
+                          (vc-root-dir)
+                          cb))))
+       :fn (with-current-buffer buffername
+             (read-only-mode -1)
+             (emacs-lisp-mode)
+             (erase-buffer)
+             (me-print-to-buffer
+              (code-compass--get-matching-coupled-files files bufferfile)
+              buffername)
+             (setq-local self files)))
  :docs "You can list the files coupled to the file you are visiting."
  :examples nil)
 
@@ -609,19 +606,21 @@ following in your lein project.clj
                  (or (executable-find "chromium")
                      (executable-find "chrome")
                      (file-exists-p "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"))))
-    :then (
-           :async ((_ (shell-command (format "lighthouse %s --quiet --chrome-flags=--headless --output json --output-path /tmp/audit.json" url)))
-                   (_ (while (not (file-exists-p "/tmp/audit.json")) (sleep-for 1.5))))
-           :fn (let* ((plist (with-temp-buffer
-                               (insert-file-contents-literally "/tmp/audit.json")
-                               (goto-char (point-min))
-                               (json-read))))
-                 (with-current-buffer buffername
-                   (emacs-lisp-mode)
-                   (erase-buffer)
-                   (me-print-to-buffer plist)
-                   (setq-local self plist)
-                   (delete-file "/tmp/audit.json"))))
+     :then (
+            :async ((_ (lambda (cb)
+                         (async-shell-command-to-string
+                          (format "lighthouse %s --quiet --chrome-flags=--headless --output json --output-path /tmp/audit.json" url)
+                          cb))))
+            :fn (let* ((plist (with-temp-buffer
+                                (insert-file-contents-literally "/tmp/audit.json")
+                                (goto-char (point-min))
+                                (json-read))))
+                  (with-current-buffer buffername
+                    (emacs-lisp-mode)
+                    (erase-buffer)
+                    (me-print-to-buffer plist)
+                    (setq-local self plist)
+                    (delete-file "/tmp/audit.json"))))
     :docs "You can audit a url with Lighthouse."
     :examples nil)
 
@@ -1076,18 +1075,16 @@ output as a string."
                     (ignore-errors (me-urls-in-clipboard)))))
     :given (:fn (and (executable-find "pandoc")
                      urls))
-    :then (:fn
-           (with-current-buffer buffername
-             (org-mode)
-             (erase-buffer)
-             (insert "Wait a sec... Pandoc is working for you!")
-             (async-shell-command-to-string (concat "pandoc -t org " (s-join " " urls))
-                                            `(lambda (output)
-                                               (with-current-buffer ,buffername
-                                                 (erase-buffer)
-                                                 (insert output)
-                                                 (beginning-of-buffer))))
-             (setq-local self urls)))
+    :then (:async ((output (lambda (cb)
+                             (async-shell-command-to-string
+                              (concat "pandoc -t org " (s-join " " urls))
+                              cb))))
+           :fn (with-current-buffer buffername
+                 (org-mode)
+                 (erase-buffer)
+                 (insert output)
+                 (beginning-of-buffer)
+                 (setq-local self urls)))
     :docs "You can transform your web links to Org headings with Pandoc."
     :examples nil)
 
@@ -1099,40 +1096,33 @@ output as a string."
                  ;; a bit crude, it would be better to have some guidance in the query
                  ;; (eq major-mode 'csv-mode)
                  ))
-    :then (:fn
-           (with-current-buffer buffername
-             (csv-mode)
-             (erase-buffer)
-             (insert "Wait a sec... DuckDB is working for you!")
-             ;; TODO if in CSV mode and no FROM statement, let's write the csv in a temporary csv and inject the from?
-             (async-shell-command-to-string (format "duckdb -csv -header -c %S" (read-string "Query:"))
-                                            `(lambda (output)
-                                               (with-current-buffer ,buffername
-                                                 (erase-buffer)
-                                                 (insert output)
-                                                 ;; remove Operating System Command control characters
-                                                 (ansi-osc-apply-on-region (point-min) (point-max))
-                                                 ;; remove terminal colors characters
-                                                 (ansi-color-apply-on-region (point-min) (point-max))
-                                                 (beginning-of-buffer)
-                                                 (setq-local self output))))
-             (me-override-keybiding-in-buffer
-              (kbd "C-c C-c")
-              `(lambda ()
-                 (interactive)
-                 (async-shell-command-to-string (format "duckdb -csv -header -c %S" (read-string "Query:"))
-                                                (lambda (output)
-                                                  (with-current-buffer ,buffername
-                                                    (erase-buffer)
-                                                    (insert output)
-                                                    ;; remove Operating System Command control characters
-                                                    (ansi-osc-apply-on-region (point-min) (point-max))
-                                                    ;; remove terminal colors characters
-                                                    (ansi-color-apply-on-region (point-min) (point-max))
-                                                    (beginning-of-buffer)
-                                                    (setq-local self output))))
-                 ))
-             ))
+    :let ((query (read-string "Query:")))
+    :then (:async ((output (lambda (cb)
+                             (async-shell-command-to-string
+                              (format "duckdb -csv -header -c %S" query)
+                              cb))))
+                  :fn (with-current-buffer buffername
+                        (csv-mode)
+                        (erase-buffer)
+                        (insert output)
+                        (ansi-osc-apply-on-region (point-min) (point-max))
+                        (ansi-color-apply-on-region (point-min) (point-max))
+                        (beginning-of-buffer)
+                        (setq-local self output)
+                        (me-override-keybiding-in-buffer
+                         (kbd "C-c C-c")
+                         `(lambda ()
+                            (interactive)
+                            (async-shell-command-to-string
+                             (format "duckdb -csv -header -c %S" (read-string "Query:"))
+                             (lambda (out)
+                               (with-current-buffer ,buffername
+                                 (erase-buffer)
+                                 (insert out)
+                                 (ansi-osc-apply-on-region (point-min) (point-max))
+                                 (ansi-color-apply-on-region (point-min) (point-max))
+                                 (beginning-of-buffer)
+                                 (setq-local self out))))))))
     :docs "You can query a CSV file via DuckDB."
     :examples '((
                  :given (:type file :name "/tmp/my.csv" :mode csv-mode :contents "a,b,c
