@@ -357,7 +357,7 @@ following in your lein project.clj
 
 (me-register-mold ;; https://orgmode.org/worg/org-tutorials/org-dot-diagrams.html
     :key "OrgTablesToDot"
-    :let ((tables (me-all-flat-org-tables)))
+    :let ((tables (ignore-errors (me-all-flat-org-tables))))
     :given (:fn (and
                  (eq major-mode 'org-mode)
                  tables

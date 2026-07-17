@@ -302,8 +302,10 @@ NUM-THREADS defaults to min(length ELS, number of CPU cores or 8)."
 (defun me-format-org-table ()
   "Format table"
   (save-excursion
-    (and (ignore-errors (search-backward "|" nil nil 2))
-         (ignore-errors (search-forward "|" nil nil 2))) ;; count 2 to avoid an extra (empty) row at the bottom
+    (ignore-errors
+      (search-backward "|" nil nil 2)
+      ;; go line above to not add an empty row
+      (beginning-of-line -1))
     (org-cycle)))
 
 (defun me-insert-string-table (table-string)
@@ -890,7 +892,7 @@ Use VIEW-FN to show result buffer when provided."
               "Pick the mold you need:"
               it
               nil
-              nil
+              t
               nil
               'me-mold-completion-history))
          (-find
@@ -990,6 +992,22 @@ Add PROPS (e.g.,  `(:docs \"...\" :examples nil)') to it."
           result)
       (error (format "Could not find molds, check out: %s." (list m1 m2))))))
 
+(defun me--format-narrative (composed-key steps)
+  "Format STEPS as an Org narrative string for COMPOSED-KEY.
+STEPS is a list of plists with :key, :docs, and :output."
+  (concat
+   (format "* %s\n\n" composed-key)
+   (s-join "\n\n"
+           (--map (format "** %s\n%s\n\n#+begin_example\n%s\n#+end_example"
+                          (plist-get it :key)
+                          (or (plist-get it :docs) "")
+                          (or (plist-get it :output) ""))
+                  steps))))
+
+(defun me--composed-key (keys)
+  "Make a readable composed key from a list of mold KEYS."
+  (s-join " -> " keys))
+
 (defvar me-temporary-mold-data nil "Holder of mold data before it is assigned to local variable `mold-data'.")
 
 (defun me-setup-self-mold-data ()
@@ -1002,7 +1020,7 @@ Add PROPS (e.g.,  `(:docs \"...\" :examples nil)') to it."
          :old-point (point)
          :old-mode major-mode
          :old-date (ignore-errors (plist-get mold-data :date))
-         :old-mold me-last-used-mold)))
+         :old-mold (ignore-errors (plist-get mold-data :mold)))))
 
 (add-hook 'me-mold-before-hook #'me-setup-self-mold-data)
 
@@ -1038,6 +1056,7 @@ Add PROPS (e.g.,  `(:docs \"...\" :examples nil)') to it."
   (setq-local mold-data
               (append
                (list
+                :mold me-last-used-mold
                 :self (ignore-errors self)
                 :date (format-time-string "%FT%T%z"))
                me-temporary-mold-data)))
@@ -1554,7 +1573,6 @@ Optionally select BUFFER and POSITION."
 
 (defun me-set-last-mold (mold)
   "Set last used MOLD."
-  (ignore-errors (plist-put mold-data :mold (plist-get mold :key))) ;; TODO remove me-set-last-mold and just set mold-data with `me-mold-before-mold-runs-hook'
   (setq me-last-used-mold (plist-get mold :key)))
 
 (add-hook 'me-mold-before-mold-runs-hook #'me-set-last-mold)

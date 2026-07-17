@@ -271,6 +271,7 @@ This is a more focused view than `CodeToTree.'")
 
 (me-register-mold
     :key "XMLToTree"
+    :docs "Convert an XML fileinto a parsed tree using libxml."
     :given (:fn (or
                  (eq major-mode 'html-mode)
                  (eq major-mode 'nxml-mode)))
@@ -285,19 +286,6 @@ This is a more focused view than `CodeToTree.'")
 
 ;;; CONTINUE...
 ;; TODO maybe add parent as well? There is not this information in the org-ql node.
-(me-register-mold
-    :key "OrgAsTree"
-    :given (:fn (and
-                 (eq major-mode 'org-mode)
-                 (me-require 'org-ql)))
-    :then (:fn
-           (let* ((tree (me-org-to-flatten-tree (current-buffer))))
-             (with-current-buffer buffername
-               (emacs-lisp-mode)
-               (erase-buffer)
-               (me-print-to-buffer tree)
-               (setq-local self tree)))))
-
 (me-register-mold
     :key "SentencesAsTree"
     :given (:fn (and (eq major-mode 'text-mode)))
@@ -573,6 +561,7 @@ It specializes for source code."
 
 (me-register-mold
     :key "FirstOrgTable"
+    :docs "Collect first Org Mode table in buffer"
     :let ((table (me-first-org-table)))
     :given (:fn
             (eq major-mode 'org-mode)
@@ -1213,3 +1202,36 @@ It specializes for source code."
           ))
  :docs "You can turn a region to a code tree."
  :examples nil)
+
+(me-register-mold
+    :key "Narrative"
+    :let ((steps
+           (let ((steps nil)
+                 (buf (current-buffer)))
+             (while (and buf (get-buffer buf))
+               (with-current-buffer buf
+                 (if (ignore-errors mold-data)
+                     (let* ((mold-key (plist-get mold-data :mold))
+                            (mold (when mold-key (me-find-mold mold-key)))
+                            (docs (or (plist-get mold :docs) ""))
+                            (output (buffer-substring-no-properties (point-min) (point-max))))
+                       (message "hey--12313 %s " (list buf mold-key docs output))
+                       (when mold-key
+                         (push (list :key mold-key :docs docs :output output)
+                               steps))
+                       (setq buf (plist-get mold-data :old-buffer)))
+                   (setq buf nil))))
+             steps)))
+    :given (:fn (ignore-errors
+                  (and mold-data
+                       (plist-get mold-data :mold))))
+    :then (:fn
+           (let* ((result steps)
+                  (narrative-key (me--composed-key (--map (plist-get it :key) result))))
+             (with-current-buffer buffername
+               (org-mode)
+               (erase-buffer)
+               (insert (me--format-narrative narrative-key result))
+               (setq-local self (list :steps result)))))
+    :docs "Produce a narrative of the exploration so far by walking the mold-data buffer chain."
+    :examples nil)

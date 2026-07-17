@@ -1,0 +1,550 @@
+#+TITLE: Next Steps for moldable-emacs: From Information Processing to Storytelling
+#+AUTHOR: Andrea
+#+TODO: TODO DOING | DONE
+
+* Vision
+
+moldable-emacs has a solid mold engine for data transformation, but
+its stated goal — making you a better story teller when you deal with
+code — remains largely aspirational. The package excels at information
+processing (parsing, format conversion, charts, graphs) but lacks the
+narrative layer that turns data into understanding.
+
+The goal is to extend moldable-emacs so that:
+
+1. Molds can compose into *narratives*, not just data pipelines
+2. Explorations are *persistent and replayable* (Project Diary)
+3. A repository's *key responsibilities* can be extracted as a graph
+4. Code constructs have *human-readable descriptions* (semantic layer)
+5. Stories can be *adapted for different audiences* (grandpa vision)
+6. Users get *guided exploration* (suggested next steps)
+7. *Blind spots* in a codebase are surfaced as starting points
+
+All of this must remain *deterministic* — encoding human knowledge
+about how to extract meaning, not statistical AI inference.
+
+* Design Principle
+
+**Don't add properties to molds. Add molds.**
+
+Every new capability should be a mold you compose, not a new field you
+maintain. The author's burden stays at "define logic + docs + examples"
+and nothing more. This follows GT's "Throwaway Analysis Tool" pattern:
+the cost of making a mold should be low enough that you make a new one
+for each question rather than overloading a generic one.
+
+- Narrative comes free from =:docs= in composition — no =:narrative=
+  property to maintain
+- Audience adaptation comes free from composing a throwaway mold — no
+  =:audiences= property to maintain
+- Playground-to-mold extraction makes throwaway molds cheap to create
+
+* Context
+
+GlamorousToolkit (GT) defines a pattern language for Moldable
+Development. The key patterns we are projecting onto moldable-emacs:
+
+- *Composed Narrative*: a story built from views of objects, where each
+  view leads to the next by performing a step
+- *Project Diary*: a live notebook as the starting point and container
+  for exploration
+- *Example Object*: interesting instances wrapped as tested, reusable
+  objects
+- *Blind Spot*: hard-to-understand parts as starting points
+- *Throwaway Analysis Tool*: a quick, focused tool for an urgent problem
+- *Contextual Playground*: a live programming environment bound to the
+  state of a live instance, from which tools are extracted
+- *Deterministic tools*: encode the way to get an answer; bias is
+  inspectable
+
+* Implementation Plan
+
+** Phase 1: Narrative Composition (via Narrative Mold)
+:PROPERTIES:
+:CUSTOM_ID: story-molds
+:END:
+
+Turn the exploration history into a narrative — with zero new
+properties to maintain and zero new composition code.
+
+*** DONE Realize: no new composition code is needed
+
+The existing =mold-data= buffer-local variable already forms a linked
+list across buffers. Each mold buffer's =mold-data= contains
+=:old-buffer= pointing to the previous buffer, which has its own
+=mold-data= with its own =:old-buffer=, and so on. A Narrative mold
+just walks this chain.
+
+No =me-mold-compose-chain=, no N-ary composition, no special narrative
+mode in =me-mold-compose-molds=. Just one new mold.
+
+*** DONE Create =Narrative= mold in =molds/core.el=
+
+A mold that walks the =mold-data= buffer chain backwards and produces
+an Org-mode document interleaving each mold's =:key=, =:docs=, and
+output.
+
+The =:given= checks that =mold-data= exists and has =:mold= (i.e.,
+the current buffer was produced by a mold).
+
+The =:then= walks the chain:
+1. Start from the *current buffer* (the buffer from which Narrative was
+   invoked — this is the last mold in the chain)
+2. For each buffer, collect =:mold= (the key of the mold that created
+   this buffer), look up the mold's =:docs=, and capture the buffer
+   contents as output
+3. Walk to =:old-buffer= and repeat until no more =mold-data=
+4. Reverse the collected steps
+5. Insert an Org-mode buffer with the narrative
+
+Key insight: each buffer's =mold-data= records =:mold= (the mold that
+created it) and =:old-buffer= (the previous buffer). This forms a linked
+list we can walk. We start from the current buffer (not =:old-buffer=)
+so the last mold is included.
+
+We also fixed two issues in =mold-data= tracking:
+- Removed =plist-put= from =me-set-last-mold= that was corrupting the
+  source buffer's =mold-data= by overwriting =:mold= each time
+- Added =:mold me-last-used-mold= to =me-set-self-mold-data= so each
+  mold buffer properly records which mold created it
+
+Example output after running =CodeAsTree= then =TreeOfDuplicates= then
+=Narrative=:
+
+#+begin_example
+,* CodeAsTree -> TreeOfDuplicates
+
+,** CodeAsTree
+You get a flattened tree of all parsed elements.
+
+((:type program :text "..." :begin 1 :end 200 ...)
+ (:type function_definition :text "foo" ...)
+ ...)
+
+,** TreeOfDuplicates
+Find duplicated nodes in a tree.
+
+((:type function_definition :text "bar" :count 3 ...)
+ (:type if_statement :text "if x" :count 2 ...))
+#+end_example
+
+Implementation:
+
+#+begin_src elisp
+(me-register-mold
+ :key "Narrative"
+ :given (:fn (ignore-errors
+               (and mold-data
+                    (plist-get mold-data :mold))))
+ :then (:fn
+        (let ((steps nil)
+              (buf (current-buffer)))
+          (while (and buf (get-buffer buf))
+            (with-current-buffer buf
+              (if (ignore-errors mold-data)
+                  (let* ((mold-key (plist-get mold-data :mold))
+                         (mold (when mold-key (me-find-mold mold-key)))
+                         (docs (or (plist-get mold :docs) ""))
+                         (output (buffer-substring-no-properties (point-min) (point-max))))
+                    (when mold-key
+                      (push (list :key mold-key :docs docs :output output)
+                            steps))
+                    (setq buf (plist-get mold-data :old-buffer)))
+                (setq buf nil))))
+          (let* ((result (reverse steps))
+                 (narrative-key (me--composed-key (--map (plist-get it :key) result))))
+            (with-current-buffer buffername
+              (org-mode)
+              (erase-buffer)
+              (insert (me--format-narrative narrative-key result))
+              (setq-local self (list :steps result))))))
+ :docs "Produce a narrative of the exploration so far by walking the mold-data buffer chain."
+ :examples nil)
+#+end_src
+
+*** TODO Make narratives replayable
+
+Since the narrative is reconstructed from live buffers, replaying means
+re-running the mold sequence. Store the sequence of mold keys (already
+available in =self= as =:steps=) and add a "Replay Story" action that
+re-runs each mold key in order.
+
+*** TODO Make narratives shareable
+
+The Org buffer can be exported via =org-export= to HTML/PDF. Add an
+"Export Story" action.
+
+*** TODO Add examples for the Narrative mold
+
+Examples need the example harness to support multi-step mold chains
+(setup =mold-data= across buffers). This may require extending the
+harness.
+
+** Phase 2: Playground-to-Mold Extraction
+:PROPERTIES:
+:CUSTOM_ID: playground-to-mold
+:END:
+
+Make it cheap to turn a Playground exploration into a reusable mold.
+This is the key to making throwaway molds practical — the user
+prototypes in Playground, then extracts with one command.
+
+*** TODO Create =me-extract-mold-from-playground= function
+
+When the user is in a Playground buffer with working code that
+manipulates =self=, this function:
+1. Reads the Playground buffer contents (the =:then= body)
+2. Infers the =:given= from the current =mold-data= (what was the
+   previous mold? what mode was the source buffer?)
+3. Generates a =me-register-mold= form with =:key=, =:given=, =:then=,
+   and =:docs= placeholders
+4. Prompts the user for a =:key= and =:docs= string
+5. Inserts the mold definition into =molds/core.el= (or a user molds
+   file)
+
+Example workflow:
+1. User runs =CodeAsTree= on a Python file
+2. User runs =Playground= — gets =self= as the parsed tree
+3. User writes: =(--filter (eq (plist-get it :type) 'function_definition) self)=
+4. User runs =me-extract-mold-from-playground=
+5. Gets prompted for key ("FunctionDefinitions") and docs ("Extract function definitions from code tree")
+6. Mold is inserted into their molds file:
+
+#+begin_src elisp
+(me-register-mold
+ :key "FunctionDefinitions"
+ :given (:fn (ignore-errors (and self (listp self))))
+ :then (:fn
+        (let* ((result (--filter (eq (plist-get it :type) 'function_definition) self)))
+          (with-current-buffer buffername
+            (erase-buffer)
+            (emacs-lisp-mode)
+            (me-print-to-buffer result)
+            (setq-local self result))))
+ :docs "Extract function definitions from code tree.")
+#+end_src
+
+*** TODO Infer =:given= from =mold-data=
+
+The Playground has access to =mold-data= which contains =:old-mode=,
+=:old-mold=, etc. Use this to suggest a =:given= predicate:
+- If =:old-mold= was "CodeAsTree", suggest =(:fn (ignore-errors (and self (listp self))))=
+- If =:old-mode= was =python-mode=, suggest =(:fn (eq major-mode 'python-mode))=
+
+*** TODO Add "Extract as Mold" action to Playground
+
+Available when the current buffer is a Playground and =self= is bound.
+
+** Phase 3: Project Diary (Org-Babel as Lepiter)
+:PROPERTIES:
+:CUSTOM_ID: project-diary
+:END:
+
+Create a notebook system that captures and replays mold explorations.
+
+*** TODO Create "Project Diary" mold
+
+- Creates an Org-mode buffer for a project (named e.g. =*Diary: my-project*=)
+- The buffer has a header with project name, date, and a template
+- Each subsequent mold invocation can be captured as a diary entry
+
+*** TODO Implement =me-mold-to-babel= function
+
+Captures the current mold invocation as an org-babel source block:
+- Records the mold key, input context (buffer name, mode, point)
+- Records the output (buffer contents, mode)
+- Produces an org-babel block that re-runs the mold
+
+#+begin_src org
+,** Exploring code duplication
+,#+begin_src elisp :var input="src/main.py"
+(me-mold "CodeAsTree")
+,#+end_src
+
+,#+RESULTS:
+,#+begin_example
+((:type module ...))
+,#+end_example
+#+end_src
+
+*** TODO Add =me-diary= minor mode
+
+When active, each mold invocation is appended to the project diary
+buffer as a new section. The section includes:
+- Timestamp
+- The question being explored (user can fill in)
+- The mold used
+- The output
+- Notes (user can fill in)
+
+*** TODO Use org-babel =:var= for passing =self=/=mold-data=
+
+Link diary blocks so that one block's output feeds the next block's
+input, mirroring the =self=/=mold-data= context-passing mechanism.
+
+*** TODO Add "Capture as Diary Entry" action to mold inspector
+
+When the user runs a mold, they can choose to capture it in the diary.
+
+** Phase 4: Responsibility Graph Mold
+:PROPERTIES:
+:CUSTOM_ID: responsibility-graph
+:END:
+
+Directly address the user's vision: extract key responsibilities of a
+repository as a graph.
+
+*** TODO Create =ExtractResponsibilities= mold
+
+Analyzes a codebase via tree-sitter and extracts:
+- Modules/packages and their main entry points
+- Public functions/classes and their names (as proxy for responsibility)
+- Import/dependency relationships between modules
+- Function call relationships (who calls whom)
+
+Input: a project directory (dired or projectile)
+Output: an Elisp plist representing the responsibility structure
+
+#+begin_src elisp
+(:modules
+ ((:name "core" :functions ("parse" "render" "validate")
+   :imports ("utils" "config"))
+  (:name "utils" :functions ("format" "sort")
+   :imports ()))
+ :dependencies
+ (("core" . "utils")
+  ("core" . "config")))
+#+end_src
+
+*** TODO Create =ResponsibilitiesToDot= mold
+
+Converts the responsibility structure to Graphviz dot format using the
+existing =me-diagram-to-dot-string= infrastructure.
+
+Nodes = modules with labels showing key responsibilities.
+Edges = dependencies between modules.
+
+*** TODO Compose =ResponsibilityGraph= mold
+
+=ExtractResponsibilities= -> =ResponsibilitiesToDot= -> =DotToPicture=
+
+The narrative is auto-generated from each mold's =:docs= (Phase 1).
+
+*** TODO Add examples for each new mold
+
+Provide =:examples= with small test codebases.
+
+** Phase 5: Semantic Description Layer
+:PROPERTIES:
+:CUSTOM_ID: semantic-layer
+:END:
+
+Bridge from syntax to meaning by providing deterministic descriptions
+of code constructs.
+
+*** TODO Create =me-descriptions.el= library
+
+An alist mapping tree-sitter node types to description functions:
+
+#+begin_src elisp
+(defvar me-descriptions
+  '((function_definition . me-describe-function)
+    (class_definition . me-describe-class)
+    (import_statement . me-describe-import)
+    (call_expression . me-describe-call)
+    (if_statement . me-describe-if)
+    (for_statement . me-describe-for)))
+#+end_src
+
+*** TODO Implement description functions
+
+Each description function produces a human-readable string for a code
+construct. These are deterministic — they encode human knowledge about
+what constructs mean, not AI inference.
+
+#+begin_src elisp
+(defun me-describe-function (node)
+  (let ((name (me-node-text (me-node-child-by-field node 'name)))
+        (params (me-node-children-by-field node 'parameters)))
+    (format "Function %s takes %d parameter(s) and returns a value"
+            name (length params))))
+#+end_src
+
+*** TODO Extend =LearnSyntax= mold to use descriptions
+
+Replace the stub =me-syntax-description= with the new library.
+
+*** TODO Create =ExplainCode= mold
+
+Produces a prose explanation of a buffer's code using the description
+library. Output is an Org-mode buffer with each code construct explained.
+
+*** TODO Add examples for description functions
+
+Test with small code snippets in multiple languages.
+
+** Phase 6: Audience Adaptation (via Composition)
+:PROPERTIES:
+:CUSTOM_ID: audience-adaptation
+:END:
+
+Make molds produce different output for different audiences — by
+composing throwaway molds, not by annotating existing ones.
+
+*** TODO Document the workflow
+
+The audience adaptation workflow is:
+1. Run a mold (e.g. =FunctionsComplexity=) — get =self= with structured data
+2. Run =Playground= — prototype a transformation of =self= for your audience
+3. Extract as a mold (Phase 2) — e.g. =FunctionsComplexityRisk=
+4. Compose: =FunctionsComplexity= -> =FunctionsComplexityRisk=
+
+No new infrastructure needed. The =:given= of the audience mold checks
+for the specific shape of =self= that the upstream mold produces, so it
+only appears as usable after that mold.
+
+Example throwaway mold for manager audience:
+
+#+begin_src elisp
+(me-register-mold
+ :key "FunctionsComplexityRisk"
+ :given (:fn (ignore-errors
+               (and self (listp self)
+                    (plist-get (car self) :complexity))))
+ :then (:fn
+        (let* ((summary (--map (list :function (plist-get it :function)
+                                     :risk (if (> (plist-get it :complexity) 10)
+                                               "high" "low"))
+                               self)))
+          (with-current-buffer buffername
+            (erase-buffer)
+            (org-mode)
+            (me-insert-org-table summary)
+            (setq-local self summary))))
+ :docs "Show function complexity as high/low risk.")
+#+end_src
+
+*** TODO Create a few example audience molds as templates
+
+Provide 2-3 example throwaway molds in =molds/core.el= that
+demonstrate the pattern, so users can copy them.
+
+** Phase 7: Guided Exploration
+:PROPERTIES:
+:CUSTOM_ID: guided-exploration
+:END:
+
+Guide users from small questions to big understanding.
+
+*** TODO Extend =me-mold-history= to store richer data
+
+Store not just buffer names but also:
+- Mold key used
+- A summary of the output (first line or key finding)
+- The question being explored (if known)
+
+*** TODO Create "Story So Far" mold
+
+Produces an Org buffer showing the exploration path:
+- Each mold invocation becomes a step
+- Each step shows: the question, the mold used, the key finding
+- The story builds incrementally as you explore
+
+*** TODO Implement =me-suggest-next-molds= function
+
+After running a mold, suggest what to explore next:
+- Based on =mold-data= context and =me-usable-molds=
+- Rank by relevance to the current context
+- Present as completing-read with one-line "why this might be useful"
+
+*** TODO Add "Next" action to mold inspector
+
+Shows suggested next molds as a completing-read.
+
+** Phase 8: Blind Spot Discovery
+:PROPERTIES:
+:CUSTOM_ID: blind-spot-discovery
+:END:
+
+Surface hard-to-understand areas as starting points.
+
+*** TODO Create =BlindSpotReport= mold
+
+Composes existing analysis molds and aggregates results:
+- =FunctionsComplexity= — top 5 most complex functions
+- =TreeOfDuplicates= — areas of duplicated code
+- =Stats= — code statistics (comment ratio, file sizes)
+- Prioritized list with links to each blind spot
+
+*** TODO Add deterministic heuristics for blind spot scoring
+
+- Complexity score (from code-compass)
+- Duplication count
+- File size
+- Comment ratio (low comments = hard to understand)
+- Import count (high coupling = hard to change)
+
+*** TODO Present as Org buffer with navigation links
+
+Each blind spot links to the relevant mold for deeper exploration.
+
+*** TODO Add examples for =BlindSpotReport=
+
+* Prerequisites
+
+** TODO Improve the examples harness
+
+The current =me--given= macro and =me-check-then-clause= have
+limitations that make it hard to provide examples for all molds:
+
+- =me--given= does not support interactive molds (e.g. =Query= uses
+  =call-interactively=)
+- =me-check-then-clause= compares exact buffer contents, which is
+  fragile for molds that produce non-deterministic output (timestamps,
+  buffer names)
+- Async molds are not supported by the example harness
+- Image output (image-mode) has coding system issues in =me--given=
+
+Improvements needed:
+- Support for approximate/fuzzy matching of =:then= contents
+- Support for async molds in examples
+- Support for image-mode examples
+- Support for interactive input in =:given=
+- A =me-capture-example= function that records the current mold
+  invocation as an example plist (interactive workflow for generating
+  examples)
+
+* Testing
+
+All new molds should include =:examples= where possible. Run tests with:
+
+#+begin_src bash
+./test.sh
+#+end_src
+
+Or via Eldev directly:
+
+#+begin_src bash
+./eldev -p -dtT test
+#+end_src
+
+* Priorities
+
+1. *Phase 1 (Narrative Composition)* — foundational, auto-generates
+   stories from existing =:docs=, zero new maintenance
+2. *Phase 2 (Playground-to-Mold)* — makes throwaway molds cheap,
+   enables all subsequent phases
+3. *Phase 3 (Project Diary)* — container for stories
+4. *Phase 4 (Responsibility Graph)* — concrete win, directly addresses
+   vision
+5. *Phase 5 (Semantic Layer)* — bridges syntax to meaning
+6. *Phase 6 (Audience Adaptation)* — makes stories accessible via
+   composition (no new infrastructure)
+7. *Phase 7 (Guided Exploration)* — guides the process
+8. *Phase 8 (Blind Spot Discovery)* — entry point for new users
+
+Phases 1-2 are foundational. Phases 3-4 are the highest concrete value.
+Phases 5-6 add the meaning layer. Phases 7-8 add the process layer.
+
+The examples harness improvement (Prerequisites section) should be
+tackled alongside Phase 1, as every new mold needs examples.
