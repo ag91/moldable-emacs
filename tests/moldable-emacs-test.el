@@ -255,3 +255,59 @@ some new contents
             "a,b
 1,2
 3,4")))
+
+(ert-deftest me--format-narrative_produces-org-string ()
+  (should
+   (string=
+    (me--format-narrative
+     "A -> B"
+     (list (list :key "A" :docs "Does A." :output "result-a")
+           (list :key "B" :docs "Does B." :output "result-b")))
+    "* A -> B\n\n** A\nDoes A.\n\nresult-a\n\n** B\nDoes B.\n\nresult-b")))
+
+(ert-deftest me--format-narrative_handles-missing-docs ()
+  (should
+   (string=
+    (me--format-narrative
+     "A"
+     (list (list :key "A" :output "result-a")))
+    "* A\n\n** A\n\n\nresult-a")))
+
+(ert-deftest me--composed-key_makes-readable-key ()
+  (should
+   (string= (me--composed-key '("A" "B" "C"))
+            "A -> B -> C")))
+
+(ert-deftest me--narrative-output_cleans-async-placeholder ()
+  (should
+   (string= (me--narrative-output "MyMold" "Loading MyMold contents...")
+            "[Running MyMold asynchronously...]")))
+
+(ert-deftest me--narrative-output_preserves-real-output ()
+  (should
+   (string= (me--narrative-output "MyMold" "actual data here")
+            "actual data here")))
+
+(ert-deftest me-mold-compose-with-narrative-produces-narrative-mold ()
+  (let ((mold1 '(:key "A" :given (:fn t) :then (:fn (insert "a")) :docs "Does A."))
+        (mold2 '(:key "B" :given (:fn t) :then (:fn (insert "b")) :docs "Does B.")))
+    (let ((composed (me-mold-compose-molds mold1 mold2 t)))
+      (should (string= (plist-get composed :key) "CompositionOfAAndB"))
+      (should (equal (plist-get composed :given) '(:fn (me-mold-run-given '(:key "A" :given (:fn t) :then (:fn (insert "a")) :docs "Does A."))))))))
+
+(ert-deftest me-mold-compose-without-narrative-preserves-old-behavior ()
+  (let ((mold1 '(:key "A" :given (:fn t) :then (:fn (insert "a")) :docs "Does A."))
+        (mold2 '(:key "B" :given (:fn t) :then (:fn (insert "b")) :docs "Does B.")))
+    (let ((composed (me-mold-compose-molds mold1 mold2 nil)))
+      (should (string= (plist-get composed :key) "CompositionOfAAndB"))
+      (should (equal (plist-get composed :given) '(:fn (me-mold-run-given '(:key "A" :given (:fn t) :then (:fn (insert "a")) :docs "Does A."))))))))
+
+(ert-deftest me--props-get_finds-value ()
+  (should
+   (equal (me--props-get :narrative '((:narrative t) (:docs "bla")))
+          t)))
+
+(ert-deftest me--props-get_returns-nil-when-missing ()
+  (should
+   (eq (me--props-get :narrative '((:docs "bla")))
+       nil)))

@@ -107,7 +107,7 @@ following in your lein project.clj
  (me-mold-compose
   (me-mold-compose "FirstOrgTable"  "OrgTableToCSV")
   "CSVToLineChart"
-  '((:docs "Make a line chart out of an Org table."))))
+  '((:narrative t :docs "Make a line chart out of an Org table."))))
 
 (me-register-mold-by-key
  "FirstOrgTableToBarChart"
