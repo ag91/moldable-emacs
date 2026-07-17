@@ -573,7 +573,6 @@ It specializes for source code."
 
 (me-register-mold
     :key "FirstOrgTable"
-    :docs "Find and extract the first org table only."
     :let ((table (me-first-org-table)))
     :given (:fn
             (eq major-mode 'org-mode)

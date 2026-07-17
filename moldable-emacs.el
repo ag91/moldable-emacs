@@ -961,145 +961,34 @@ When a :when clause is defined on the mold and the relevant buffers are visible,
 
 (unless me-no-when-updates (run-with-idle-timer 0.8 t 'me-run-whens))
 
-(defun me--format-narrative (composed-key steps)
-  "Format STEPS as an Org narrative string for COMPOSED-KEY.
-STEPS is a list of plists with :key, :docs, and :output."
-  (concat
-   (format "* %s\n\n" composed-key)
-   (s-join "\n\n"
-           (--map (format "** %s\n%s\n\n%s"
-                          (plist-get it :key)
-                          (or (plist-get it :docs) "")
-                          (or (plist-get it :output) ""))
-                  steps))))
-
-(defun me--props-get (key props)
-  "Get value for KEY from PROPS (a list of key-value pairs)."
-  (cadr (--find (equal (car it) key) props)))
-
-(defun me--composed-key (keys)
-  "Make a readable composed key from a list of mold KEYS."
-  (s-join " -> " keys))
-
-(defun me--narrative-output (key output)
-  "Clean up OUTPUT for narrative display.
-If OUTPUT is an async placeholder, replace with a note."
-  (if (s-starts-with-p "Loading " output)
-      (format "[Running %s asynchronously...]" key)
-    output))
-
-(defun me-mold-compose-molds (mold1 mold2 &optional narrative)
-  "Compose MOLD1 and MOLD2 in a new mold.
-When NARRATIVE is non-nil, produce an Org-mode buffer that interleaves
-each mold's :key and :docs with its output, auto-generating a narrative."
-  (let ((composed-key (format "CompositionOf%sAnd%s"
-                              (plist-get mold1 :key)
-                              (plist-get mold2 :key))))
-    (if narrative
-        (let ((narrative-key (me--composed-key
-                              (list (plist-get mold1 :key)
-                                    (plist-get mold2 :key)))))
-          `(:key ,composed-key
-                 :given (:fn (me-mold-run-given ',mold1))
-                 :then (:fn
-                        (progn
-                          (me-mold-run-then ',mold1)
-                          (let* ((buf1 (current-buffer))
-                                 (output1 (me--narrative-output
-                                           ,(plist-get mold1 :key)
-                                           (buffer-substring-no-properties (point-min) (point-max))))
-                                 (docs1 ,(or (plist-get mold1 :docs) ""))
-                                 (key1 ,(plist-get mold1 :key)))
-                            (me-mold-run-then ',mold2)
-                            (let* ((buf2 (current-buffer))
-                                   (output2 (me--narrative-output
-                                             ,(plist-get mold2 :key)
-                                             (buffer-substring-no-properties (point-min) (point-max))))
-                                   (docs2 ,(or (plist-get mold2 :docs) ""))
-                                   (key2 ,(plist-get mold2 :key)))
-                              (with-current-buffer buffername
-                                (org-mode)
-                                (erase-buffer)
-                                (insert (me--format-narrative
-                                         ,narrative-key
-                                         (list (list :key key1 :docs docs1 :output output1)
-                                               (list :key key2 :docs docs2 :output output2))))
-                                (setq-local self (list :steps (list (list :key key1 :docs docs1 :output output1)
-                                                                    (list :key key2 :docs docs2 :output output2)))))
-                              (ignore-errors (kill-buffer buf1))
-                              (ignore-errors (kill-buffer buf2))))))))
-      `(:key ,composed-key
-             :given (:fn (me-mold-run-given ',mold1))
-             :then (:fn
-                    (progn (me-mold-run-then ',mold1)
-                           (me-mold-run-then ',mold2)
-                           (switch-to-buffer buffername)
-                           (kill-buffer-and-window)
-                           (rename-buffer buffername)
-                           (switch-to-buffer buffername)))))))
+(defun me-mold-compose-molds (mold1 mold2)
+  "Compose MOLD1 and MOLD2 in a new mold."
+  `(
+    :key ,(format
+           "CompositionOf%sAnd%s"
+           (plist-get mold1 :key)
+           (plist-get mold2 :key))
+    :given (:fn (me-mold-run-given ',mold1)) ;; we need me-mold-run-given because we need to propagate the :let bindings
+    :then (:fn
+           (progn (me-mold-run-then ',mold1)
+                  (me-mold-run-then ',mold2)
+                  ;; (delete-window (get-buffer-window (plist-get ',mold1 :buffername)))
+                  (switch-to-buffer buffername)
+                  (kill-buffer-and-window)
+                  (rename-buffer buffername)
+                  (switch-to-buffer buffername)))))
 
 (defun me-mold-compose (m1 m2 &optional props)
   "Compose M1 and M2 in a single mold.
-Add PROPS (e.g.,  `(:docs \"...\" :examples nil)') to it.
-When PROPS contains `(:narrative t)', the composed mold produces
-an Org-mode narrative buffer auto-generated from each mold's :docs."
+Add PROPS (e.g.,  `(:docs \"...\" :examples nil)') to it."
   (let ((mold1 (if (stringp m1) (me-find-mold m1) m1))
         (mold2 (if (stringp m2) (me-find-mold m2) m2)))
     (if (and mold1 mold2)
-        (let* ((narrative (equal (me--props-get :narrative props) t))
-               (props (--remove (equal (car it) :narrative) props))
-               (result (me-mold-compose-molds mold1 mold2 narrative)))
+        (let ((result (me-mold-compose-molds mold1 mold2)))
           (--each props
             (plist-put result (nth 0 it) (nth 1 it)))
           result)
       (error (format "Could not find molds, check out: %s." (list m1 m2))))))
-
-(defun me-mold-compose-chain (molds &optional props)
-  "Compose MOLDS (a list of mold keys or plists) in sequence.
-When PROPS contains `(:narrative t)', produce an Org-mode narrative
-that interleaves each mold's :key and :docs with its output.
-Add other PROPS (e.g., `(:docs \"...\" :examples nil)') to the result."
-  (let* ((resolved (--map (if (stringp it) (me-find-mold it) it) molds))
-         (narrative (equal (me--props-get :narrative props) t))
-         (props (--remove (equal (car it) :narrative) props))
-         (composed-key (format "CompositionOf%s"
-                               (s-join "And" (--map (plist-get it :key) resolved)))))
-    (unless (-every? #'identity resolved)
-      (error "Could not find all molds: %s" molds))
-    (if narrative
-        (let ((narrative-key (me--composed-key
-                              (--map (plist-get it :key) resolved))))
-          `(:key ,composed-key
-                 :given (:fn (me-mold-run-given ',(car resolved)))
-                 :then (:fn
-                        (let ((results nil)
-                              (buffers nil)
-                              (molds ',resolved))
-                          (--each molds
-                            (me-mold-run-then it)
-                            (let* ((key (plist-get it :key))
-                                   (buf (current-buffer))
-                                   (output (me--narrative-output
-                                            key
-                                            (buffer-substring-no-properties (point-min) (point-max)))))
-                              (push (list :key key
-                                          :docs (or (plist-get it :docs) "")
-                                          :output output)
-                                    results)
-                              (push buf buffers)))
-                          (with-current-buffer buffername
-                            (org-mode)
-                            (erase-buffer)
-                            (insert (me--format-narrative ,narrative-key (reverse results)))
-                            (setq-local self (list :steps (reverse results))))
-                          (ignore-errors (--each (reverse buffers) (kill-buffer it)))))))
-      (let ((result (car resolved)))
-        (--each (cdr resolved)
-          (setq result (me-mold-compose-molds result it)))
-        (setq result (plist-put result :key composed-key))
-        (--each props
-          (plist-put result (nth 0 it) (nth 1 it)))
-        result))))
 
 (defvar me-temporary-mold-data nil "Holder of mold data before it is assigned to local variable `mold-data'.")
 
