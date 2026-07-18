@@ -188,7 +188,10 @@ Make it cheap to turn a Playground exploration into a reusable mold.
 This is the key to making throwaway molds practical — the user
 prototypes in Playground, then extracts with one command.
 
-*** TODO Create =me-extract-mold-from-playground= function
+*** DONE Create =me-extract-mold-from-playground= function
+:PROPERTIES:
+:ID:       3761dc5d-374d-4ef5-b3ab-ed085d2921b5
+:END:
 
 When the user is in a Playground buffer with working code that
 manipulates =self=, this function:
@@ -198,7 +201,7 @@ manipulates =self=, this function:
 3. Generates a =me-register-mold= form with =:key=, =:given=, =:then=,
    and =:docs= placeholders
 4. Prompts the user for a =:key= and =:docs= string
-5. Inserts the mold definition into =molds/core.el= (or a user molds
+5. Inserts the mold definition into =molds/playgrounds.el= (or a user molds
    file)
 
 Example workflow:
@@ -223,16 +226,20 @@ Example workflow:
  :docs "Extract function definitions from code tree.")
 #+end_src
 
-*** TODO Infer =:given= from =mold-data=
+*** DONE Infer =:given= from =mold-data=
 
 The Playground has access to =mold-data= which contains =:old-mode=,
 =:old-mold=, etc. Use this to suggest a =:given= predicate:
 - If =:old-mold= was "CodeAsTree", suggest =(:fn (ignore-errors (and self (listp self))))=
 - If =:old-mode= was =python-mode=, suggest =(:fn (eq major-mode 'python-mode))=
 
-*** TODO Add "Extract as Mold" action to Playground
+*** DONE Add "Extract as Mold" action to Playground
 
 Available when the current buffer is a Playground and =self= is bound.
+Bound to =C-c C-e= in the Playground buffer via
+=me-override-keybiding-in-buffer=. Extracted molds are inserted into
+=molds/playgrounds.el= (configurable via =me-playground-molds-file=),
+which is loaded by =me-setup-molds=.
 
 ** Phase 3: Project Diary (Org-Babel as Lepiter)
 :PROPERTIES:

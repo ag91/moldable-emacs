@@ -255,3 +255,27 @@ some new contents
             "a,b
 1,2
 3,4")))
+
+(ert-deftest me--playground-user-code_strips-tip-comments ()
+  (should
+   (equal
+    (with-temp-buffer
+      (insert ";; Tips:\n;;    Use `self' to access the mold context.\n;;    You can access the previous mold context through `mold-data'.\n;;    Press C-c C-e to extract this Playground as a reusable mold.\n\n(--map (list :x it) self)")
+      (me--playground-user-code))
+    "(--map (list :x it) self)")))
+
+(ert-deftest me--infer-given-from-mold-data_from-mold-with-list-self ()
+  (should
+   (equal
+    (with-temp-buffer
+      (setq-local mold-data '(:mold "Playground" :old-mold "CodeAsTree" :old-self ((:type program)) :old-mode emacs-lisp-mode))
+      (me--infer-given-from-mold-data))
+    '(:fn (ignore-errors (and self (listp self)))))))
+
+(ert-deftest me--infer-given-from-mold-data_from-source-with-mode ()
+  (should
+   (equal
+    (with-temp-buffer
+      (setq-local mold-data '(:mold "Playground" :old-mode python-mode))
+      (me--infer-given-from-mold-data))
+    '(:fn (eq major-mode 'python-mode)))))

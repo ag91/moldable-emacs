@@ -52,7 +52,8 @@
     it)
    (list
     "molds/core.el"
-    "molds/contrib.el"))
+    "molds/contrib.el"
+    "molds/playgrounds.el"))
   "Files containing molds."
   :group 'moldable-emacs)
 
@@ -1053,6 +1054,91 @@ STEPS is a list of plists with :key, :docs, :output, and optionally :link."
                   (or (me-get-marked-dired-files)
                       (me-get-all-dired-files))))))
 (add-hook 'me-mold-after-hook #'me-set-dired-self-for-playground) ;; the order is important: keep before me-set-self-mold-data
+
+(defcustom me-playground-molds-file
+  (concat (file-name-directory load-file-name) "molds/playgrounds.el")
+  "File where molds extracted from the Playground are inserted.
+This file should be listed in `me-files-with-molds' so extracted
+molds become available after `me-setup-molds'."
+  :group 'moldable-emacs
+  :type 'string)
+
+(defun me--playground-buffer-p ()
+  "Return non-nil if the current buffer is a Playground mold buffer."
+  (ignore-errors
+    (and mold-data
+         (stringp (plist-get mold-data :mold))
+         (s-starts-with-p "Playground" (plist-get mold-data :mold)))))
+
+(defun me--infer-given-from-mold-data ()
+  "Infer a `:given' plist for a mold extracted from the Playground.
+Uses the current buffer's `mold-data' to suggest a predicate that
+matches the context the Playground was invoked from."
+  (let* ((old-mold (plist-get mold-data :old-mold))
+         (old-mode (plist-get mold-data :old-mode))
+         (old-self (plist-get mold-data :old-self)))
+    (cond
+     ((and old-mold old-self (listp old-self))
+      '(:fn (ignore-errors (and self (listp self)))))
+     ((and old-mold old-self (me-plistp old-self))
+      '(:fn (ignore-errors (and self (listp self) (me-plistp self)))))
+     (old-mold
+      '(:fn (ignore-errors self)))
+     (old-mode
+      `(:fn (eq major-mode ',old-mode)))
+     (t
+     '(:fn t)))))
+
+(defun me--playground-user-code ()
+  "Extract the user's Elisp code from the current Playground buffer.
+Strips the leading tip comments and blank lines inserted by the
+Playground mold."
+  (let ((contents (buffer-substring-no-properties (point-min) (point-max))))
+    (--> contents
+         (s-split "\n" it)
+         (--drop-while (or (s-blank-p it) (s-starts-with-p ";;" it)) it)
+         (s-join "\n" it)
+         (s-trim it))))
+
+(defun me-extract-mold-from-playground ()
+  "Extract the current Playground buffer's code as a reusable mold.
+Reads the Elisp code in the Playground buffer, infers a `:given'
+predicate from the current `mold-data', prompts for a `:key' and
+`:docs', and inserts a `me-register-mold' form into
+`me-playground-molds-file'."
+  (interactive)
+  (unless (me--playground-buffer-p)
+    (user-error "Not in a Playground buffer"))
+  (let* ((user-code (me--playground-user-code))
+         (given (me--infer-given-from-mold-data))
+         (key (read-string "Mold key: "))
+         (docs (read-string "Docs: ")))
+    (when (s-blank-p key)
+      (user-error "Mold key cannot be empty"))
+    (let ((mold-form
+           (format "(me-register-mold\n :key %S\n :given %S\n :then (:fn\n        (let* ((result\n               (progn\n                 %s)))\n          (with-current-buffer buffername\n            (erase-buffer)\n            (emacs-lisp-mode)\n            (me-print-to-buffer result)\n            (setq-local self result))))\n :docs %S\n :examples nil)\n\n"
+                   key
+                   given
+                   user-code
+                   docs)))
+      (unless (file-exists-p me-playground-molds-file)
+        (with-temp-file me-playground-molds-file
+          (insert ";;; playgrounds.el --- Molds extracted from the Playground -*- lexical-binding: t; -*-\n\n")
+          (insert "(require 'moldable-emacs)\n\n")
+          (insert ";;; Code:\n\n")
+          (insert ";;; playgrounds.el ends here\n")))
+      (with-current-buffer (find-file-noselect me-playground-molds-file)
+        (goto-char (point-min))
+        (if (search-forward ";;; playgrounds.el ends here" nil t)
+            (progn
+              (goto-char (match-beginning 0))
+              (insert mold-form))
+          (goto-char (point-max))
+          (insert mold-form))
+        (save-buffer)
+        (display-buffer (current-buffer)))
+      (load-file me-playground-molds-file)
+      (message "Extracted mold %s and loaded it" key))))
 
 (defun me-set-self-mold-data ()
   "Set `mold-data'."

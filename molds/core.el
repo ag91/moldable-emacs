@@ -19,10 +19,13 @@
             (emacs-lisp-mode)
             (auto-save-mode)
             (erase-buffer)
-            (insert ";; Tips:\n;;    Use `self' to access the mold context.\n;;    You can access the previous mold context through `mold-data'.\n\n")
+            (insert ";; Tips:\n;;    Use `self' to access the mold context.\n;;    You can access the previous mold context through `mold-data'.\n;;    Press C-c C-e to extract this Playground as a reusable mold.\n\n")
             (when region
               (insert (format "(--> \"%s\"\n)" (replace-regexp-in-string "\"" "\\\\\"" region))))
             (goto-char (point-max))
+            (me-override-keybiding-in-buffer
+             (kbd "C-c C-e")
+             'me-extract-mold-from-playground)
             (setq-local self tree))))
  ;; TODO experimental for auto-completion: how can I make molds easy to autocomplete?
  :actions (me-by-type identity)
@@ -33,9 +36,10 @@ in the local variable `self'."
  :examples ((
              :name "Empty file"
              :given (:type file :name "/tmp/test.txt" :mode text-mode :contents "")
-             :then (:type buffer :name "Playground" :mode emacs-lisp-mode :contents ";; Tips:
+              :then (:type buffer :name "Playground" :mode emacs-lisp-mode :contents ";; Tips:
 ;;    Use `self' to access the mold context.
 ;;    You can access the previous mold context through `mold-data'.
+;;    Press C-c C-e to extract this Playground as a reusable mold.
 
 "))))
 
