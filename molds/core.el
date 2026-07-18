@@ -1214,38 +1214,50 @@ It specializes for source code."
                      (let* ((mold-key (plist-get mold-data :mold))
                             (mold (when mold-key (me-find-mold mold-key)))
                             (docs (or (plist-get mold :docs) ""))
-                            (output (buffer-substring-no-properties (point-min) (point-max))))
-                        (when mold-key
-                          (push (list :key mold-key :docs docs :output output)
-                                steps))
+                            (output (buffer-substring-no-properties (point-min) (point-max)))
+                            (buf-name (buffer-name)))
+                       (when mold-key
+                         (push (list :key mold-key :docs docs :output output :buffer buf-name)
+                               steps))
                        (setq buf (plist-get mold-data :old-buffer)))
-                   (setq buf nil))))
+                   (let* ((output (buffer-substring-no-properties (point-min) (point-max)))
+                          (buf-name (buffer-name)))
+                     (push (list :key "Source" :docs "The starting buffer." :output output :buffer buf-name)
+                           steps)
+                     (setq buf nil)))))
              steps)))
     :given (:fn (ignore-errors
                   (and mold-data
                        (plist-get mold-data :mold))))
     :then (:fn
            (let* ((result steps)
-                  (narrative-key (me--composed-key (--map (plist-get it :key) result))))
+                  (narrative-key (me--composed-key (--map (plist-get it :key) result)))
+                  (linked-steps
+                   (--map
+                    (let* ((buf-name (plist-get it :buffer))
+                           (link (when (get-buffer buf-name)
+                                   (me-make-elisp-navigation-link buf-name buf-name))))
+                      (append it (list :link link)))
+                    result)))
              (with-current-buffer buffername
                (org-mode)
                (erase-buffer)
-               (insert (me--format-narrative narrative-key result))
+               (insert (me--format-narrative narrative-key linked-steps))
                (setq-local self (list :steps result)))))
     :docs "Produce a narrative of the exploration so far by walking the mold-data buffer chain."
     :examples ((
                 :name "Narrative of a single mold"
                 :given (:type buffer
-                        :name "test-narrative-input"
-                        :mode emacs-lisp-mode
-                        :contents "((:type program :text \"int i=0;\"))"
-                        :mold-data (:mold "CodeAsTree"
-                                    :old-buffer "test-source.py"
-                                    :old-mode python-mode))
+                              :name "test-narrative-input"
+                              :mode emacs-lisp-mode
+                              :contents "((:type program :text \"int i=0;\"))"
+                              :mold-data (:mold "CodeAsTree"
+                                                :old-buffer "test-source.py"
+                                                :old-mode python-mode))
                 :then (:type buffer
-                       :name "*moldable-emacs-Narrative*"
-                       :mode org-mode
-                       :contents "* CodeAsTree\n\n** CodeAsTree\nYou get a flattened tree of all parsed elements.\nYou can transform this to extract information with the Playground mold.\n\n#+begin_example\n((:type program :text \"int i=0;\")\n#+end_example"))))
+                             :name "*moldable-emacs-Narrative*"
+                             :mode org-mode
+                             :contents "* Source -> CodeAsTree\n\n** Source\nThe starting buffer.\n\n#+begin_example\n((:type program :text \"int i=0;\")\n#+end_example\n\n** CodeAsTree\nYou get a flattened tree of all parsed elements.\nYou can transform this to extract information with the Playground mold.\n\n#+begin_example\n((:type program :text \"int i=0;\")\n#+end_example"))))
 
 (me-register-mold
     :key "ViewHtml"

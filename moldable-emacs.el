@@ -994,13 +994,16 @@ Add PROPS (e.g.,  `(:docs \"...\" :examples nil)') to it."
 
 (defun me--format-narrative (composed-key steps)
   "Format STEPS as an Org narrative string for COMPOSED-KEY.
-STEPS is a list of plists with :key, :docs, and :output."
+STEPS is a list of plists with :key, :docs, :output, and optionally :link."
   (concat
    (format "* %s\n\n" composed-key)
    (s-join "\n\n"
-           (--map (format "** %s\n%s\n\n#+begin_example\n%s\n#+end_example"
-                          (plist-get it :key)
+           (--map (format "** %s\n%s\n\n%s\n\n#+begin_example\n%s\n#+end_example"
+                          (or (plist-get it :link) (plist-get it :key))
                           (or (plist-get it :docs) "")
+                          (if (plist-get it :link)
+                              (format "Buffer: %s" (plist-get it :link))
+                            "")
                           (or (plist-get it :output) ""))
                   steps))))
 
@@ -1508,13 +1511,13 @@ TARGET can be a buffer, file or tree node.
                         (with-temp-buffer
                           (insert-file-contents-literally target)
                           (goto-char (point-min))
-                          (list (search-forward name) target)))
+                          (list (or (search-forward name nil 'noerror) 1) target)))
                      (or
                       (and (plist-get target :begin) (list (plist-get target :begin) (plist-get target :buffer)))
                       (save-excursion
                         (with-current-buffer target
                           (goto-char (point-min))
-                          (list (search-forward name) target)))))))
+                          (list (or (search-forward name nil 'noerror) 1) target)))))))
     (me-make-elisp-file-link
      (s-replace "\n" "" name)
      (format
