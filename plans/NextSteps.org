@@ -162,19 +162,18 @@ Implementation:
  :examples nil)
 #+end_src
 
-*** TODO Make narratives replayable
-
-Since the narrative is reconstructed from live buffers, replaying means
-re-running the mold sequence. Store the sequence of mold keys (already
-available in =self= as =:steps=) and add a "Replay Story" action that
-re-runs each mold key in order.
-
-*** TODO Make narratives shareable
+*** DONE Make narratives shareable
+:PROPERTIES:
+:CREATED:  [2026-07-18 Sat 23:20]
+:END:
 
 The Org buffer can be exported via =org-export= to HTML/PDF. Add an
 "Export Story" action.
 
 *** TODO Add examples for the Narrative mold
+:PROPERTIES:
+:ID:       87dfd01b-635d-43ed-b9d6-8fe0c6291445
+:END:
 
 Examples need the example harness to support multi-step mold chains
 (setup =mold-data= across buffers). This may require extending the

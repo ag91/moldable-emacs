@@ -1235,3 +1235,23 @@ It specializes for source code."
                (setq-local self (list :steps result)))))
     :docs "Produce a narrative of the exploration so far by walking the mold-data buffer chain."
     :examples nil)
+
+(me-register-mold
+    :key "ViewHtml"
+    :given (:fn (or (eq major-mode 'html-mode)
+                    (eq major-mode 'mhtml-mode)))
+    :then (:fn
+           (let* ((html (buffer-substring-no-properties (point-min) (point-max)))
+                  (tmp-file (make-temp-file "moldable-emacs-html" nil ".html")))
+             (with-temp-file tmp-file
+               (insert html))
+             (if (featurep 'xwidget-internal)
+                 (with-current-buffer buffername
+                   (xwidget-webkit-new-session (concat "file://" tmp-file)))
+               (browse-url (concat "file://" tmp-file))
+               (with-current-buffer buffername
+                 (erase-buffer)
+                 (insert "Check your browser.")))
+             (setq-local self html)))
+    :docs "Render the HTML buffer in a WebKit widget or your default browser."
+    :examples nil)
