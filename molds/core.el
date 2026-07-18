@@ -1215,10 +1215,9 @@ It specializes for source code."
                             (mold (when mold-key (me-find-mold mold-key)))
                             (docs (or (plist-get mold :docs) ""))
                             (output (buffer-substring-no-properties (point-min) (point-max))))
-                       (message "hey--12313 %s " (list buf mold-key docs output))
-                       (when mold-key
-                         (push (list :key mold-key :docs docs :output output)
-                               steps))
+                        (when mold-key
+                          (push (list :key mold-key :docs docs :output output)
+                                steps))
                        (setq buf (plist-get mold-data :old-buffer)))
                    (setq buf nil))))
              steps)))
@@ -1234,7 +1233,19 @@ It specializes for source code."
                (insert (me--format-narrative narrative-key result))
                (setq-local self (list :steps result)))))
     :docs "Produce a narrative of the exploration so far by walking the mold-data buffer chain."
-    :examples nil)
+    :examples ((
+                :name "Narrative of a single mold"
+                :given (:type buffer
+                        :name "test-narrative-input"
+                        :mode emacs-lisp-mode
+                        :contents "((:type program :text \"int i=0;\"))"
+                        :mold-data (:mold "CodeAsTree"
+                                    :old-buffer "test-source.py"
+                                    :old-mode python-mode))
+                :then (:type buffer
+                       :name "*moldable-emacs-Narrative*"
+                       :mode org-mode
+                       :contents "* CodeAsTree\n\n** CodeAsTree\nYou get a flattened tree of all parsed elements.\nYou can transform this to extract information with the Playground mold.\n\n#+begin_example\n((:type program :text \"int i=0;\")\n#+end_example"))))
 
 (me-register-mold
     :key "ViewHtml"

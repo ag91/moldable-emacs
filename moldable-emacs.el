@@ -1078,16 +1078,17 @@ This should simplify the testing and documentation of molds.")
          (point (point))
          (name (or (buffer-file-name) (buffer-name)))
          (mode major-mode)
+         (current-mold-data (ignore-errors (copy-tree mold-data)))
          (contents (if (eq mode 'image-mode)
-                       (let ((filename (concat
-                                        me-example-resource-dir
-                                        (file-name-nondirectory name))))
-                         (write-region
-                          (point-min)
-                          (point-max)
+                        (let ((filename (concat
+                                         me-example-resource-dir
+                                         (file-name-nondirectory name))))
+                          (write-region
+                           (point-min)
+                           (point-max)
+                           filename)
                           filename)
-                         filename)
-                     (buffer-substring-no-properties (point-min) (point-max)))))
+                      (buffer-substring-no-properties (point-min) (point-max)))))
     (setq me-last-example
           `(:given
             (
@@ -1095,7 +1096,9 @@ This should simplify the testing and documentation of molds.")
              :name ,name
              :mode ,mode
              :contents ,contents
-             :point ,point)))))
+             :point ,point
+             ,@(when current-mold-data
+                 (list :mold-data current-mold-data)))))))
 
 (defun me-record-then-of-example ()
   "Reset and store in `me-last-example' the then of a mold example."
@@ -1148,12 +1151,16 @@ This should simplify the testing and documentation of molds.")
 (add-hook 'me-mold-before-mold-runs-hook #'me-warn-on-run-if-no-docs)
 
 (defmacro me--given (given &rest body)
-  "Setup according to GIVEN and run BODY."
+  "Setup according to GIVEN and run BODY.
+GIVEN is a plist with :type, :name, :mode, :contents, :point,
+and optionally :mold-data (a plist to set as buffer-local
+`mold-data' for testing molds that depend on it)."
   `(let* ((given (eval ',given))
           (type (plist-get  given :type))
           (name (plist-get given :name))
           (mode (plist-get given :mode))
           (point (plist-get given :point))
+          (mold-data-to-set (plist-get given :mold-data))
           (body ',body)
           (contents (if (eq mode 'image-mode)
                         (with-temp-buffer
@@ -1162,17 +1169,21 @@ This should simplify the testing and documentation of molds.")
                       (plist-get given :contents))))
      (eval (if (equal type 'buffer)
                `(with-temp-buffer
-                  (rename-buffer ,name "-new") ;; TODO it would be better to keep the old buffer alive: now if I am testing Playground, it kills an existing Playground buffer too. It is fine for now because I plan to use this only for testing purposes.
+                  (rename-buffer ,name "-new")
                   (insert ,contents)
                   (,(if mode mode 'fundamental-mode))
                   (if ,point (goto-char ,point) (goto-char (point-min)))
+                  (when ,mold-data-to-set
+                    (setq-local mold-data ,mold-data-to-set))
                   ,@body)
              `(with-temp-file ,name
                 (let ((buffer-file-name ,name ))
                   (rename-buffer (file-name-nondirectory ,name) "-new")
-                  (insert ,contents) ;; TODO this does not work for images: it seems there are coding system issues
+                  (insert ,contents)
                   (,(if mode mode 'fundamental-mode))
                   (if ,point (goto-char ,point) (goto-char (point-min)))
+                  (when ,mold-data-to-set
+                    (setq-local mold-data ,mold-data-to-set))
                   ,@body))))))
 (put 'me--given 'lisp-indent-function 1)
 
