@@ -243,6 +243,7 @@ following in your lein project.clj
 (me-register-mold
     :key "FunctionsComplexity"
     :given (:fn (and
+                 (derived-mode-p 'prog-mode)
                  (me-require 'code-compass)
                  (and
                   (or (me-require 'tree-sitter)
@@ -1129,3 +1130,21 @@ output as a string."
 1,2,3
 " :point 12)
                  :then (:type buffer :name "*moldable-emacs-QueryCSV*" :mode csv-mode :contents "d\n6\n"))))
+
+(me-register-mold
+    :key "PdfToText"
+    :given (:fn (and (executable-find "pdftotext")
+                     (s-ends-with-p ".pdf" (buffer-name))))
+    :let ((pdf-file (or (buffer-file-name)
+                        (plist-get (ignore-errors mold-data) :old-file))))
+    :then (:async ((output (lambda (cb)
+                             (async-shell-command-to-string
+                              (format "pdftotext %S -" (expand-file-name pdf-file))
+                              cb))))
+                  :fn (with-current-buffer buffername
+                        (erase-buffer)
+                        (insert output)
+                        (goto-char (point-min))
+                        (setq-local self output)))
+    :docs "You can turn a PDF into text using the pdftotext command."
+    :examples nil)
