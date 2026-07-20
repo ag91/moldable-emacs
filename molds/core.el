@@ -1274,6 +1274,7 @@ It specializes for source code."
                (insert html))
              (if (featurep 'xwidget-internal)
                  (with-current-buffer buffername
+                   (insert "Check your xwidget buffer.")
                    (xwidget-webkit-new-session (concat "file://" tmp-file)))
                (browse-url (concat "file://" tmp-file))
                (with-current-buffer buffername
@@ -1282,3 +1283,159 @@ It specializes for source code."
              (setq-local self html)))
     :docs "Render the HTML buffer in a WebKit widget or your default browser."
     :examples nil)
+
+(defun me--trace-step-to-html (step index)
+  "Render a trace STEP as an HTML card at INDEX."
+  (let* ((name (plist-get step :name))
+         (data (plist-get step :data))
+         (source (plist-get step :source))
+         (data-str (if (stringp data) data (pp-to-string data)))
+         (source-link (when source
+                        (format "<a href=\"file://%s\">%s:%s</a>"
+                                 (or (plist-get source :file) "")
+                                 (or (plist-get source :file) "")
+                                 (or (plist-get source :begin) "")))))
+    (format
+     "<div class=\"trace-step\" id=\"step-%d\">
+  <div class=\"trace-step-header\" onclick=\"toggleStep(%d)\">
+    <span class=\"step-index\">%d</span>
+    <span class=\"step-name\">%s</span>
+    %s
+  </div>
+  <div class=\"trace-step-data\" id=\"data-%d\">
+    <pre>%s</pre>
+  </div>
+</div>"
+     index index index name
+     (if source-link (format "<span class=\"step-source\">%s</span>" source-link) "")
+     index (me--html-escape data-str))))
+
+(defun me--html-escape (str)
+  "Escape HTML special characters in STR."
+  (->> str
+       (s-replace "&" "&amp;")
+       (s-replace "<" "&lt;")
+       (s-replace ">" "&gt;")
+       (s-replace "\"" "&quot;")))
+
+(defun me--trace-to-html (trace)
+  "Render a TRACE plist as an interactive HTML string.
+TRACE has :steps, a list of step plists with :name, :data, :source."
+  (let* ((steps (plist-get trace :steps))
+         (steps-html (s-join "\n"
+                             (--map-indexed (me--trace-step-to-html it it-index) steps))))
+    (format
+     "<!DOCTYPE html>
+<html>
+<head>
+<meta charset=\"utf-8\">
+<style>
+  body { font-family: sans-serif; margin: 20px; }
+  .trace-step { border: 1px solid #ddd; border-radius: 4px; margin: 8px 0; overflow: hidden; }
+  .trace-step-header { display: flex; align-items: center; gap: 10px; padding: 10px; cursor: pointer; background: #f5f5f5; }
+  .trace-step-header:hover { background: #e8e8e8; }
+  .step-index { display: inline-block; width: 28px; height: 28px; border-radius: 50%%; background: #4a90d9; color: white; text-align: center; line-height: 28px; font-weight: bold; font-size: 13px; }
+  .step-name { font-weight: bold; font-size: 15px; }
+  .step-source { margin-left: auto; font-size: 12px; color: #666; }
+  .step-source a { color: #4a90d9; text-decoration: none; }
+  .trace-step-data { padding: 0; max-height: 500px; overflow: auto; }
+  .trace-step-data pre { margin: 0; padding: 12px; background: #1e1e1e; color: #d4d4d4; font-family: monospace; font-size: 13px; white-space: pre-wrap; }
+  .arrow { text-align: center; font-size: 20px; color: #999; margin: 4px 0; }
+</style>
+</head>
+<body>
+<h1>Trace</h1>
+<div id=\"trace-container\">
+%s
+</div>
+<script>
+  function toggleStep(index) {
+    var data = document.getElementById('data-' + index);
+    data.style.display = data.style.display === 'none' ? 'block' : 'none';
+  }
+  document.addEventListener('DOMContentLoaded', function() {
+    var steps = document.querySelectorAll('.trace-step-data');
+    steps.forEach(function(s, i) {
+      if (i > 0) s.style.display = 'none';
+    });
+  });
+</script>
+</body>
+</html>"
+     steps-html)))
+
+(me-register-mold
+    :key "TraceToHtml"
+    :given (:fn (ignore-errors
+                  (and self
+                       (listp self)
+                       (plist-get self :steps))))
+    :then (:fn
+           (let* ((html (me--trace-to-html self))
+                  (tmp-file (make-temp-file "moldable-emacs-trace" nil ".html")))
+             (with-current-buffer buffername
+               (insert html)
+               (html-mode)
+               (setq-local self html)
+               )))
+    :docs "Render a trace (plist with :steps) as an interactive HTML page.
+Each step shows its name, data snapshot, and optional source location.
+Steps are collapsible; click to expand/collapse.
+Use `me-trace' and `me-with-tracing' in Playground to capture traces."
+    :examples nil)
+
+(defun me--chrome-trace-to-steps (events)
+  "Convert Chrome Trace Event EVENTS (a list of alists) to our :steps schema.
+Events with phase B/E are treated as scope markers.
+Events with phase X (complete) become steps with their args as :data.
+Flow events (s/t/f) are collected as :flows on the trace."
+  (let ((steps nil)
+        (flows nil)
+        (pending-begins nil))
+    (--each events
+      (let* ((ph (alist-get 'ph it))
+             (name (alist-get 'name it))
+             (ts (alist-get 'ts it))
+             (args (alist-get 'args it))
+             (id (alist-get 'id it)))
+        (cond
+         ((string= ph "B")
+          (push (list :name name :ts ts :data args :open t) pending-begins))
+         ((string= ph "E")
+          (let ((begin (car pending-begins)))
+            (when begin
+              (pop pending-begins)
+              (push (list :name (plist-get begin :name)
+                          :ts (plist-get begin :ts)
+                          :data (plist-get begin :data)
+                          :dur (- ts (plist-get begin :ts)))
+                    steps))))
+         ((string= ph "X")
+          (push (list :name name :ts ts :data args
+                      :dur (alist-get 'dur it))
+                steps))
+         ((or (string= ph "s") (string= ph "t") (string= ph "f"))
+          (push (list :id id :ph ph :ts ts :name name) flows)))))
+    (list :steps (reverse steps)
+          :flows (reverse flows))))
+
+(me-register-mold
+ :key "ChromeTraceToTrace"
+ :given (:fn (or (eq major-mode 'json-mode)
+                 (eq major-mode 'javascript-mode)
+                 (s-ends-with-p ".json" (or (buffer-file-name) ""))))
+ :then (:fn
+        (let* ((json-str (buffer-substring-no-properties (point-min) (point-max)))
+               (parsed (json-read-from-string json-str))
+               (events (append (if (vectorp parsed) parsed (alist-get 'traceEvents parsed)) nil))
+               (trace (me--chrome-trace-to-steps events)))
+          (with-current-buffer buffername
+            (emacs-lisp-mode)
+            (erase-buffer)
+            (me-print-to-buffer trace)
+            (setq-local self trace))))
+ :docs "Convert a Chrome Trace Event JSON file to our trace schema (:steps).
+Supports B/E (begin/end), X (complete), and s/t/f (flow) events.
+Each event's `args` becomes the step's `:data`.
+Compose with TraceToHtml to visualize."
+ :examples nil)

@@ -1012,6 +1012,33 @@ STEPS is a list of plists with :key, :docs, :output, and optionally :link."
   "Make a readable composed key from a list of mold KEYS."
   (s-join " -> " keys))
 
+(defvar me-trace nil
+  "Current trace being recorded, or nil if not tracing.
+A trace is a plist with :steps, a list of step plists.
+Each step has :name, :data, :source, and :ts (timestamp).
+Inspired by the Chrome Trace Event Format (trace-event-format).")
+
+(defun me-trace (name data &optional source)
+  "Record a trace step with NAME, DATA, and optional SOURCE.
+SOURCE is a plist with :file, :begin, :end for code location.
+When `me-trace' is nil, this is a no-op."
+  (when me-trace
+    (let ((step (list :name name
+                      :data data
+                      :source source
+                      :ts (current-time))))
+      (plist-put me-trace :steps
+                (append (plist-get me-trace :steps) (list step))))
+    data))
+
+(defmacro me-with-tracing (&rest body)
+  "Evaluate BODY with tracing enabled.
+Each `me-trace' call inside BODY records a step.
+Returns the trace plist as `self' in the result buffer."
+  `(let ((me-trace (list :steps nil)))
+     ,@body
+     me-trace))
+
 (defvar me-temporary-mold-data nil "Holder of mold data before it is assigned to local variable `mold-data'.")
 
 (defun me-setup-self-mold-data ()

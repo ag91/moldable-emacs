@@ -170,9 +170,10 @@ Implementation:
 The Org buffer can be exported via =org-export= to HTML/PDF. Add an
 "Export Story" action.
 
-*** TODO Add examples for the Narrative mold
+*** DONE Add examples for the Narrative mold
 :PROPERTIES:
 :ID:       87dfd01b-635d-43ed-b9d6-8fe0c6291445
+:CREATED:  [2026-07-20 Mon 11:48]
 :END:
 
 Examples need the example harness to support multi-step mold chains
@@ -295,6 +296,7 @@ When the user runs a mold, they can choose to capture it in the diary.
 ** Phase 4: Responsibility Graph Mold
 :PROPERTIES:
 :CUSTOM_ID: responsibility-graph
+:ID:       644B8C4D-987B-44DF-ABA7-32FD8B5B3FD9
 :END:
 
 Directly address the user's vision: extract key responsibilities of a
