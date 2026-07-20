@@ -356,27 +356,48 @@ This is a more focused view than `CodeToTree.'")
 ") :then (:type buffer :name "TreeOfDuplicates" :mode emacs-lisp-mode :contents "((:type type_identifier :text \"include\" :begin 12 :end 19 :buffer \"my.cc\" :buffer-file \"/tmp/my.cc\"))
 "))))
 
+(defvar me-evalsexp-form nil
+  "When non-nil, EvalSexp mold evaluates this form instead of searching the buffer.
+Used for replaying stories.")
+
+(defvar me-evalsexp-last-form nil
+  "Buffer-local variable storing the last form EvalSexp evaluated.
+Used by the Narrative mold to capture the input form for replay.")
+
 (me-register-mold
     :key "EvalSexp"
-    :given (:fn (thing-at-point 'sexp))
+    :given (:fn (or me-evalsexp-form (thing-at-point 'sexp)))
     :then (:fn
            (let* ((orig-point (point))
-                  (tree (progn (unless (or (me-get-region) (list-at-point))
-                                 (progn (goto-char (point-min)) (search-forward "(" nil t)))
-                               (or (ignore-errors (eval (read (me-get-region)))) (ignore-errors (eval (list-at-point))) (list-at-point))))
-                  (_ (remove-overlays))
-                  (_ (overlay-put
-                      (make-overlay
-                       (car (or (car (region-bounds)) (thing-at-point-bounds-of-list-at-point)))
-                       (cdr (or (car (region-bounds)) (thing-at-point-bounds-of-list-at-point))))
-                      'face
-                      'bold))
+                  (form-str (cond
+                             (me-evalsexp-form me-evalsexp-form)
+                             ((me-get-region) (me-get-region))
+                             (t
+                              (save-excursion
+                                (goto-char (point-min))
+                                (search-forward "(" nil t)
+                                (me-get-region)))))
+                  (tree (cond
+                         (me-evalsexp-form
+                          (eval (read me-evalsexp-form)))
+                         ((me-get-region)
+                          (or (ignore-errors (eval (read (me-get-region)))) (list-at-point)))
+                         (t
+                          (or (ignore-errors (eval (read form-str))) (ignore-errors (eval (list-at-point))) (list-at-point)))))
+                  (_ (with-demoted-errors "EvalSexp overlay error: %S"
+                         (overlay-put
+                          (make-overlay
+                           (car (or (car (region-bounds)) (thing-at-point-bounds-of-list-at-point)))
+                           (cdr (or (car (region-bounds)) (thing-at-point-bounds-of-list-at-point))))
+                          'face
+                          'bold)))
                   (_ (goto-char orig-point)))
              (with-current-buffer buffername
                (emacs-lisp-mode)
                (erase-buffer)
                (me-print-to-buffer tree)
-               (setq-local self tree))))
+               (setq-local self tree)
+               (setq-local me-evalsexp-last-form form-str))))
     :docs "You can evaluate an Elisp sexp after point and show the result.")
 
 ;; (me-register-mold
@@ -1219,14 +1240,23 @@ It specializes for source code."
                             (mold (when mold-key (me-find-mold mold-key)))
                             (docs (or (plist-get mold :docs) ""))
                             (output (buffer-substring-no-properties (point-min) (point-max)))
-                            (buf-name (buffer-name)))
+                            (buf-name (buffer-name))
+                            (self-val (ignore-errors self))
+                            (form (when (and mold-key (string= mold-key "EvalSexp"))
+                                    (ignore-errors me-evalsexp-last-form))))
                        (when mold-key
-                         (push (list :key mold-key :docs docs :output output :buffer buf-name)
+                         (push (list :key mold-key :docs docs :output output :buffer buf-name
+                                     :self self-val
+                                     :source-file (buffer-file-name)
+                                     :form form)
                                steps))
                        (setq buf (plist-get mold-data :old-buffer)))
                    (let* ((output (buffer-substring-no-properties (point-min) (point-max)))
-                          (buf-name (buffer-name)))
-                     (push (list :key "Source" :docs "The starting buffer." :output output :buffer buf-name)
+                          (buf-name (buffer-name))
+                          (self-val (ignore-errors self)))
+                     (push (list :key "Source" :docs "The starting buffer." :output output :buffer buf-name
+                                 :self self-val
+                                 :source-file (buffer-file-name))
                            steps)
                      (setq buf nil)))))
              steps)))
@@ -1247,7 +1277,10 @@ It specializes for source code."
                (org-mode)
                (erase-buffer)
                (insert (me--format-narrative narrative-key linked-steps))
-               (setq-local self (list :steps result)))))
+               (setq-local self (list :steps result))
+               (me-override-keybiding-in-buffer
+                (kbd "C-c C-d")
+                'me-save-narrative-to-diary))))
     :docs "Produce a narrative of the exploration so far by walking the mold-data buffer chain."
     :examples ((
                 :name "Narrative of a single mold"

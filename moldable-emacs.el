@@ -1039,6 +1039,144 @@ Returns the trace plist as `self' in the result buffer."
      ,@body
      me-trace))
 
+(defcustom me-diary-file
+  (expand-file-name "diary.org" user-emacs-directory)
+  "Default file for saving moldable-emacs narratives as diary entries."
+  :group 'moldable-emacs
+  :type 'file)
+
+(defun me-replay-story (source mold-keys &optional step-data)
+  "Replay a story by opening SOURCE and applying each mold in MOLD-KEYS.
+SOURCE is a file path or buffer name.  MOLD-KEYS is a list of mold key strings.
+STEP-DATA is an optional list of plists, one per mold key, containing
+extra data for replay (e.g. :code for Playground, :sexp for EvalSexp)."
+  (interactive
+   (list (read-file-name "Source file: ")
+         (read-string "Mold keys (space-separated): ")))
+  (let ((keys (if (stringp mold-keys)
+                  (s-split " " (s-trim mold-keys) t)
+                mold-keys)))
+    (when (file-exists-p source)
+      (find-file source))
+    (--each-indexed keys
+      (let* ((key it)
+             (data (nth it-index step-data)))
+        (cond
+         ((string= key "Playground")
+          (let ((me-playground-self (plist-get data :self)))
+            (me-mold "Playground"))
+          (when-let ((code (plist-get data :code))
+                     (buf (--find (s-starts-with-p "*moldable-emacs-Playground" it)
+                                  (mapcar #'buffer-name (buffer-list)))))
+            (with-current-buffer buf
+              (erase-buffer)
+              (insert code)
+              (goto-char (point-min))
+              )))
+         ((string= key "EvalSexp")
+          (let ((me-evalsexp-form (plist-get data :sexp)))
+            (me-mold "EvalSexp")))
+         (t
+          (me-mold key)))))))
+
+(defun me-replay-story-from-diary ()
+  "Replay the story stored in the current diary entry's org properties.
+Reads SOURCE, MOLD-KEYS, and STEP-DATA properties from the
+heading two levels up (the entry heading, not the Replay/Narrative subheading)."
+  (interactive)
+  (save-excursion
+    (org-back-to-heading t)
+    (org-up-heading-safe)
+    (let* ((source (org-entry-get (point) "SOURCE"))
+           (mold-keys-str (org-entry-get (point) "MOLD-KEYS"))
+           (step-data-str (org-entry-get (point) "STEP-DATA"))
+           (mold-keys (when mold-keys-str
+                        (s-split " " (s-trim mold-keys-str) t)))
+           (step-data (when step-data-str
+                        (car (read-from-string step-data-str)))))
+      (unless source
+        (error "No SOURCE property found at heading"))
+      (me-replay-story source mold-keys step-data))))
+
+(defun me--story-replay-data (steps)
+  "Extract replay data from narrative STEPS.
+Returns a plist with :source-file, :mold-keys, and :step-data."
+  (let* ((source-step (car steps))
+         (source-buffer (plist-get source-step :buffer))
+         (source-file (plist-get source-step :source-file))
+         (mold-steps (cdr steps))
+         (mold-keys (--map (plist-get it :key) mold-steps))
+         (step-data (--map
+                     (let ((key (plist-get it :key))
+                           (self-val (plist-get it :self))
+                           (output (plist-get it :output))
+                           (form (plist-get it :form)))
+                       (cond
+                        ((string= key "Playground")
+                         (list :key key :self self-val :code output))
+                        ((string= key "EvalSexp")
+                         (list :key key :sexp (or form output)))
+                        (t
+                         (list :key key :self self-val))))
+                     mold-steps)))
+    (list :source-buffer source-buffer
+          :source-file source-file
+          :mold-keys mold-keys
+          :step-data step-data)))
+
+(defun me-save-narrative-to-diary (entry-title subtree-path)
+  "Save the current narrative buffer to `me-diary-file'.
+ENTRY-TITLE is the heading for the diary entry.
+SUBTREE-PATH is the org heading path under which to insert (e.g. \"2026-07\")."
+  (interactive
+   (list (read-string "Entry title: "
+                      (when (and (buffer-local-value 'self (current-buffer))
+                                 (plist-get (buffer-local-value 'self (current-buffer)) :steps))
+                        (me--composed-key
+                         (--map (plist-get it :key)
+                                (plist-get (buffer-local-value 'self (current-buffer)) :steps)))))
+         (read-string "Subtree path (leave empty for top level): ")))
+  (let* ((narrative-content (buffer-substring-no-properties (point-min) (point-max)))
+         (self-val (buffer-local-value 'self (current-buffer)))
+         (steps (plist-get self-val :steps))
+         (replay-data (me--story-replay-data steps))
+         (source-file (plist-get replay-data :source-file))
+         (mold-keys (plist-get replay-data :mold-keys))
+         (step-data (plist-get replay-data :step-data))
+         (replay-link (when (and source-file mold-keys)
+                        (format "[[elisp:(me-replay-story-from-diary)][Replay]]")))
+         (step-data-str (pp-to-string step-data))
+         (step-data-str (s-replace "\n" " " (s-trim step-data-str))))
+    (unless (file-exists-p me-diary-file)
+      (with-temp-file me-diary-file
+        (insert "#+TITLE: Moldable Emacs Diary\n\n")))
+    (with-current-buffer (find-file-noselect me-diary-file)
+      (goto-char (point-max))
+      (unless (bolp) (insert "\n"))
+      (when (s-present-p subtree-path)
+        (let ((headings (s-split "/" subtree-path t)))
+          (--each headings
+            (unless (org-find-visit-headline it)
+              (insert (format "* %s\n" it))
+              (org-do-demote)))
+          (org-find-visit-headline (car (last headings)))))
+      (let ((entry-level (if (s-present-p subtree-path) 2 1)))
+        (insert (format "%s* %s\n" (make-string (1- entry-level) ?*) entry-title))
+        (insert (format ":PROPERTIES:\n:SOURCE: %s\n:MOLD-KEYS: %s\n:STEP-DATA: %s\n:END:\n"
+                        (or source-file "")
+                        (s-join " " mold-keys)
+                        step-data-str))
+        (insert (format "%s* Replay\n" (make-string entry-level ?*)))
+        (when replay-link
+          (insert replay-link))
+        (insert "\n")
+        (insert (format "%s* Narrative\n" (make-string entry-level ?*)))
+        (insert "#+begin_src org\n")
+        (insert (org-escape-code-in-string narrative-content))
+        (insert "#+end_src\n"))
+      (save-buffer)
+      (message "Saved to %s" me-diary-file))))
+
 (defvar me-temporary-mold-data nil "Holder of mold data before it is assigned to local variable `mold-data'.")
 
 (defun me-setup-self-mold-data ()
@@ -1644,7 +1782,7 @@ TARGET can be a buffer, file or tree node.
   "Make an Elisp Org link that navigates to a position of NAME in BUFFER-NAME."
   (let* ((pos (with-current-buffer buffer-name
                 (goto-char (point-min))
-                (search-forward (if (s-contains-p "\"" name) (prin1-to-string name) name)))))
+                (or (search-forward (if (s-contains-p "\"" name) (prin1-to-string name) name) nil 'noerror) 1))))
     (me-make-elisp-file-link
      name
      (format

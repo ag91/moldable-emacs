@@ -242,56 +242,37 @@ Bound to =C-c C-e= in the Playground buffer via
 =molds/playgrounds.el= (configurable via =me-playground-molds-file=),
 which is loaded by =me-setup-molds=.
 
-** Phase 3: Project Diary (Org-Babel as Lepiter)
+** Phase 3: Project Diary (Narrative Persistence + Replay)
 :PROPERTIES:
 :CUSTOM_ID: project-diary
 :END:
 
-Create a notebook system that captures and replays mold explorations.
+Persist narratives as diary entries with replay capability.
 
-*** TODO Create "Project Diary" mold
+*** DONE Add =me-diary-file= variable
 
-- Creates an Org-mode buffer for a project (named e.g. =*Diary: my-project*=)
-- The buffer has a header with project name, date, and a template
-- Each subsequent mold invocation can be captured as a diary entry
+Default location for the diary org file (=~/.emacs.d/diary.org=).
 
-*** TODO Implement =me-mold-to-babel= function
+*** DONE Implement =me-replay-story= function
 
-Captures the current mold invocation as an org-babel source block:
-- Records the mold key, input context (buffer name, mode, point)
-- Records the output (buffer contents, mode)
-- Produces an org-babel block that re-runs the mold
+Opens the source file and applies each mold key in sequence.
+The mold engine's existing context-passing (=self=/=mold-data=) handles
+the rest — no org-babel needed.
 
-#+begin_src org
-,** Exploring code duplication
-,#+begin_src elisp :var input="src/main.py"
-(me-mold "CodeAsTree")
-,#+end_src
+*** DONE Add "Save to Diary" action to Narrative mold
 
-,#+RESULTS:
-,#+begin_example
-((:type module ...))
-,#+end_example
-#+end_src
+Bound to =C-c C-d= in the Narrative buffer. Prompts for:
+- Entry title (default: the narrative key, e.g. "CodeAsTree -> TreeOfDuplicates")
+- Subtree path (default: top level, or e.g. "2026-07/ProjectName")
 
-*** TODO Add =me-diary= minor mode
+Inserts the narrative as an org subtree with:
+- A **Replay** subheading with an elisp link to re-run the story
+- A **Narrative** subheading with the captured output in an example block
 
-When active, each mold invocation is appended to the project diary
-buffer as a new section. The section includes:
-- Timestamp
-- The question being explored (user can fill in)
-- The mold used
-- The output
-- Notes (user can fill in)
-
-*** TODO Use org-babel =:var= for passing =self=/=mold-data=
-
-Link diary blocks so that one block's output feeds the next block's
-input, mirroring the =self=/=mold-data= context-passing mechanism.
-
-*** TODO Add "Capture as Diary Entry" action to mold inspector
-
-When the user runs a mold, they can choose to capture it in the diary.
+No org-babel integration needed. The Narrative mold already captures
+the full story (each step's mold key, docs, and output). Replay just
+needs the source file and the sequence of mold keys — both available
+from the narrative's =self= data.
 
 ** Phase 4: Responsibility Graph Mold
 :PROPERTIES:
