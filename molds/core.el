@@ -1270,7 +1270,12 @@ It specializes for source code."
                    (--map
                     (let* ((buf-name (plist-get it :buffer))
                            (link (when (get-buffer buf-name)
-                                   (me-make-elisp-navigation-link buf-name buf-name))))
+                                   (me-make-elisp-navigation-link
+                                    ;; Source is not a mold, so we prefer the buffer name
+                                    (if (equal (plist-get it :key) "Source")
+                                        buf-name
+                                      (plist-get it :key))
+                                    buf-name))))
                       (append it (list :link link)))
                     result)))
              (with-current-buffer buffername
