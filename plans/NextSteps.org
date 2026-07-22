@@ -331,40 +331,42 @@ Provide =:examples= with small test codebases.
 Bridge from syntax to meaning by providing deterministic descriptions
 of code constructs.
 
-*** DONE Create =me-descriptions.el= library
+*** TODO Create =me-descriptions.el= library
 
-Created =molds/me-descriptions.el= with an alist mapping tree-sitter
-node types to description functions. Covers: function, method, class,
-interface, enum, import, call, if, for, while, return, variable,
-assignment, try, switch, and comment.
+An alist mapping tree-sitter node types to description functions:
 
-Each description function takes a parse-tree node plist (with :type,
-:text, :begin, :end, :mode) and returns a human-readable string.
-Descriptions are deterministic — they encode human knowledge about
-what constructs mean, not AI inference.
+#+begin_src elisp
+(defvar me-descriptions
+  '((function_definition . me-describe-function)
+    (class_definition . me-describe-class)
+    (import_statement . me-describe-import)
+    (call_expression . me-describe-call)
+    (if_statement . me-describe-if)
+    (for_statement . me-describe-for)))
+#+end_src
 
-*** DONE Implement description functions
+*** TODO Implement description functions
 
 Each description function produces a human-readable string for a code
-construct. The functions extract names and parameter counts from the
-node's :text field, since the flat parse tree doesn't preserve
-parent/child relationships.
+construct. These are deterministic — they encode human knowledge about
+what constructs mean, not AI inference.
 
-*** DONE Extend =LearnSyntax= mold to use descriptions
+#+begin_src elisp
+(defun me-describe-function (node)
+  (let ((name (me-node-text (me-node-child-by-field node 'name)))
+        (params (me-node-children-by-field node 'parameters)))
+    (format "Function %s takes %d parameter(s) and returns a value"
+            name (length params))))
+#+end_src
 
-Updated =me-syntax-description= in =moldable-emacs.el= to use the
-=me-descriptions= library when available, falling back to web search
-for unknown types.
+*** TODO Extend =LearnSyntax= mold to use descriptions
 
-*** DONE Create =ExplainCode= mold
+Replace the stub =me-syntax-description= with the new library.
 
-Created =ExplainCode= mold in =molds/core.el=. It:
-- Parses the current buffer with tree-sitter
-- Describes each construct using the description library
-- Produces an Org-mode buffer with each construct explained
+*** TODO Create =ExplainCode= mold
 
-The =:given= checks that tree-sitter can parse the buffer and that
-=me-descriptions= is loaded.
+Produces a prose explanation of a buffer's code using the description
+library. Output is an Org-mode buffer with each code construct explained.
 
 *** TODO Add examples for description functions
 

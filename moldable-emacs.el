@@ -34,7 +34,6 @@
 (require 'async)
 (require 'thunk)
 (require 'cl-lib)
-(require 'me-descriptions)
 
 (defgroup moldable-emacs nil
   "Customize group for Moldable-Emacs."
@@ -2653,21 +2652,15 @@ Optionally provide DEPTH to define the number of additions asterisks to prepend 
                          (remove-overlays))))))))))
 
 (defun me-syntax-description (type language)
-  "Get description for node of TYPE and LANGUAGE.
-Uses `me-descriptions' library when available, falls back to web search."
+  "Get description for node of TYPE and LANGUAGE."
   (or
-   (when (featurep 'me-descriptions)
-     (let ((fn (alist-get (if (symbolp type) type (intern type)) me-descriptions)))
-       (when fn
-         (let ((dummy-node (list :type (if (symbolp type) type (intern type))
-                                 :text ""
-                                 :mode (intern (concat language "-mode")))))
-           (funcall fn dummy-node)))))
+   ;;  TODO I should generalize this to add descriptions on demand (in particular if I am going to define my own types)
    (plist-get
     (--find (equal (plist-get it :label) (or
                                           (ignore-errors (symbol-name type))
                                           type))
-             nil)
+            nil ;; me-natural-syntax-tree-labels - TODO not shared yet
+            )
     :description)
    (format "[[elisp:(browse-web \"%s %s\")][Search for description]]" language type)))
 
