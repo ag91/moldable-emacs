@@ -1477,3 +1477,45 @@ Supports B/E (begin/end), X (complete), and s/t/f (flow) events.
 Each event's `args` becomes the step's `:data`.
 Compose with TraceToHtml to visualize."
  :examples nil)
+
+(me-register-mold
+    :key "ExplainCode"
+    :given (:fn (ignore-errors
+                  (and (me-to-parse-tree)
+                       (featurep 'me-descriptions))))
+    :then (:fn
+           (let* ((tree (me-to-parse-tree))
+                  (language (--> (plist-get (car tree) :mode)
+                                 symbol-name
+                                 (s-replace "-mode" "" it)))
+                  (described (--keep
+                              (let* ((type (plist-get it :type))
+                                     (desc (me-describe it)))
+                                (when desc
+                                  (list :type type
+                                        :text (plist-get it :text)
+                                        :begin (plist-get it :begin)
+                                        :end (plist-get it :end)
+                                        :description desc)))
+                              tree))
+                  (grouped (--sort (< (plist-get it :begin)
+                                      (plist-get other :begin))
+                                   described)))
+             (with-current-buffer buffername
+               (org-mode)
+               (erase-buffer)
+               (insert (format "* Code Explanation for %s\n\n" language))
+               (--each grouped
+                 (let* ((type (plist-get it :type))
+                        (text (s-trim (plist-get it :text)))
+                        (desc (plist-get it :description))
+                        (short-text (if (> (length text) 60)
+                                        (concat (substring text 0 60) "...")
+                                      text)))
+                   (insert (format "** %s\n\n%s\n\n#+begin_example\n%s\n#+end_example\n\n"
+                                   type desc short-text))))
+               (setq-local self grouped))))
+    :docs "Produce a prose explanation of a buffer's code using the description library.
+Each code construct is explained with a deterministic, human-readable description.
+Output is an Org-mode buffer with each construct explained."
+    :examples nil)
