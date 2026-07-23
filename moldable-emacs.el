@@ -37,6 +37,7 @@
 (require 'me-utils)
 (require 'me-tree)
 (require 'me-org)
+(require 'me-mold-data)
 
 (defgroup moldable-emacs nil
   "Customize group for Moldable-Emacs."
@@ -713,48 +714,7 @@ SUBTREE-PATH is the org heading path under which to insert (e.g. \"2026-07\")."
       (save-buffer)
       (message "Saved to %s" me-diary-file))))
 
-(defvar me-temporary-mold-data nil "Holder of mold data before it is assigned to local variable `mold-data'.")
 
-(defun me-setup-self-mold-data ()
-  "Setup `me-temporary-mold-data' for setting up `mold-data' in mold buffer."
-  (setq me-temporary-mold-data
-        (list
-         :old-self (ignore-errors self)
-         :old-buffer (buffer-name)
-         :old-file (buffer-file-name)
-         :old-point (point)
-         :old-mode major-mode
-         :old-date (ignore-errors (plist-get mold-data :date))
-         :old-mold (ignore-errors (plist-get mold-data :mold)))))
-
-(add-hook 'me-mold-before-hook #'me-setup-self-mold-data)
-
-(defun me-get-marked-dired-files ()
-  "Get marked `dired' files."
-  (goto-char (point-min))
-  (dired-get-marked-files))
-
-(defun me-get-all-dired-files ()
-  "Get all `dired' files."
-  (mark-whole-buffer)
-  (call-interactively #'dired-mark)
-  (let ((files (dired-get-marked-files)))
-    (call-interactively #'dired-unmark-all-files)
-    files))
-
-
-(defun me-set-dired-self-for-playground ()
-  "Set Playground `self' to dired list of files."
-  (when
-      (and
-       (s-starts-with-p "Playground" me-last-used-mold)
-       (ignore-errors mold-data)
-       (eq (plist-get mold-data :old-mode) 'dired-mode))
-    (setq-local self
-                (with-current-buffer (plist-get mold-data :old-buffer)
-                  (or (me-get-marked-dired-files)
-                      (me-get-all-dired-files))))))
-(add-hook 'me-mold-after-hook #'me-set-dired-self-for-playground) ;; the order is important: keep before me-set-self-mold-data
 
 (defcustom me-playground-molds-file
   (concat (file-name-directory load-file-name) "molds/playgrounds.el")
@@ -788,7 +748,7 @@ matches the context the Playground was invoked from."
      (old-mode
       `(:fn (eq major-mode ',old-mode)))
      (t
-     '(:fn t)))))
+      '(:fn t)))))
 
 (defun me--playground-user-code ()
   "Extract the user's Elisp code from the current Playground buffer.
@@ -841,15 +801,7 @@ predicate from the current `mold-data', prompts for a `:key' and
       (load-file me-playground-molds-file)
       (message "Extracted mold %s and loaded it" key))))
 
-(defun me-set-self-mold-data ()
-  "Set `mold-data'."
-  (setq-local mold-data
-              (append
-               (list
-                :mold me-last-used-mold
-                :self (ignore-errors self)
-                :date (format-time-string "%FT%T%z"))
-               me-temporary-mold-data)))
+
 
 (add-hook 'me-mold-after-hook #'me-set-self-mold-data -100)
 
@@ -870,15 +822,15 @@ This should simplify the testing and documentation of molds.")
          (mode major-mode)
          (current-mold-data (ignore-errors (copy-tree mold-data)))
          (contents (if (eq mode 'image-mode)
-                        (let ((filename (concat
-                                         me-example-resource-dir
-                                         (file-name-nondirectory name))))
-                          (write-region
-                           (point-min)
-                           (point-max)
-                           filename)
+                       (let ((filename (concat
+                                        me-example-resource-dir
+                                        (file-name-nondirectory name))))
+                         (write-region
+                          (point-min)
+                          (point-max)
                           filename)
-                      (buffer-substring-no-properties (point-min) (point-max)))))
+                         filename)
+                     (buffer-substring-no-properties (point-min) (point-max)))))
     (setq me-last-example
           `(:given
             (
@@ -1696,13 +1648,17 @@ FN is a function taking the text of NODE and generating new text."
    :before node
    :after (plist-put
            (plist-put
-            (-copy node)
-            :buffer
-            target-buffer)
-           :begin
-           (or point
-               ;; default to the last position in target buffer since `me-add-node' adds using :begin
-               (with-current-buffer target-buffer (point-max))))))
+            (plist-put
+             (-copy node)
+             :buffer
+             target-buffer)
+            :begin
+            (or point
+                ;; default to the last position in target buffer since `me-add-node' adds using :begin
+                (with-current-buffer target-buffer (point-max))))
+           :text
+           ;; the definitions don't get the final newline, we add one ahead
+           (concat "\n" (plist-get node :text)))))
 
 (defun me-transit-node-buffers (nodes target-buffer &optional point)
   "Create transitions moving NODES to TARGET-BUFFER."
