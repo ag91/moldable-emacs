@@ -41,6 +41,10 @@
          (switch-to-buffer old-buffer)))))
 (put 'me-with-file 'lisp-indent-function 1)
 
+(defun me-require (dependency)
+  "Try to require DEPENDENCY, and just give nil if not found."
+  (require dependency nil t))
+
 (defun me-async-map--finish (futures post-fn too-late-p poll-time)
   "Run FUTURES and apply POST-FN on their results.
 Use TOO-LATE-P and POLL-TIME to stop."
