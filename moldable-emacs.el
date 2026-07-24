@@ -34,6 +34,7 @@
 (require 'async)
 (require 'thunk)
 (require 'cl-lib)
+
 (require 'me-utils)
 (require 'me-tree)
 (require 'me-org)
@@ -43,6 +44,7 @@
 (require 'me-notes)
 (require 'me-analysis)
 (require 'me-elisp-api)
+(require 'me-narrative)
 
 (defgroup moldable-emacs nil
   "Customize group for Moldable-Emacs."
@@ -74,30 +76,6 @@
 (defun me-setup-molds ()
   "Load molds from `me-files-with-molds'."
   (-each me-files-with-molds #'load-file))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 (defvar me-available-molds nil "Available molds.")
 
@@ -198,7 +176,6 @@ When MOLD has a :when clause, skip the timestamp so auto-refresh can reuse the s
 ;;                                         :then))
 ;;                     (get-buffer-create "bla"))
 
-
 (defun me-mold-run-given (mold)
   "Run MOLD :given."
   (unless (me-get-in mold '(:given :fn)) (error "For now all molds need to declare :given with :fn"))
@@ -248,7 +225,6 @@ while the dependency is always on the system.)
     )
   )
 
-
 (defun me-usable-molds (&optional molds buffer)
   "Return the usable molds among the `me-available-molds'.
 Optionally you can pass your own candidate MOLDS.
@@ -276,7 +252,7 @@ Optionally you can pass a BUFFER to use instead of the `current-buffer'."
                                                                    expended-time))
                           (when (>= expended-time 1)
                             (warn
-                             (button-buttonize
+                             (buttonize
                               (format "%s took over 1 sec: %s" key expended-time)
                               `(lambda (x)
                                  (me-goto-mold-source ,key)))))))))
@@ -425,49 +401,11 @@ Add PROPS (e.g.,  `(:docs \"...\" :examples nil)') to it."
           result)
       (error (format "Could not find molds, check out: %s." (list m1 m2))))))
 
-(defun me--format-narrative (composed-key steps)
-  "Format STEPS as an Org narrative string for COMPOSED-KEY.
-STEPS is a list of plists with :key, :docs, :output, and optionally :link
-and :form (for EvalSexp, the input form that was evaluated)."
-  (concat
-   (format "* %s\n\n" composed-key)
-   (s-join "\n\n"
-           (--map (concat
-                   (format "** %s\n%s\n\n%s"
-                           (or (plist-get it :link) (plist-get it :key))
-                           (or (plist-get it :docs) "")
-                           (if (plist-get it :link)
-                               (format "Buffer: %s" (plist-get it :link))
-                             ""))
-                   (when (plist-get it :form)
-                     (format "\n\nEvaluated form:\n#+begin_src elisp\n%s\n#+end_src"
-                             (plist-get it :form)))
-                   (format "\n\n#+begin_example\n%s\n#+end_example"
-                           (or (plist-get it :output) "")))
-                  steps))))
-
-(defun me--composed-key (keys)
-  "Make a readable composed key from a list of mold KEYS."
-  (s-join " -> " keys))
-
 (defvar me-trace nil
   "Current trace being recorded, or nil if not tracing.
 A trace is a plist with :steps, a list of step plists.
 Each step has :name, :data, :source, and :ts (timestamp).
 Inspired by the Chrome Trace Event Format (trace-event-format).")
-
-(defun me-trace (name data &optional source)
-  "Record a trace step with NAME, DATA, and optional SOURCE.
-SOURCE is a plist with :file, :begin, :end for code location.
-When `me-trace' is nil, this is a no-op."
-  (when me-trace
-    (let ((step (list :name name
-                      :data data
-                      :source source
-                      :ts (current-time))))
-      (plist-put me-trace :steps
-                (append (plist-get me-trace :steps) (list step))))
-    data))
 
 (defmacro me-with-tracing (&rest body)
   "Evaluate BODY with tracing enabled.
@@ -482,197 +420,6 @@ Returns the trace plist as `self' in the result buffer."
   "Default file for saving moldable-emacs narratives as diary entries."
   :group 'moldable-emacs
   :type 'file)
-
-(defun me-replay-story (source mold-keys &optional step-data)
-  "Replay a story by opening SOURCE and applying each mold in MOLD-KEYS.
-SOURCE is a file path or buffer name.  MOLD-KEYS is a list of mold key strings.
-STEP-DATA is an optional list of plists, one per mold key, containing
-extra data for replay (e.g. :code for Playground, :sexp for EvalSexp).
-The first element of STEP-DATA is the source step data, which may
-contain :output to recreate the buffer contents if the file is missing."
-  (interactive
-   (list (read-file-name "Source file: ")
-         (read-string "Mold keys (space-separated): ")))
-  (let ((keys (if (stringp mold-keys)
-                  (s-split " " (s-trim mold-keys) t)
-                mold-keys))
-        (source-data (car step-data)))
-    (cond
-     ((and source (file-exists-p source))
-      (find-file source))
-     ((and source-data (plist-get source-data :output))
-      (let ((buf (get-buffer-create (or source "replay-source"))))
-        (with-current-buffer buf
-          (erase-buffer)
-          (insert (plist-get source-data :output)))
-        (switch-to-buffer buf)))
-     (source
-      (find-file source)))
-    (--each-indexed keys
-      (let* ((key it)
-             (data (nth (1+ it-index) step-data)))
-        (cond
-         ((string= key "Playground")
-          (let ((me-playground-self (plist-get data :self)))
-            (me-mold "Playground"))
-          (when-let ((code (plist-get data :code))
-                     (buf (--find (s-starts-with-p "*moldable-emacs-Playground" it)
-                                  (mapcar #'buffer-name (buffer-list)))))
-            (with-current-buffer buf
-              (erase-buffer)
-              (insert code)
-              (goto-char (point-min))
-              (search-forward "(" nil t))))
-         ((string= key "EvalSexp")
-          (let ((me-evalsexp-form (plist-get data :sexp)))
-            (me-mold "EvalSexp")))
-         (t
-          (me-mold key)))))))
-
-(defun me--parse-narrative-content (content)
-  "Parse the Narrative src block CONTENT into step plists.
-Each step has :key, :output, and optionally :form (for EvalSexp)."
-  (let* ((steps nil)
-         (lines (s-lines content))
-         (current-key nil)
-         (current-output nil)
-         (current-form nil)
-         (in-example nil)
-         (in-form nil))
-    (--each lines
-      (cond
-       ((s-match "^,\\*\\* " it)
-        (when current-key
-          (push (list :key current-key
-                      :output (s-trim (s-join "\n" (reverse current-output)))
-                      :form current-form)
-                steps))
-        (setq current-key (me-org-replace-link-by-link-description (s-trim (s-replace-regexp "^,\\*\\* " "" it))))
-        (setq current-output nil)
-        (setq current-form nil))
-       ((s-contains-p "#+begin_src elisp" it)
-        (setq in-form t))
-       ((s-contains-p "#+end_src" it)
-        (setq in-form nil))
-       (in-form
-        (setq current-form (if current-form
-                               (concat current-form "\n" it)
-                             it)))
-       ((s-contains-p "#+begin_example" it)
-        (setq in-example t))
-       ((s-contains-p "#+end_example" it)
-        (setq in-example nil))
-       (in-example
-        (push it current-output))))
-    (when current-key
-      (push (list :key current-key
-                  :output (s-trim (s-join "\n" (reverse current-output)))
-                  :form current-form)
-            steps))
-    (reverse steps)))
-
-(defun me-replay-story-from-diary ()
-  "Replay the story stored in the current diary entry.
-Parses the Narrative subheading's src block for all replay data:
-source buffer name, mold keys, step outputs, and EvalSexp forms."
-  (interactive)
-  (save-excursion
-    ;; Find the Narrative subheading and parse its content
-    (org-next-visible-heading 1)
-    (let ((narrative-content nil))
-      (when (string= (nth 4 (org-heading-components)) "Narrative")
-        (setq narrative-content
-              (buffer-substring-no-properties
-               (org-entry-beginning-position)
-               (org-entry-end-position))))
-      (unless narrative-content
-        (error "No Narrative subheading found"))
-      ;; Extract the src block content
-      (let* ((src-start (s-index-of "#+begin_src org\n" narrative-content))
-             (src-end (s-index-of "\n#+end_src" narrative-content))
-             (src-content (when (and src-start src-end)
-                            (substring narrative-content
-                                       (+ src-start (length "#+begin_src org\n"))
-                                       src-end)))
-             (steps (me--parse-narrative-content src-content))
-             (source-step (car steps))
-             (source-output (plist-get source-step :output))
-             (source-name (plist-get source-step :key))
-             (mold-steps (cdr steps))
-             (mold-keys (--map (plist-get it :key) mold-steps)))
-        ;; Recreate source buffer
-        (let ((source-file (when (s-present-p source-name)
-                             (expand-file-name source-name))))
-          (cond
-           ((and source-file (file-exists-p source-file))
-            (find-file source-file))
-           (source-output
-            (let ((buf (get-buffer-create (or source-name "replay-source"))))
-              (with-current-buffer buf
-                (erase-buffer)
-                (insert source-output))
-              (switch-to-buffer buf)))))
-        ;; Run each mold
-        (--each-indexed mold-keys
-          (let* ((key it)
-                 (data (nth it-index mold-steps)))
-            (cond
-             ((string= key "Playground")
-              (me-mold "Playground")
-              (when-let ((code (plist-get data :output))
-                         (buf (--find (s-starts-with-p "*moldable-emacs-Playground" it)
-                                      (mapcar #'buffer-name (buffer-list)))))
-                (with-current-buffer buf
-                  (erase-buffer)
-                  (insert code)
-                  (goto-char (point-min))
-                  (search-forward "(" nil t))))
-             ((string= key "EvalSexp")
-              (let ((me-evalsexp-form (plist-get data :form)))
-                (me-mold "EvalSexp")))
-             (t
-              (me-mold key)))))))))
-
-(defun me-save-narrative-to-diary (entry-title subtree-path)
-  "Save the current narrative buffer to `me-diary-file'.
-ENTRY-TITLE is the heading for the diary entry.
-SUBTREE-PATH is the org heading path under which to insert (e.g. \"2026-07\")."
-  (interactive
-   (list (read-string "Entry title: "
-                      (when (and (buffer-local-value 'self (current-buffer))
-                                 (plist-get (buffer-local-value 'self (current-buffer)) :steps))
-                        (me--composed-key
-                         (--map (plist-get it :key)
-                                (plist-get (buffer-local-value 'self (current-buffer)) :steps)))))
-         (read-string "Subtree path (leave empty for top level): ")))
-  (let* ((narrative-content (buffer-substring-no-properties (point-min) (point-max)))
-         (replay-link "[[elisp:(me-replay-story-from-diary)][Replay]]"))
-    (unless (file-exists-p me-diary-file)
-      (with-temp-file me-diary-file
-        (insert "#+TITLE: Moldable Emacs Diary\n\n")))
-    (with-current-buffer (find-file-noselect me-diary-file)
-      (goto-char (point-max))
-      (unless (bolp) (insert "\n"))
-      (when (s-present-p subtree-path)
-        (let ((headings (s-split "/" subtree-path t)))
-          (--each headings
-            (unless (org-find-visit-headline it)
-              (insert (format "* %s\n" it))
-              (org-do-demote)))
-          (org-find-visit-headline (car (last headings)))))
-      (let ((entry-level (if (s-present-p subtree-path) 2 1)))
-        (insert (format "%s* %s\n" (make-string (1- entry-level) ?*) entry-title))
-        (insert (format "%s* Replay\n" (make-string entry-level ?*)))
-        (insert replay-link)
-        (insert "\n")
-        (insert (format "%s* Narrative\n" (make-string entry-level ?*)))
-        (insert "#+begin_src org\n")
-        (insert (org-escape-code-in-string narrative-content))
-        (insert "\n#+end_src\n"))
-      (save-buffer)
-      (message "Saved to %s" me-diary-file))))
-
-
 
 (defcustom me-playground-molds-file
   (concat (file-name-directory load-file-name) "molds/playgrounds.el")
@@ -766,26 +513,11 @@ predicate from the current `mold-data', prompts for a `:key' and
 (defvar me-last-example nil "Last automatically generated example for mold.
 This should simplify the testing and documentation of molds.")
 
-(defcustom me-example-resource-dir
-  (concat (file-name-directory load-file-name) "resources/")
-  "Directory containing resources for examples (like media files)."
-  :group 'moldable-emacs
-  :type 'string)
-
-
-
-
-
-(add-hook 'me-mold-before-hook #'me-record-given-of-example)
-
-(add-hook 'me-mold-after-hook #'me-record-then-of-example)
-
-
 (defun me-warn-on-run-if-no-example (mold)
   "Emit warning if MOLD has no examples."
   (unless (or (not me-molds-debug-on) (plist-get mold :examples))
     (warn
-     (button-buttonize
+     (buttonize
       (format "Mold %s has no examples! Would you mind to add one?\nYou can use TODO now to add the last usage as an example.\n" (plist-get mold :key))
       `(lambda (x)
          (me-goto-mold-source ,(plist-get mold :key)))))))
@@ -794,7 +526,7 @@ This should simplify the testing and documentation of molds.")
   "Emit warning if MOLD has no examples."
   (unless (or (not me-molds-debug-on) (plist-get mold :docs))
     (warn
-     (button-buttonize
+     (buttonize
       (format "Mold %s has no docs! Would you mind to add a line to tell what it is for?\n" (plist-get mold :key))
       `(lambda (x)
          (me-goto-mold-source ,(plist-get mold :key)))))))
@@ -839,14 +571,6 @@ and optionally :mold-data (a plist to set as buffer-local
                   ,@body))))))
 (put 'me--given 'lisp-indent-function 1)
 
-
-
-
-
-
-
-
-
 (defun me-test-mold-examples (mold)
   "Check that all MOLD's examples are working."
   (--reduce
@@ -875,8 +599,6 @@ and optionally :mold-data (a plist to set as buffer-local
      end-name
      end-buffer-or-file
      end-contents)))
-
-
 
 (defun me-mold-doc (mold-key)
   "Produce structured doc for a mold identified by MOLD-KEY."
@@ -1045,7 +767,6 @@ and optionally :mold-data (a plist to set as buffer-local
        (ignore-errors (search-forward (concat "\"" key "\"")))))
    me-files-with-molds))
 
-
 (defmacro me-register-mold (&rest mold)
   "Register MOLD."
   `(progn
@@ -1053,142 +774,6 @@ and optionally :mold-data (a plist to set as buffer-local
      (me-add-to-available-molds ',mold)))
 (put 'me-register-mold 'lisp-indent-function 1)
 
-(defun me-find-relative-test-report (filepath)
-  "Find Clojure test report for FILEPATH." ;; TODO refactor a bit for supporting Clojure with https://github.com/ruedigergad/test2junit
-  (let* ((_report-directory (concat (locate-dominating-file (file-name-directory filepath) "target") "target/test-reports"))
-         (report-directory
-          (if (string= "clj" (file-name-extension  filepath))
-              (concat _report-directory "/xml")
-            _report-directory))
-         (_filename (file-name-base filepath))
-         (filename
-          (if (string= "clj" (file-name-extension  filepath))
-              (s-replace "_test" "-test" _filename)
-            _filename)))
-    (--> report-directory
-         directory-files
-         (--find
-          (s-ends-with-p (concat filename ".xml") it)
-          it)
-         (concat report-directory "/" it))))
-
-(defun me-make-elisp-file-link (description target &optional link-type)
-  "Make Org file link with DESCRIPTION and TARGET.
-Optionally pass the LINK-TYPE instead of file.
-
->> (me-make-elisp-file-link \"description\" \"/tmp/test.el::10\")
-=> \"[[file:/tmp/test.el::10][description]]\"
-
->> (me-make-elisp-file-link \"description\" \"(goto-char 10)\" \"elisp\")
-=> \"[[elisp:(goto-char 10)][description]]\""
-  (format "[[%s:%s][%s]]" (or link-type "file") target description))
-
-(defun me-make-elisp-navigation-link (name target)
-  "Make an Elisp Org link that navigates to a position of NAME in TARGET.
-
-TARGET can be a buffer, file or tree node.
-
-; invalidated the test because I didn't store the file
-> (me-make-elisp-navigation-link \"defmacro\" \"/tmp/test.el\")
-> \"[[elisp:(progn (find-file-other-window \\\"/tmp/test.el\\\") (goto-char 441))][defmacro]]\"
-
-> (me-make-elisp-navigation-link \"defmacro\" \"test.el\")
-> \"[[elisp:(progn (switch-to-buffer-other-window \\\"test.el\\\") (goto-char 441))][defmacro]]\"
-
->> (me-make-elisp-navigation-link \"defmacro\"
-  '(:type symbol
-    :text \"defmacro\"
-    :begin 433
-    :end 441
-    :buffer \"test.el\"
-    :mode emacs-lisp-mode
-    :level 1))
-=> \"[[elisp:(progn (switch-to-buffer-other-window \\\"test.el\\\") (goto-char 433))][defmacro]]\"
-
->> (me-make-elisp-navigation-link \"defmacro\"
-  '(:type symbol
-    :text \"defmacro\"
-    :begin 433
-    :end 441
-    :buffer \"test.el\"
-    :buffer-file \"/tmp/test.el\"
-    :mode emacs-lisp-mode
-    :level 1))
-=> \"[[elisp:(progn (find-file-other-window \\\"/tmp/test.el\\\") (goto-char 433))][defmacro]]\""
-  (let* ((filep (or (plist-get target :buffer-file) (ignore-errors (file-exists-p target))))
-         (pos-file (if filep
-                       (or
-                        (and (plist-get target :begin) (list (plist-get target :begin) (plist-get target :buffer-file)))
-                        (with-temp-buffer
-                          (insert-file-contents-literally target)
-                          (goto-char (point-min))
-                          (list (or (search-forward name nil 'noerror) 1) target)))
-                     (or
-                      (and (plist-get target :begin) (list (plist-get target :begin) (plist-get target :buffer)))
-                      (save-excursion
-                        (with-current-buffer target
-                          (goto-char (point-min))
-                          (list (or (search-forward name nil 'noerror) 1) target)))))))
-    (me-make-elisp-file-link
-     (s-replace "\n" "" name)
-     (format
-      "(progn (%s \"%s\") (goto-char %s))"
-      (if filep "find-file-other-window" "switch-to-buffer-other-window")
-      (nth 1 pos-file)
-      (nth 0 pos-file))
-     "elisp")))
-
-(defun me-make-elisp-buffer-navigation-link (name buffer-name)
-  "Make an Elisp Org link that navigates to a position of NAME in BUFFER-NAME."
-  (let* ((pos (with-current-buffer buffer-name
-                (goto-char (point-min))
-                (or (search-forward (if (s-contains-p "\"" name) (prin1-to-string name) name) nil 'noerror) 1))))
-    (me-make-elisp-file-link
-     name
-     (format
-      "(progn (switch-to-buffer-other-window \"%s\") (goto-char %s))"
-      buffer-name
-      pos)
-     "elisp")))
-
-(defun me-color-string (str color)
-  "Color STR with COLOR."
-  (propertize
-   str
-   'display
-   (propertize
-    str
-    'face
-    (list :background color))))
-
-;; https://hungyi.net/posts/org-mode-subtree-contents/
-(defun me-org-copy-subtree-contents (&optional buffer position)
-  "Get the content text of the subtree at point and add it to the `kill-ring'.
-Excludes the heading and any child subtrees.
-Optionally select BUFFER and POSITION."
-  (with-current-buffer (or buffer (current-buffer))
-    (when position (goto-char position))
-    (if (org-before-first-heading-p)
-        (message "Not in or on an org heading")
-      (save-excursion
-        ;; If inside heading contents, move the point back to the heading
-        ;; otherwise `org-agenda-get-some-entry-text' won't work.
-        (unless (org-on-heading-p) (org-previous-visible-heading 1))
-        (let ((contents (substring-no-properties
-                         (org-agenda-get-some-entry-text
-                          (point-marker)
-                          most-positive-fixnum))))
-          contents)))))
-
-(defun me-org-to-flatten-tree (buffername)
-  "Convert Org BUFFERNAME to a list of plists."
-  (--map (append
-          (list :type 'org)
-          (plist-put (cadr it) :title nil)
-          `(:buffer ,(buffer-name))
-          `(:buffer-file ,(buffer-file-name))
-          `(:text ,(me-org-copy-subtree-contents (plist-get it :begin))))
-         (org-ql-query :select 'element :from (list buffername))))
 
 (defun me-register-mold-by-key (key mold)
   "Register composition MOLD with KEY."
@@ -1199,12 +784,7 @@ Optionally select BUFFER and POSITION."
 (defun me-set-last-mold (mold)
   "Set last used MOLD."
   (setq me-last-used-mold (plist-get mold :key)))
-
 (add-hook 'me-mold-before-mold-runs-hook #'me-set-last-mold)
-
-
-
-
 
 (defun me-mold-insert-name ()
   "Insert a mold name at point."
@@ -1264,39 +844,9 @@ Optionally select BUFFER and POSITION."
     (insert text)
     (/ (count-words (point-min) (point-max)) 280)))
 
-(defun me-insert-treesitter-follow-overlay (nodes &optional transformer)
-  "Add overlayed entries for NODES types using `emacs-tree-sitter'.
-You can extract the data you want to show
-with TRANSFORMER, which is a function taking a node and returning
-a string (node -> string)."
-  (cursor-sensor-mode 1)
-  (--each
-      nodes
-    (let ((type (plist-get it :type))
-          (beg (point)))
-      (insert                           ; this insert the type of the node with overlay inline!
-       (or (when transformer (funcall transformer it))
-           (format "%s\n" type)))
-      (let ((old-buffer (plist-get it :buffer))
-            (ov (make-overlay beg (- (point) 1)))) ;; after `insert' point =/= beg, point goes after insertion
-        (overlay-put
-         ov
-         'cursor-sensor-functions
-         (list `(lambda (affected-window old-position entered-or-left)
-                  (cond
-                   ((eq entered-or-left 'entered)
-                    (overlay-put ,ov 'face 'tree-sitter-query-match)
-                    (let ((tree-sitter-query--target-buffer ,old-buffer))
-                      (tree-sitter-query--eval-query (format "((%s) @%s)" ,(symbol-name type) ,(symbol-name type)))))
-                   ((eq entered-or-left 'left)
-                    (let ((tree-sitter-query--target-buffer ,old-buffer))
-                      (overlay-put ,ov 'face nil)
-                      (tree-sitter-query--clean-target-buffer)))))))))))
-
 (defun me-calc-numeric-p (text)
   "Check if TEXT is a numeric arithmetic expression `calc' can work with."
-  (let ((calc-eval-error 't)) (ignore-errors (calc-eval text 'num)))
-  )
+  (let ((calc-eval-error 't)) (ignore-errors (calc-eval text 'num))))
 
 (defun me-arithmetic-component-p (it)
   "Is IT an arithmetic component?"
@@ -1357,122 +907,10 @@ NIL if not there."
        s-trim
        (unless (string-blank-p it) it)))
 
-(defcustom me-note-file-store "~/workspace/agenda/moldableNotes.el"
-  "Store for notes."
-  :group 'moldable-emacs)
-
-(defvar me-notes nil "Prototype of notes.")
-
-
-
-
-
-
-
-
-
-
-
 (defun me-ask-for-todo-details-according-to-context (note)
   "Ask for NOTE details."
   (let ((text (read-string "Note:")))
     (plist-put note :then `(:string ,text :state todo))))
-
-;; https://stackoverflow.com/questions/21486934/file-specific-key-binding-in-emacs
-
-
-
-
-
-
-
-
-
-
-
-
-;; some functionality to edit nodes!!
-
-
-
-
-
-
-
-
-
-
-
-
-(defun me-transit-node-buffer (node target-buffer &optional point)
-  "Create a transition changing buffer's NODE to TARGET-BUFFER."
-  (list
-   :before node
-   :after (plist-put
-           (plist-put
-            (plist-put
-             (-copy node)
-             :buffer
-             target-buffer)
-            :begin
-            (or point
-                ;; default to the last position in target buffer since `me-add-node' adds using :begin
-                (with-current-buffer target-buffer (point-max))))
-           :text
-           ;; the definitions don't get the final newline, we add one ahead
-           (concat "\n" (plist-get node :text)))))
-
-(defun me-transit-node-buffers (nodes target-buffer &optional point)
-  "Create transitions moving NODES to TARGET-BUFFER."
-  (--map (me-transit-node-buffer it target-buffer point) nodes))
-
-
-
-
-
-
-(defmacro me-with-url-contents (url &rest body)
-  "Retrieve URL contents and run BODY in buffer."
-  `(with-current-buffer (url-retrieve-synchronously ,url)
-     (goto-char url-http-end-of-headers)
-     (delete-region (point-min) (point))
-     ,@body))
-(put 'me-with-url-contents 'lisp-indent-function 1)
-
-(defun me-get-json-from-url (url)
-  "Retrieve json from URL as a plist."
-  (me-with-url-contents url
-                        (save-excursion
-                          (let ((json-object-type 'plist)
-                                (json-array-type 'list))
-                            (goto-char (point-min))
-                            (json-read)))))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-;; organize screens better
-
 
 (defun me-goto-mold-source (mold)
   "Go to source code of MOLD."
@@ -1494,25 +932,6 @@ NIL if not there."
   (search-forward mold))
 
 
-;; begin similar nodes
-
-
-
-;; end similar nodes
-
-;; begin elisp API
-
-
-
-
-
-
-
-
-
-
-
-;; end elisp API
 
 (provide 'moldable-emacs)
 ;;; moldable-emacs.el ends here

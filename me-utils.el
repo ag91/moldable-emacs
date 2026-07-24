@@ -348,6 +348,16 @@ If JOIN-WHEN-YOU-CAN? is true, if keys contain lists,
            it)
           (s-join "\n" it)))))
 
+(defun me-color-string (str color)
+  "Color STR with COLOR."
+  (propertize
+   str
+   'display
+   (propertize
+    str
+    'face
+    (list :background color))))
+
 (defun me-heatmap (plists-list intervals)
   "Insert a heatmap as an org table, given a PLISTS-LIST and INTERVALS.
 Example:
@@ -534,6 +544,23 @@ Example:
   (-map
    #'me-find-missing-dependencies-for-mold
    molds))
+
+(defmacro me-with-url-contents (url &rest body)
+  "Retrieve URL contents and run BODY in buffer."
+  `(with-current-buffer (url-retrieve-synchronously ,url)
+     (goto-char url-http-end-of-headers)
+     (delete-region (point-min) (point))
+     ,@body))
+(put 'me-with-url-contents 'lisp-indent-function 1)
+
+(defun me-get-json-from-url (url)
+  "Retrieve json from URL as a plist."
+  (me-with-url-contents url
+    (save-excursion
+      (let ((json-object-type 'plist)
+            (json-array-type 'list))
+        (goto-char (point-min))
+        (json-read)))))
 
 (provide 'me-utils)
 ;;; me-utils.el ends here

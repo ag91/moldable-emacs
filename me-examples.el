@@ -29,6 +29,12 @@
 (require 'me-utils)
 (require 'me-tree)
 
+(defcustom me-example-resource-dir
+  (concat (file-name-directory load-file-name) "resources/")
+  "Directory containing resources for examples (like media files)."
+  :group 'moldable-emacs
+  :type 'string)
+
 (defun me-record-given-of-example ()
   "Reset and store in `me-last-example' the given of a mold example."
   (let* ((type (if (buffer-file-name) 'file 'buffer))
@@ -56,6 +62,8 @@
              :point ,point
              ,@(when current-mold-data
                  (list :mold-data current-mold-data)))))))
+(add-hook 'me-mold-before-hook #'me-record-given-of-example)
+
 (defun me-record-then-of-example ()
   "Reset and store in `me-last-example' the then of a mold example."
   (let* ((type (if (buffer-file-name) 'file 'buffer))
@@ -79,6 +87,8 @@
        :name ,name
        :mode ,mode
        :contents ,contents))))
+(add-hook 'me-mold-after-hook #'me-record-then-of-example)
+
 (defun me-check-then-clause (then)
   "Run THEN clause and return list with success and issues.
 This is a function used to test mold examples."

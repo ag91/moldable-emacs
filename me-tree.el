@@ -170,5 +170,34 @@ Optionally start from NODE."
                :level 0)
               (reverse acc))))))
 
+(defun me-insert-treesitter-follow-overlay (nodes &optional transformer)
+  "Add overlayed entries for NODES types using `emacs-tree-sitter'.
+You can extract the data you want to show
+with TRANSFORMER, which is a function taking a node and returning
+a string (node -> string)."
+  (cursor-sensor-mode 1)
+  (--each
+      nodes
+    (let ((type (plist-get it :type))
+          (beg (point)))
+      (insert                           ; this insert the type of the node with overlay inline!
+       (or (when transformer (funcall transformer it))
+           (format "%s\n" type)))
+      (let ((old-buffer (plist-get it :buffer))
+            (ov (make-overlay beg (- (point) 1)))) ;; after `insert' point =/= beg, point goes after insertion
+        (overlay-put
+         ov
+         'cursor-sensor-functions
+         (list `(lambda (affected-window old-position entered-or-left)
+                  (cond
+                   ((eq entered-or-left 'entered)
+                    (overlay-put ,ov 'face 'tree-sitter-query-match)
+                    (let ((tree-sitter-query--target-buffer ,old-buffer))
+                      (tree-sitter-query--eval-query (format "((%s) @%s)" ,(symbol-name type) ,(symbol-name type)))))
+                   ((eq entered-or-left 'left)
+                    (let ((tree-sitter-query--target-buffer ,old-buffer))
+                      (overlay-put ,ov 'face nil)
+                      (tree-sitter-query--clean-target-buffer)))))))))))
+
 (provide 'me-tree)
 ;;; me-tree.el ends here

@@ -134,6 +134,28 @@ FN is a function taking the text of NODE and generating new text."
   "Create transitions changing texts of NODES via FN."
   (--map (me-transit-node-text it fn) nodes))
 
+(defun me-transit-node-buffer (node target-buffer &optional point)
+  "Create a transition changing buffer's NODE to TARGET-BUFFER."
+  (list
+   :before node
+   :after (plist-put
+           (plist-put
+            (plist-put
+             (-copy node)
+             :buffer
+             target-buffer)
+            :begin
+            (or point
+                ;; default to the last position in target buffer since `me-add-node' adds using :begin
+                (with-current-buffer target-buffer (point-max))))
+           :text
+           ;; the definitions don't get the final newline, we add one ahead
+           (concat "\n" (plist-get node :text)))))
+
+(defun me-transit-node-buffers (nodes target-buffer &optional point)
+  "Create transitions moving NODES to TARGET-BUFFER."
+  (--map (me-transit-node-buffer it target-buffer point) nodes))
+
 (defun me-node-children (node nodes)
   "Get children of NODE in NODES."
   (let ((begin (plist-get node :begin))
@@ -280,5 +302,24 @@ Optionally filter for files with FILE-EXTENSION."
        ;; sort by it
        (--sort (> (plist-get it :similarity-score) (plist-get other :similarity-score)) it)))
 
+
+(defun me-find-relative-test-report (filepath)
+  "Find Clojure test report for FILEPATH." ;; TODO refactor a bit for supporting Clojure with https://github.com/ruedigergad/test2junit
+  (let* ((_report-directory (concat (locate-dominating-file (file-name-directory filepath) "target") "target/test-reports"))
+         (report-directory
+          (if (string= "clj" (file-name-extension  filepath))
+              (concat _report-directory "/xml")
+            _report-directory))
+         (_filename (file-name-base filepath))
+         (filename
+          (if (string= "clj" (file-name-extension  filepath))
+              (s-replace "_test" "-test" _filename)
+            _filename)))
+    (--> report-directory
+         directory-files
+         (--find
+          (s-ends-with-p (concat filename ".xml") it)
+          it)
+         (concat report-directory "/" it))))
 (provide 'me-analysis)
 ;;; me-analysis.el ends here

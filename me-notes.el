@@ -29,6 +29,12 @@
 (require 'me-utils)
 (require 'me-org)
 
+(defcustom me-note-file-store "~/workspace/agenda/moldableNotes.el"
+  "Store for notes."
+  :group 'moldable-emacs)
+
+(defvar me-notes nil "Prototype of notes.")
+
 (defun me-load-all-notes ()
   "Load all notes unless cached."
   (if me-notes

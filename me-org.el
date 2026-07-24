@@ -308,5 +308,114 @@ Note: nil if org-roam is not installed."
         (org-roam-node-id (org-roam-backlink-source-node backlink))
         (org-roam-node-title (org-roam-backlink-source-node backlink)))))
 
+
+;; https://hungyi.net/posts/org-mode-subtree-contents/
+(defun me-org-copy-subtree-contents (&optional buffer position)
+  "Get the content text of the subtree at point and add it to the `kill-ring'.
+Excludes the heading and any child subtrees.
+Optionally select BUFFER and POSITION."
+  (with-current-buffer (or buffer (current-buffer))
+    (when position (goto-char position))
+    (if (org-before-first-heading-p)
+        (message "Not in or on an org heading")
+      (save-excursion
+        ;; If inside heading contents, move the point back to the heading
+        ;; otherwise `org-agenda-get-some-entry-text' won't work.
+        (unless (org-on-heading-p) (org-previous-visible-heading 1))
+        (let ((contents (substring-no-properties
+                         (org-agenda-get-some-entry-text
+                          (point-marker)
+                          most-positive-fixnum))))
+          contents)))))
+
+(defun me-org-to-flatten-tree (buffername)
+  "Convert Org BUFFERNAME to a list of plists."
+  (--map (append
+          (list :type 'org)
+          (plist-put (cadr it) :title nil)
+          `(:buffer ,(buffer-name))
+          `(:buffer-file ,(buffer-file-name))
+          `(:text ,(me-org-copy-subtree-contents (plist-get it :begin))))
+         (org-ql-query :select 'element :from (list buffername))))
+
+(defun me-make-elisp-file-link (description target &optional link-type)
+  "Make Org file link with DESCRIPTION and TARGET.
+Optionally pass the LINK-TYPE instead of file.
+
+>> (me-make-elisp-file-link \"description\" \"/tmp/test.el::10\")
+=> \"[[file:/tmp/test.el::10][description]]\"
+
+>> (me-make-elisp-file-link \"description\" \"(goto-char 10)\" \"elisp\")
+=> \"[[elisp:(goto-char 10)][description]]\""
+  (format "[[%s:%s][%s]]" (or link-type "file") target description))
+
+(defun me-make-elisp-navigation-link (name target)
+  "Make an Elisp Org link that navigates to a position of NAME in TARGET.
+
+TARGET can be a buffer, file or tree node.
+
+; invalidated the test because I didn't store the file
+> (me-make-elisp-navigation-link \"defmacro\" \"/tmp/test.el\")
+> \"[[elisp:(progn (find-file-other-window \\\"/tmp/test.el\\\") (goto-char 441))][defmacro]]\"
+
+> (me-make-elisp-navigation-link \"defmacro\" \"test.el\")
+> \"[[elisp:(progn (switch-to-buffer-other-window \\\"test.el\\\") (goto-char 441))][defmacro]]\"
+
+>> (me-make-elisp-navigation-link \"defmacro\"
+  '(:type symbol
+    :text \"defmacro\"
+    :begin 433
+    :end 441
+    :buffer \"test.el\"
+    :mode emacs-lisp-mode
+    :level 1))
+=> \"[[elisp:(progn (switch-to-buffer-other-window \\\"test.el\\\") (goto-char 433))][defmacro]]\"
+
+>> (me-make-elisp-navigation-link \"defmacro\"
+  '(:type symbol
+    :text \"defmacro\"
+    :begin 433
+    :end 441
+    :buffer \"test.el\"
+    :buffer-file \"/tmp/test.el\"
+    :mode emacs-lisp-mode
+    :level 1))
+=> \"[[elisp:(progn (find-file-other-window \\\"/tmp/test.el\\\") (goto-char 433))][defmacro]]\""
+  (let* ((filep (or (plist-get target :buffer-file) (ignore-errors (file-exists-p target))))
+         (pos-file (if filep
+                       (or
+                        (and (plist-get target :begin) (list (plist-get target :begin) (plist-get target :buffer-file)))
+                        (with-temp-buffer
+                          (insert-file-contents-literally target)
+                          (goto-char (point-min))
+                          (list (or (search-forward name nil 'noerror) 1) target)))
+                     (or
+                      (and (plist-get target :begin) (list (plist-get target :begin) (plist-get target :buffer)))
+                      (save-excursion
+                        (with-current-buffer target
+                          (goto-char (point-min))
+                          (list (or (search-forward name nil 'noerror) 1) target)))))))
+    (me-make-elisp-file-link
+     (s-replace "\n" "" name)
+     (format
+      "(progn (%s \"%s\") (goto-char %s))"
+      (if filep "find-file-other-window" "switch-to-buffer-other-window")
+      (nth 1 pos-file)
+      (nth 0 pos-file))
+     "elisp")))
+
+(defun me-make-elisp-buffer-navigation-link (name buffer-name)
+  "Make an Elisp Org link that navigates to a position of NAME in BUFFER-NAME."
+  (let* ((pos (with-current-buffer buffer-name
+                (goto-char (point-min))
+                (or (search-forward (if (s-contains-p "\"" name) (prin1-to-string name) name) nil 'noerror) 1))))
+    (me-make-elisp-file-link
+     name
+     (format
+      "(progn (switch-to-buffer-other-window \"%s\") (goto-char %s))"
+      buffer-name
+      pos)
+     "elisp")))
+
 (provide 'me-org)
 ;;; me-org.el ends here

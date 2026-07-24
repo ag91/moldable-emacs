@@ -1026,39 +1026,6 @@ It specializes for source code."
                 :then
                 (:type buffer :name "Evaluate 1 + 1 / 2" :mode fundamental-mode :contents "1 + 1 / 2 = 1.5"))))
 
-
-(me-register-mold
-    :key "Mold History"
-    :given (:fn (and me-mold-history me-current-history-index))
-    :then (:fn
-           (let* ((history me-mold-history)
-                  (buffer (get-buffer-create "mold-history")))
-             (with-current-buffer buffername
-               (read-only-mode -1)
-               (org-mode)
-               (erase-buffer)
-               (me-insert-org-table
-                `(("History Item" .
-                   (
-                    :extractor
-                    (lambda (obj) (plist-get obj :buffername))
-                    :handler
-                    (lambda (obj)
-                      (me-make-elisp-file-link
-                       obj
-                       (format "(switch-to-buffer \"%s\")" obj)
-                       "elisp"))
-                    ))
-                  ("Time" .
-                   (
-                    :extractor
-                    (lambda (obj) (plist-get obj :date)))))
-                me-mold-history)
-               (setq-local self history))))
-    :docs "You can see the current history of the molds you used."
-    :examples nil)
-
-
 (me-register-mold
     :key "Inspect molds running time"
     :given (:fn (and me-molds-debug-on me-usable-mold-stats))
