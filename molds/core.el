@@ -366,7 +366,7 @@ Used by the Narrative mold to capture the input form for replay.")
 
 (me-register-mold
     :key "EvalSexp"
-    :given (:fn (or me-evalsexp-form (thing-at-point 'sexp)))
+    :given (:fn (and (derived-mode-p 'emacs-lisp-mode) (or me-evalsexp-form (thing-at-point 'sexp))))
     :then (:fn
            (let* ((orig-point (point))
                   (form-str (cond
@@ -385,12 +385,12 @@ Used by the Narrative mold to capture the input form for replay.")
                          (t
                           (or (ignore-errors (eval (read form-str))) (ignore-errors (eval (list-at-point))) (list-at-point)))))
                   (_ (with-demoted-errors "EvalSexp overlay error: %S"
-                         (overlay-put
-                          (make-overlay
-                           (car (or (car (region-bounds)) (thing-at-point-bounds-of-list-at-point)))
-                           (cdr (or (car (region-bounds)) (thing-at-point-bounds-of-list-at-point))))
-                          'face
-                          'bold)))
+                       (overlay-put
+                        (make-overlay
+                         (car (or (car (region-bounds)) (thing-at-point-bounds-of-list-at-point)))
+                         (cdr (or (car (region-bounds)) (thing-at-point-bounds-of-list-at-point))))
+                        'face
+                        'bold)))
                   (_ (goto-char orig-point)))
              (with-current-buffer buffername
                (emacs-lisp-mode)
@@ -1388,59 +1388,3 @@ Each step shows its name, data snapshot, and optional source location.
 Steps are collapsible; click to expand/collapse.
 Use `me-trace' and `me-with-tracing' in Playground to capture traces."
     :examples nil)
-
-(defun me--chrome-trace-to-steps (events)
-  "Convert Chrome Trace Event EVENTS (a list of alists) to our :steps schema.
-Events with phase B/E are treated as scope markers.
-Events with phase X (complete) become steps with their args as :data.
-Flow events (s/t/f) are collected as :flows on the trace."
-  (let ((steps nil)
-        (flows nil)
-        (pending-begins nil))
-    (--each events
-      (let* ((ph (alist-get 'ph it))
-             (name (alist-get 'name it))
-             (ts (alist-get 'ts it))
-             (args (alist-get 'args it))
-             (id (alist-get 'id it)))
-        (cond
-         ((string= ph "B")
-          (push (list :name name :ts ts :data args :open t) pending-begins))
-         ((string= ph "E")
-          (let ((begin (car pending-begins)))
-            (when begin
-              (pop pending-begins)
-              (push (list :name (plist-get begin :name)
-                          :ts (plist-get begin :ts)
-                          :data (plist-get begin :data)
-                          :dur (- ts (plist-get begin :ts)))
-                    steps))))
-         ((string= ph "X")
-          (push (list :name name :ts ts :data args
-                      :dur (alist-get 'dur it))
-                steps))
-         ((or (string= ph "s") (string= ph "t") (string= ph "f"))
-          (push (list :id id :ph ph :ts ts :name name) flows)))))
-    (list :steps (reverse steps)
-          :flows (reverse flows))))
-
-(me-register-mold
- :key "ChromeTraceToTrace"
- :given (:fn (or (eq major-mode 'json-mode)
-                 (eq major-mode 'javascript-mode)
-                 (s-ends-with-p ".json" (or (buffer-file-name) ""))))
- :then (:fn
-        (let* ((json-str (buffer-substring-no-properties (point-min) (point-max)))
-               (parsed (json-read-from-string json-str))
-               (events (append (if (vectorp parsed) parsed (alist-get 'traceEvents parsed)) nil))
-               (trace (me--chrome-trace-to-steps events)))
-          (with-current-buffer buffername
-            (emacs-lisp-mode)
-            (erase-buffer)
-            (me-print-to-buffer trace)
-            (setq-local self trace))))
- :docs "Convert a Chrome Trace Event JSON file to our trace schema (:steps).
-Supports B/E (begin/end), X (complete), and s/t/f (flow) events.
-Each event's `args` becomes the step's `:data`.
-Compose with TraceToHtml to visualize."
- :examples nil)

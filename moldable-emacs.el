@@ -178,8 +178,8 @@ When MOLD has a :when clause, skip the timestamp so auto-refresh can reuse the s
 (defun me-mold-run-given (mold)
   "Run MOLD :given."
   (unless (me-get-in mold '(:given :fn)) (error "For now all molds need to declare :given with :fn"))
-  (me-with-mold-let (-clone mold)
-    :given))
+  (eval (me-with-mold-let (-clone mold)
+          :given)))
 
 (defvar me-usable-mold-stats nil)
 (defun me-mold-specificity (mold)
@@ -220,12 +220,12 @@ while the dependency is always on the system.)
                                   "(buffer-name)"
                                   ))
                              given-fn-str))
-       ;; +5 if we have a matching major mode requirement
-       (* 5 (s-count-matches (eval `(rx (or
-                                         ,(format "(equal major-mode '%s)" major-mode)
-                                         ,(format "(eq major-mode '%s)" major-mode)
-                                         )))
-                             given-fn-str))))
+       ;; +10 if we have a matching major mode requirement
+       (* 10 (s-count-matches (eval `(rx (or
+                                          ,(format "(equal major-mode '%s)" major-mode)
+                                          ,(format "(eq major-mode '%s)" major-mode)
+                                          )))
+                              given-fn-str))))
      (t 1))
     )
   )
@@ -679,7 +679,7 @@ and optionally :mold-data (a plist to set as buffer-local
        (plist-get it :origin)
        (find-file it))
   (goto-char (point-min))
-  (search-forward mold))
+  (search-forward (format ":key %S" mold)))
 
 ;; begin easy extract of playgrounds into molds
 (defcustom me-playground-molds-file

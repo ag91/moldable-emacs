@@ -545,7 +545,9 @@ following in your lein project.clj
 
 (me-register-mold
     :key "Playground Clojure"
-    :given (:fn (and (me-require 'clojure-mode)))
+    :given (:fn (and
+                 (me-require 'clojure-mode)
+                 (me-require 'cider-mode)))
     :then (:fn
            (let* ((region (me-get-region))
                   (tree (ignore-errors self)))
@@ -631,7 +633,8 @@ following in your lein project.clj
     :let ((text (or
                  (me-get-region)
                  (thing-at-point 'paragraph))))
-    :given (:fn (and text))
+    :given (:fn (and text
+                     (not (derived-mode-p 'prog-mode))))
     :then (:fn
            (let* ((diagram (--> text
                                 me-replace-org-links-with-descriptions
@@ -883,8 +886,7 @@ following in your lein project.clj
 
 (me-register-mold
     :key "To multiple languages"
-    :let ((sentence (or (me-get-region)
-                        (sentence-at-point t))))
+    :let ((sentence (me-get-region)))
     :given (:fn (and
                  me-languages
                  sentence
@@ -1095,7 +1097,7 @@ output as a string."
                  (me-require 'csv-mode)
                  (executable-find "duckdb")
                  ;; a bit crude, it would be better to have some guidance in the query
-                 ;; (eq major-mode 'csv-mode)
+                 (eq major-mode 'csv-mode)
                  ))
     :let ((query (read-string "Query:")))
     :then (:async ((output (lambda (cb)
@@ -1148,3 +1150,82 @@ output as a string."
                         (setq-local self output)))
     :docs "You can turn a PDF into text using the pdftotext command."
     :examples nil)
+
+
+(defun me--chrome-trace-to-steps (events)
+  "Convert Chrome Trace Event EVENTS (a list of alists) to our :steps schema.
+Events with phase B/E are treated as scope markers.
+Events with phase X (complete) become steps with their args as :data.
+Flow events (s/t/f) are collected as :flows on the trace."
+  (let ((steps nil)
+        (flows nil)
+        (pending-begins nil))
+    (--each events
+      (let* ((ph (alist-get 'ph it))
+             (name (alist-get 'name it))
+             (ts (alist-get 'ts it))
+             (args (alist-get 'args it))
+             (id (alist-get 'id it)))
+        (cond
+         ((string= ph "B")
+          (push (list :name name :ts ts :data args :open t) pending-begins))
+         ((string= ph "E")
+          (let ((begin (car pending-begins)))
+            (when begin
+              (pop pending-begins)
+              (push (list :name (plist-get begin :name)
+                          :ts (plist-get begin :ts)
+                          :data (plist-get begin :data)
+                          :dur (- ts (plist-get begin :ts)))
+                    steps))))
+         ((string= ph "X")
+          (push (list :name name :ts ts :data args
+                      :dur (alist-get 'dur it))
+                steps))
+         ((or (string= ph "s") (string= ph "t") (string= ph "f"))
+          (push (list :id id :ph ph :ts ts :name name) flows)))))
+    (list :steps (reverse steps)
+          :flows (reverse flows))))
+
+(me-register-mold
+    :key "ChromeTraceToTrace"
+    :given (:fn (and (eq major-mode 'json-mode)
+                     (s-contains-p "\"ph\"" (buffer-string))))
+    :then (:fn
+           (let* ((json-str (buffer-substring-no-properties (point-min) (point-max)))
+                  (parsed (json-read-from-string json-str))
+                  (events (append (if (vectorp parsed) parsed (alist-get 'traceEvents parsed)) nil))
+                  (trace (me--chrome-trace-to-steps events)))
+             (with-current-buffer buffername
+               (emacs-lisp-mode)
+               (erase-buffer)
+               (me-print-to-buffer trace)
+               (setq-local self trace))))
+    :docs "Convert a Chrome Trace Event JSON file to our trace schema (:steps).
+Supports B/E (begin/end), X (complete), and s/t/f (flow) events.
+Each event's `args` becomes the step's `:data`.
+Compose with TraceToHtml to visualize.
+
+Run this in playground to see an example:
+
+(me-with-tracing
+ (let* ((input-1 '((:id 1 :score 0.9) (:id 2 :score 0.8)))
+        (input-2 '((:id 2 :score 0.7) (:id 3 :score 0.6)))
+        (k 60)
+        (acc (me-trace \"Input: Vector ANN\" input-1))
+        (acc (me-trace \"Input: FTS\" input-2))
+        (absorbed (me-trace \"Absorb list 1\"
+                            '(1 2 3)))
+        (sorted (me-trace \"Sort by fused score\"
+                          '(3 2 1))))
+   sorted))"
+    :examples (list '(:given
+                      (:type file :name "/tmp/my.json" :mode js-json-mode :contents
+                             "[\n  {\"ph\": \"B\", \"name\": \"absorb-list\", \"cat\": \"rrf\", \"ts\": 0, \"pid\": 1, \"tid\": 1, \"args\": {\"input\": \"[{:id 1 :score 0.9}]\"}},\n  {\"ph\": \"X\", \"name\": \"absorb list 1\", \"cat\": \"rrf\", \"ts\": 10, \"dur\": 5, \"pid\": 1, \"tid\": 1, \"args\": {\"scores\": \"{1 0.016}\"}},\n  {\"ph\": \"X\", \"name\": \"absorb list 2\", \"cat\": \"rrf\", \"ts\": 20, \"dur\": 5, \"pid\": 1, \"tid\": 1, \"args\": {\"scores\": \"{1 0.016 2 0.015}\"}},\n  {\"ph\": \"X\", \"name\": \"sort\", \"cat\": \"rrf\", \"ts\": 30, \"dur\": 2, \"pid\": 1, \"tid\": 1, \"args\": {\"result\": \"[{:id 1 :fused 0.016}]\"}},\n  {\"ph\": \"E\", \"name\": \"absorb-list\", \"cat\": \"rrf\", \"ts\": 35, \"pid\": 1, \"tid\": 1},\n  {\"ph\": \"s\", \"name\": \"flow\", \"cat\": \"rrf\", \"ts\": 10, \"pid\": 1, \"tid\": 1, \"id\": \"1\"},\n  {\"ph\": \"t\", \"name\": \"flow\", \"cat\": \"rrf\", \"ts\": 20, \"pid\": 1, \"tid\": 1, \"id\": \"1\"},\n  {\"ph\": \"f\", \"name\": \"flow\", \"cat\": \"rrf\", \"ts\": 30, \"pid\": 1, \"tid\": 1, \"id\": \"1\"}\n]\n"
+                             :point 860)
+                      :then
+                      (:type buffer :name
+                             "*moldable-emacs-ChromeTraceToTrace-20260724160204*" :mode
+                             emacs-lisp-mode :contents
+                             "(:steps\n ((:name \"absorb list 1\" :ts 10 :data ((scores . \"{1 0.016}\")) :dur 5)\n  (:name \"absorb list 2\" :ts 20 :data ((scores . \"{1 0.016 2 0.015}\"))\n         :dur 5)\n  (:name \"sort\" :ts 30 :data ((result . \"[{:id 1 :fused 0.016}]\"))\n         :dur 2)\n  (:name \"absorb-list\" :ts 0 :data ((input . \"[{:id 1 :score 0.9}]\"))\n         :dur 35))\n :flows\n ((:id \"1\" :ph \"s\" :ts 10 :name \"flow\")\n  (:id \"1\" :ph \"t\" :ts 20 :name \"flow\")\n  (:id \"1\" :ph \"f\" :ts 30 :name \"flow\")))\n")))
+    )

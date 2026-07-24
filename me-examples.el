@@ -102,6 +102,7 @@ This is a function used to test mold examples."
     (list
      :success (--reduce (and acc it) (--map (apply #'equal it) to-test))
      :issues (--map (-zip '(:expected :actual) it) (--remove (apply #'equal it) to-test)))))
+
 (defun me-check-example (example run-fn)
   "Run RUN-FN in the EXAMPLE."
   (append
@@ -111,12 +112,12 @@ This is a function used to test mold examples."
                 (beg (plist-get ',example :given))
                 (end (plist-get ',example :then)))
             (me--given beg
-              (funcall ',run-fn)
               (let ((result (me-check-then-clause end)))
                 (kill-buffer)
                 (switch-to-buffer buf)
                 (goto-char pos)
                 result))))))
+
 (defun me-check-mold-examples (mold)
   "Check that MOLD's examples are working, returning test reports for each of them."
   (--map
@@ -131,6 +132,7 @@ This is a function used to test mold examples."
     (if result
         result
       (message "Issues: %s" (list example (me-check-example example run-fn))))))
+
 (defun me-mold-add-last-example ()
   "Add `me-last-example' to last mold."
   (interactive)
@@ -149,6 +151,7 @@ This is a function used to test mold examples."
     (message "You have the example of the last run of this mold in the kill ring: use it!")
     ;; TODO make this smarter
     ))
+
 (defun me-insert-last-example ()
   "Insert `me-last-example' at point."
   (interactive)
