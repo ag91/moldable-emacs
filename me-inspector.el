@@ -26,6 +26,7 @@
 ;;; Code:
 (require 'dash)
 (require 's)
+(require 'me-utils)
 
 (defcustom me-show-inspector t "Show inspector to see what is the data in self and mold-data for the running mold.")
 

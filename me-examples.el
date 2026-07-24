@@ -26,6 +26,7 @@
 ;;; Code:
 (require 'dash)
 (require 's)
+(require 'me-utils)
 (require 'me-tree)
 
 (defun me-record-given-of-example ()

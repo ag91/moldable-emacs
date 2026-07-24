@@ -40,6 +40,7 @@
 (require 'me-mold-data)
 (require 'me-examples)
 (require 'me-inspector)
+(require 'me-notes)
 
 (defgroup moldable-emacs nil
   "Customize group for Moldable-Emacs."
@@ -1407,37 +1408,15 @@ NIL if not there."
 
 (defvar me-notes nil "Prototype of notes.")
 
-(defun me-load-all-notes ()
-  "Load all notes unless cached."
-  (if me-notes
-      me-notes
-    (setq me-notes
-          (ignore-errors
-            (with-temp-buffer
-              (insert-file-contents-literally me-note-file-store)
-              (goto-char (point-min))
-              (eval `',(list-at-point)))))))
 
-(defun me-store-note (note)
-  "Persist NOTE."
-  (add-to-list 'me-notes note)
-  (async-start
-   `(lambda ()
-      (write-region ,(pp-to-string (me-load-all-notes)) nil ,me-note-file-store)))
-  note)
 
-(defun me-tag-note-p (note)
-  "If NOTE is a tag."
-  (me-get-in note '(:then :tags)))
 
-(defun me-load-notes ()
-  "Load only textual notes unless cached."
-  (-remove 'me-tag-note-p (me-load-all-notes)))
 
-(defun me-ask-for-details-according-to-context (note)
-  "Ask for NOTE details."
-  (let ((text (read-string "Note:")))
-    (plist-put note :then `(:string ,text :state note))))
+
+
+
+
+
 
 (defun me-ask-for-todo-details-according-to-context (note)
   "Ask for NOTE details."
@@ -1447,46 +1426,13 @@ NIL if not there."
 ;; https://stackoverflow.com/questions/21486934/file-specific-key-binding-in-emacs
 
 
-(defun me-filter-notes-by-buffer (buffername)
-  "Filter notes by BUFFERNAME."
-  (--filter
-   (ignore-errors (equal buffername (plist-get (plist-get (plist-get it :given) :node) :buffer)))
-   me-notes))
 
-(defun me-filter-notes-by-project ()
-  "Gather notes by project."
-  (--filter
-   (ignore-errors (s-starts-with-p (projectile-root-bottom-up default-directory) (expand-file-name (me-get-in it '(:given :node :buffer-file)))))
-   me-notes))
 
-(defun me-filter-notes-by-mode (mode)
-  "Filter notes by MODE."
-  (--filter
-   (ignore-errors (equal mode (plist-get (plist-get (plist-get it :given) :node) :mode)))
-   me-notes))
 
-(defun me-note-to-org-heading (note)
-  "Turn a NOTE in a `org-mode' heading."
-  (let* ((given (plist-get (plist-get note :given) :node))
-         (then (plist-get note :then))
-         (id (plist-get given :key))
-         (title (me-make-elisp-file-link
-                 (concat (s-trim (s-replace-all  '(("\"" . "") ("\n" . " ")) (s-truncate 60 (plist-get given :text)))) " ")
-                 (format
-                  "(progn (find-file-other-window \"%s\") (goto-char %s))"
-                  (plist-get given :buffer-file)
-                  (plist-get given :begin))
-                 "elisp"))
-         (content (plist-get then :string)))
-    (format
-     "* %s%s\n:PROPERTIES:\n:ID:       %s\n:END:\n%s\n"
-     (let ((state (me-get-in note '(:then :state))))
-       (if (and state (not (eq 'note state)))
-           (format "%s " (upcase (symbol-name state)))
-         ""))
-     title
-     id
-     content)))
+
+
+
+
 
 
 
