@@ -39,6 +39,7 @@
 (require 'me-org)
 (require 'me-mold-data)
 (require 'me-examples)
+(require 'me-inspector)
 
 (defgroup moldable-emacs nil
   "Customize group for Moldable-Emacs."
@@ -1689,43 +1690,6 @@ Optionally filter for files with FILE-EXTENSION."
 
 ;; organize screens better
 
-(defvar me-mold-start-buffer nil "Buffer on which you run `me-mold'.")
-(defun me-set-me-mold-start-buffer () (setq me-mold-start-buffer (buffer-name)))
-
-(add-hook 'me-mold-before-hook #'me-set-me-mold-start-buffer)
-
-(defcustom me-show-inspector t "Show inspector to see what is the data in self and mold-data for the running mold.")
-
-(defun me-start-inspector (mold-buffer)
-  "Start inspector for MOLD-BUFFER. This show mold state."
-  (when me-show-inspector
-    (let ((final-window (selected-window)))
-      (select-window (split-window-below))
-      (switch-to-buffer (get-buffer-create "*moldable-emacs-inspector*"))
-      (erase-buffer)
-      (emacs-lisp-mode)
-      (me-print-to-buffer (list
-                           :note "hs-minor-mode enabled for code folding."
-                           :self
-                           (with-current-buffer mold-buffer (ignore-errors self))
-                           :mold-data
-                           (with-current-buffer mold-buffer (ignore-errors mold-data))))
-      (hs-minor-mode 1)
-      (call-interactively #'hs-hide-level)
-      (select-window final-window))))
-
-(defun me-show-buffer-and-mold ()
-  "Show only start buffer (on the left) and mold (on the right).
-This stores the original screen configuration in the `m' register."
-  (let ((old-buffer me-mold-start-buffer)
-        (mold-buffer (current-buffer)))
-    (window-configuration-to-register "m") ; store starting configuration - this overrides it every time
-    (delete-other-windows)
-    (switch-to-buffer old-buffer)
-    (switch-to-buffer-other-window mold-buffer)
-    (me-start-inspector mold-buffer)))
-
-(add-hook 'me-mold-after-hook #'me-show-buffer-and-mold 100)
 
 (defun me-goto-mold-source (mold)
   "Go to source code of MOLD."
@@ -1746,38 +1710,6 @@ This stores the original screen configuration in the `m' register."
   (goto-char (point-min))
   (search-forward mold))
 
-
-
-
-
-
-
-
-;; begin - restore window configuration
-(defvar me-last-window-configuration nil "Stores last window configuration from when you firstly invoked me-mold.")
-
-(defun me-store-window-configuration ()
-  "Store current window configuration when not in a mold."
-  (unless (ignore-errors (or self mold-data))
-    (setq me-last-window-configuration (current-window-configuration))))
-
-(add-hook 'me-mold-before-hook 'me-store-window-configuration)
-
-(defun me-restore-starting-window-configuration ()
-  "Restore window configuration saved before running `me-mold' for the first time."
-  (interactive)
-  (if me-last-window-configuration (set-window-configuration me-last-window-configuration)
-    (error "No window configuration stored in `me-last-window-configuration'!")))
-;; end - restore window configuration
-
-
-;; begin utilities org ql - org transclusion
-
-
-
-
-
-;; end utilities org ql - org transclusion
 
 ;; begin similar nodes
 (defun me-child-p (node possible-parent)

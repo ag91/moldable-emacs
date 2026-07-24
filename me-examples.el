@@ -24,6 +24,9 @@
 ;;; Molds examples utils
 
 ;;; Code:
+(require 'dash)
+(require 's)
+(require 'me-tree)
 
 (defun me-record-given-of-example ()
   "Reset and store in `me-last-example' the given of a mold example."
