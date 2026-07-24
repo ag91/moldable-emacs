@@ -249,7 +249,7 @@ following in your lein project.clj
                   (or (me-require 'tree-sitter)
                       (me-require 'treesit))
                   (me-major-mode-to-tree-sitter-grammar major-mode))
-                 (not (eq major-mode 'json-mode))
+                 (not (eq major-mode 'js-json-mode))
                  (not (eq major-mode 'csv-mode))
                  (not (eq major-mode 'yaml-mode))
                  ;; ignore files over 8kb
@@ -1035,7 +1035,7 @@ following in your lein project.clj
                   (json-string (shell-command-to-string (format "yq -o=json eval %s" filename)))
                   (tree (json-parse-string json-string)))
              (with-current-buffer buffername
-               (json-mode)
+               (js-json-mode)
                (erase-buffer)
                (insert json-string)
                (json-pretty-print-buffer)
