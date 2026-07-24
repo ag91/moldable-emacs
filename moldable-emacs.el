@@ -219,6 +219,12 @@ while the dependency is always on the system.)
                                   "major-mode"
                                   "(buffer-name)"
                                   ))
+                             given-fn-str))
+       ;; +5 if we have a matching major mode requirement
+       (* 5 (s-count-matches (eval `(rx (or
+                                         ,(format "(equal major-mode '%s)" major-mode)
+                                         ,(format "(eq major-mode '%s)" major-mode)
+                                         )))
                              given-fn-str))))
      (t 1))
     )
