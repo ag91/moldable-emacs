@@ -45,6 +45,7 @@
 (require 'me-analysis)
 (require 'me-elisp-api)
 (require 'me-narrative)
+(require 'me-counting)
 
 (defgroup moldable-emacs nil
   "Customize group for Moldable-Emacs."
@@ -413,98 +414,6 @@ Returns the trace plist as `self' in the result buffer."
      ,@body
      me-trace))
 
-(defcustom me-diary-file
-  (expand-file-name "diary.org" user-emacs-directory)
-  "Default file for saving moldable-emacs narratives as diary entries."
-  :group 'moldable-emacs
-  :type 'file)
-
-(defcustom me-playground-molds-file
-  (concat (file-name-directory load-file-name) "molds/playgrounds.el")
-  "File where molds extracted from the Playground are inserted.
-This file should be listed in `me-files-with-molds' so extracted
-molds become available after `me-setup-molds'."
-  :group 'moldable-emacs
-  :type 'string)
-
-(defun me--playground-buffer-p ()
-  "Return non-nil if the current buffer is a Playground mold buffer."
-  (ignore-errors
-    (and mold-data
-         (stringp (plist-get mold-data :mold))
-         (s-starts-with-p "Playground" (plist-get mold-data :mold)))))
-
-(defun me--infer-given-from-mold-data ()
-  "Infer a `:given' plist for a mold extracted from the Playground.
-Uses the current buffer's `mold-data' to suggest a predicate that
-matches the context the Playground was invoked from."
-  (let* ((old-mold (plist-get mold-data :old-mold))
-         (old-mode (plist-get mold-data :old-mode))
-         (old-self (plist-get mold-data :old-self)))
-    (cond
-     ((and old-mold old-self (listp old-self))
-      '(:fn (ignore-errors (and self (listp self)))))
-     ((and old-mold old-self (me-plistp old-self))
-      '(:fn (ignore-errors (and self (listp self) (me-plistp self)))))
-     (old-mold
-      '(:fn (ignore-errors self)))
-     (old-mode
-      `(:fn (eq major-mode ',old-mode)))
-     (t
-      '(:fn t)))))
-
-(defun me--playground-user-code ()
-  "Extract the user's Elisp code from the current Playground buffer.
-Strips the leading tip comments and blank lines inserted by the
-Playground mold."
-  (let ((contents (buffer-substring-no-properties (point-min) (point-max))))
-    (--> contents
-         (s-split "\n" it)
-         (--drop-while (or (s-blank-p it) (s-starts-with-p ";;" it)) it)
-         (s-join "\n" it)
-         (s-trim it))))
-
-(defun me-extract-mold-from-playground ()
-  "Extract the current Playground buffer's code as a reusable mold.
-Reads the Elisp code in the Playground buffer, infers a `:given'
-predicate from the current `mold-data', prompts for a `:key' and
-`:docs', and inserts a `me-register-mold' form into
-`me-playground-molds-file'."
-  (interactive)
-  (unless (me--playground-buffer-p)
-    (user-error "Not in a Playground buffer"))
-  (let* ((user-code (me--playground-user-code))
-         (given (me--infer-given-from-mold-data))
-         (key (read-string "Mold key: "))
-         (docs (read-string "Docs: ")))
-    (when (s-blank-p key)
-      (user-error "Mold key cannot be empty"))
-    (let ((mold-form
-           (format "(me-register-mold\n :key %S\n :given %S\n :then (:fn\n        (let* ((result\n               (progn\n                 %s)))\n          (with-current-buffer buffername\n            (erase-buffer)\n            (emacs-lisp-mode)\n            (me-print-to-buffer result)\n            (setq-local self result))))\n :docs %S\n :examples nil)\n\n"
-                   key
-                   given
-                   user-code
-                   docs)))
-      (unless (file-exists-p me-playground-molds-file)
-        (with-temp-file me-playground-molds-file
-          (insert ";;; playgrounds.el --- Molds extracted from the Playground -*- lexical-binding: t; -*-\n\n")
-          (insert "(require 'moldable-emacs)\n\n")
-          (insert ";;; Code:\n\n")
-          (insert ";;; playgrounds.el ends here\n")))
-      (with-current-buffer (find-file-noselect me-playground-molds-file)
-        (goto-char (point-min))
-        (if (search-forward ";;; playgrounds.el ends here" nil t)
-            (progn
-              (goto-char (match-beginning 0))
-              (insert mold-form))
-          (goto-char (point-max))
-          (insert mold-form))
-        (save-buffer)
-        (display-buffer (current-buffer)))
-      (load-file me-playground-molds-file)
-      (message "Extracted mold %s and loaded it" key))))
-
-
 
 (add-hook 'me-mold-after-hook #'me-set-self-mold-data -100)
 
@@ -726,7 +635,6 @@ and optionally :mold-data (a plist to set as buffer-local
      (me-add-to-available-molds ',mold)))
 (put 'me-register-mold 'lisp-indent-function 1)
 
-
 (defun me-register-mold-by-key (key mold)
   "Register composition MOLD with KEY."
   (me-add-to-available-molds (plist-put mold :key key)))
@@ -748,122 +656,6 @@ and optionally :mold-data (a plist to set as buffer-local
         it)
        insert))
 
-
-;; taken from: https://emacs.stackexchange.com/questions/13514/how-to-obtain-the-statistic-of-the-the-frequency-of-words-in-a-buffer
-(defvar me-punctuation-marks '(","
-                               "."
-                               "'"
-                               "&"
-                               "\"")
-  "List of Punctuation Marks that you want to count.")
-
-(defun me-count-raw-word-list (raw-word-list)
-  "Produce a dictionary of RAW-WORD-LIST with the number of occurrences for each word."
-  (--> raw-word-list
-       (--reduce-from
-        (progn
-          (cl-incf (cdr (or (assoc it acc)
-                            (car (push (cons it 0) acc)))))
-          acc)
-        nil
-        it)
-       (sort it (lambda (a b) (string< (car a) (car b))))))
-
-(defun me-word-stats (string)
-  "Return word (as a token between spaces) frequency in STRING."
-  (let* ((words (split-string
-                 (downcase string)
-                 (format "[ %s\f\t\n\r\v]+"
-                         (mapconcat #'identity me-punctuation-marks ""))
-                 t))
-         (punctuation-marks (--filter
-                             (member it me-punctuation-marks)
-                             (split-string string "" t)))
-         (raw-word-list (append punctuation-marks words))
-         (word-list (me-count-raw-word-list raw-word-list)))
-    (sort word-list (lambda (a b) (> (cdr a) (cdr b))))))
-
-
-(defun me-get-reading-time (text)
-  "Calculate reading time of TEXT in minutes according to https://www.coengoedegebure.com/add-reading-time-to-articles/."
-  (with-temp-buffer
-    (insert text)
-    (/ (count-words (point-min) (point-max)) 228)))
-
-(defun me-get-book-pages (text)
-  "Calculate number of book pages TEXT would fill according to https://kindlepreneur.com/words-per-page/."
-  (with-temp-buffer
-    (insert text)
-    (/ (count-words (point-min) (point-max)) 280)))
-
-(defun me-calc-numeric-p (text)
-  "Check if TEXT is a numeric arithmetic expression `calc' can work with."
-  (let ((calc-eval-error 't)) (ignore-errors (calc-eval text 'num))))
-
-(defun me-arithmetic-component-p (it)
-  "Is IT an arithmetic component?"
-  (or
-   (string= it (number-to-string (string-to-number it)))
-   (string= "-" it)
-   (string= "+" it)
-   (string= "/" it)
-   (string= "*" it)
-   (string= "%" it)
-   (string= "^" it)
-   (string= "(" it)
-   (string= ")" it)
-   (string= "." it)))
-
-(defun me-arithmetic-expression-member-p (it)
-  "Check if there is an arithmetic member in IT."
-  (or (me-arithmetic-component-p it)
-      ;; in case we have something like "1+1"
-      (-all?
-       #'me-arithmetic-component-p
-       (s-split "" it 't))))
-
-(defun me-arithmetic-at-point () ;; TODO needs refactoring!
-  "Find an arithmetic expression on the current line.
-NIL if not there."
-  (--> (or
-        (when (region-active-p)
-          (list
-           (buffer-substring-no-properties
-            (car (car (region-bounds)))
-            (cdr (car (region-bounds))))
-           "")) ;; this is for common format (list string-before-point string-after-point)
-        (list
-         (buffer-substring-no-properties
-          (save-excursion (beginning-of-line) (point))
-          (point))
-         (buffer-substring-no-properties
-          (point)
-          (save-excursion (end-of-line) (point)))))
-       (list
-        ;; take only arithmetic words from point to beginning of line
-        (--> it
-             (nth 0 it)
-             (s-split " " it 't)
-             (reverse it)
-             (-take-while #'me-arithmetic-expression-member-p it)
-             (reverse it)
-             (s-join " " it))
-        ;; take only arithmetic words from point to end of line
-        (--> it
-             (nth 1 it)
-             (s-split " " it 't)
-             (-take-while #'me-arithmetic-expression-member-p it)
-             (s-join " " it)))
-       ;; join the two parts
-       (concat (nth 0 it) (nth 1 it))
-       s-trim
-       (unless (string-blank-p it) it)))
-
-(defun me-ask-for-todo-details-according-to-context (note)
-  "Ask for NOTE details."
-  (let ((text (read-string "Note:")))
-    (plist-put note :then `(:string ,text :state todo))))
-
 (defun me-goto-mold-source (mold)
   "Go to source code of MOLD."
   (interactive
@@ -883,7 +675,92 @@ NIL if not there."
   (goto-char (point-min))
   (search-forward mold))
 
+;; begin easy extract of playgrounds into molds
+(defcustom me-playground-molds-file
+  (concat (file-name-directory load-file-name) "molds/playgrounds.el")
+  "File where molds extracted from the Playground are inserted.
+This file should be listed in `me-files-with-molds' so extracted
+molds become available after `me-setup-molds'."
+  :group 'moldable-emacs
+  :type 'string)
 
+(defun me--playground-buffer-p ()
+  "Return non-nil if the current buffer is a Playground mold buffer."
+  (ignore-errors
+    (and mold-data
+         (stringp (plist-get mold-data :mold))
+         (s-starts-with-p "Playground" (plist-get mold-data :mold)))))
+
+(defun me--playground-user-code ()
+  "Extract the user's Elisp code from the current Playground buffer.
+Strips the leading tip comments and blank lines inserted by the
+Playground mold."
+  (let ((contents (buffer-substring-no-properties (point-min) (point-max))))
+    (--> contents
+         (s-split "\n" it)
+         (--drop-while (or (s-blank-p it) (s-starts-with-p ";;" it)) it)
+         (s-join "\n" it)
+         (s-trim it))))
+
+(defun me--infer-given-from-mold-data ()
+  "Infer a `:given' plist for a mold extracted from the Playground.
+Uses the current buffer's `mold-data' to suggest a predicate that
+matches the context the Playground was invoked from."
+  (let* ((old-mold (plist-get mold-data :old-mold))
+         (old-mode (plist-get mold-data :old-mode))
+         (old-self (plist-get mold-data :old-self)))
+    (cond
+     ((and old-mold old-self (listp old-self))
+      '(:fn (ignore-errors (and self (listp self)))))
+     ((and old-mold old-self (me-plistp old-self))
+      '(:fn (ignore-errors (and self (listp self) (me-plistp self)))))
+     (old-mold
+      '(:fn (ignore-errors self)))
+     (old-mode
+      `(:fn (eq major-mode ',old-mode)))
+     (t
+      '(:fn t)))))
+
+(defun me-extract-mold-from-playground ()
+  "Extract the current Playground buffer's code as a reusable mold.
+Reads the Elisp code in the Playground buffer, infers a `:given'
+predicate from the current `mold-data', prompts for a `:key' and
+`:docs', and inserts a `me-register-mold' form into
+`me-playground-molds-file'."
+  (interactive)
+  (unless (me--playground-buffer-p)
+    (user-error "Not in a Playground buffer"))
+  (let* ((user-code (me--playground-user-code))
+         (given (me--infer-given-from-mold-data))
+         (key (read-string "Mold key: "))
+         (docs (read-string "Docs: ")))
+    (when (s-blank-p key)
+      (user-error "Mold key cannot be empty"))
+    (let ((mold-form
+           (format "(me-register-mold\n :key %S\n :given %S\n :then (:fn\n        (let* ((result\n               (progn\n                 %s)))\n          (with-current-buffer buffername\n            (erase-buffer)\n            (emacs-lisp-mode)\n            (me-print-to-buffer result)\n            (setq-local self result))))\n :docs %S\n :examples nil)\n\n"
+                   key
+                   given
+                   user-code
+                   docs)))
+      (unless (file-exists-p me-playground-molds-file)
+        (with-temp-file me-playground-molds-file
+          (insert ";;; playgrounds.el --- Molds extracted from the Playground -*- lexical-binding: t; -*-\n\n")
+          (insert "(require 'moldable-emacs)\n\n")
+          (insert ";;; Code:\n\n")
+          (insert ";;; playgrounds.el ends here\n")))
+      (with-current-buffer (find-file-noselect me-playground-molds-file)
+        (goto-char (point-min))
+        (if (search-forward ";;; playgrounds.el ends here" nil t)
+            (progn
+              (goto-char (match-beginning 0))
+              (insert mold-form))
+          (goto-char (point-max))
+          (insert mold-form))
+        (save-buffer)
+        (display-buffer (current-buffer)))
+      (load-file me-playground-molds-file)
+      (message "Extracted mold %s and loaded it" key))))
+;; end
 
 (provide 'moldable-emacs)
 ;;; moldable-emacs.el ends here

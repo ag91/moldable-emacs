@@ -29,6 +29,12 @@
 (require 'me-utils)
 (require 'me-org)
 
+(defcustom me-diary-file
+  (expand-file-name "diary.org" user-emacs-directory)
+  "Default file for saving moldable-emacs narratives as diary entries."
+  :group 'moldable-emacs
+  :type 'file)
+
 (defun me--format-narrative (composed-key steps)
   "Format STEPS as an Org narrative string for COMPOSED-KEY.
 STEPS is a list of plists with :key, :docs, :output, and optionally :link

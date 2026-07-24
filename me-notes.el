@@ -100,5 +100,10 @@
      id
      content)))
 
+(defun me-ask-for-todo-details-according-to-context (note)
+  "Ask for NOTE details."
+  (let ((text (read-string "Note:")))
+    (plist-put note :then `(:string ,text :state todo))))
+
 (provide 'me-notes)
 ;;; me-notes.el ends here
