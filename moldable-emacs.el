@@ -79,8 +79,6 @@
 
 (defvar me-available-molds nil "Available molds.")
 
-(defvar me-mold-history nil "List of molds produced.")
-
 (defvar me-mold-before-hook nil "Hooks to run before running a mold.")
 
 (defvar me-mold-after-hook nil "Hooks to run after running a mold.")
@@ -702,52 +700,6 @@ and optionally :mold-data (a plist to set as buffer-local
 (defun me-find-mold (key)
   "Find mold for KEY."
   (--find (equal key (plist-get it :key)) me-available-molds))
-
-(defcustom me-enable-history 't
-  "Keeps history for current session, if defined."
-  :group 'moldable-emacs)
-(defvar me-current-history-index 0 "Keeps track of where you are in history.")
-
-(defun me-save-buffer-in-history ()
-  "Enable keeping history for current session."
-  (unless (equal (plist-get (-last-item me-mold-history) :buffername)
-                 (buffer-name))
-    (setq me-mold-history
-          (append
-           (-take me-current-history-index me-mold-history)
-           (list (list :buffername (buffer-name) :date (format-time-string "%FT%T%z")))))
-    (setq me-current-history-index (length me-mold-history))))
-
-(when me-enable-history (progn
-                          (add-hook 'me-mold-before-hook #'me-save-buffer-in-history)
-                          (add-hook 'me-mold-after-hook #'me-save-buffer-in-history)))
-
-(defun me-go-back ()
-  "Go back to previous mold."
-  (interactive)
-  (ignore-errors
-    (--> me-mold-history
-      (nth
-       (- me-current-history-index 1)
-       it)
-      (plist-get it :buffername)
-      switch-to-buffer)
-    (setq me-current-history-index (- me-current-history-index 1))
-    (message "Back to %s" (buffer-name))))
-
-(defun me-go-forward ()
-  "Go back to next mold."
-  (interactive)
-  (let ((current-index (--find-index (string= (plist-get it :buffername) (buffer-name)) me-mold-history)))
-    (ignore-errors
-      (--> me-mold-history
-        (nth
-         (+ current-index 1)
-         it)
-        (plist-get it :buffername)
-        switch-to-buffer)
-      (setq me-current-history-index (+ current-index 1))
-      (message "Forward to %s" (buffer-name)))))
 
 (defun me-add-to-available-molds (mold)
   "Add MOLD to `me-available-molds' and so usable by `me-mold'."
