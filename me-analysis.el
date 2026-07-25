@@ -218,6 +218,7 @@ Optionally filter for files with FILE-EXTENSION."
           (or
            (ignore-errors (me-filepath-to-flattened-tree filename)) ; sometimes there is an encoding issue with this that I can fix me-to-parse-tree
            (ignore-errors (me-with-file filename
+                            ;; to store the :buffer in the nodes we need the buffer open, otherwise me-transit-* wouldn't work, it relies on buffers
                             (me-to-parse-tree)))))
         it)))
 

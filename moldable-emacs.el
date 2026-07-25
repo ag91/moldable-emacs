@@ -178,8 +178,18 @@ When MOLD has a :when clause, skip the timestamp so auto-refresh can reuse the s
 (defun me-mold-run-given (mold)
   "Run MOLD :given."
   (unless (me-get-in mold '(:given :fn)) (error "For now all molds need to declare :given with :fn"))
-  (eval (me-with-mold-let (-clone mold)
-          :given)))
+  (let ((given
+         (me-with-mold-let (-clone mold)
+           :given)))
+    ;; the me-with-mold-let mold :given gives us a sexp,
+    ;; this can be a function to evaluate (in case of a `:given :fn (something-p x)`)
+    ;;
+    ;; so we try to evaluate and in case of error we default to give
+    ;; the original given we retrieved
+    (condition-case _err
+        (eval given)
+      (error
+       given))))
 
 (defvar me-usable-mold-stats nil)
 (defun me-mold-specificity (mold)
@@ -283,7 +293,6 @@ Optionally you can pass a BUFFER to use instead of the `current-buffer'."
 
 (defvar me-mold-whens nil "All :when clauses of molds to check periodically.")
 
-(defvar me-mold-completion-history nil "This holds completion history to order molds by usage.")
 
 (defun me-mold (&optional mold-key view-fn)
   "Propose a list of available molds for the current context.
@@ -307,8 +316,7 @@ Use VIEW-FN to show result buffer when provided."
               it
               nil
               t
-              nil
-              'me-mold-completion-history))
+              nil))
          (-find
           (lambda (x)
             (string=
@@ -679,7 +687,12 @@ and optionally :mold-data (a plist to set as buffer-local
        (plist-get it :origin)
        (find-file it))
   (goto-char (point-min))
-  (search-forward (format ":key %S" mold)))
+  (unless (search-forward (format ":key %S" mold) nil 'noerror)
+    ;; I do this double step because we have composite molds and
+    ;; searching by :key should be more precise, the below is a
+    ;; fallback
+    (goto-char (point-min))
+    (search-forward (format " %S" mold))))
 
 ;; begin easy extract of playgrounds into molds
 (defcustom me-playground-molds-file

@@ -828,36 +828,40 @@ following in your lein project.clj
 
 (me-register-mold
     :key "Backlinks as Org"
+    :let ((backlinks (org-roam-backlinks-get (org-roam-node-at-point))))
     :given (:fn (and
                  (equal major-mode 'org-mode)
                  (me-require 'org-roam)
-                 (org-roam-node-p (org-roam-node-at-point))))
+                 (org-roam-node-p (org-roam-node-at-point))
+                 backlinks))
     :then (:fn
-           (let* ((backlinks (org-roam-backlinks-get (org-roam-node-at-point))))
-             (with-current-buffer buffername
-               (org-mode)
-               (erase-buffer)
-               (--each backlinks
-                 (insert-file-contents-literally (org-roam-node-file (org-roam-backlink-source-node it)))
-                 ;; TODO add link to original file somehow?
-                 ;; (insert (format "[%s]" (org-roam-node-file (org-roam-backlink-source-node it))))
-                 )
-               (setq-local self backlinks))))
+           (with-current-buffer buffername
+             (org-mode)
+             (erase-buffer)
+             (--each backlinks
+               (insert-file-contents-literally (org-roam-node-file (org-roam-backlink-source-node it)))
+               ;; TODO add link to original file somehow?
+               ;; (insert (format "[%s]" (org-roam-node-file (org-roam-backlink-source-node it))))
+               )
+             (setq-local self backlinks)))
     :docs "You can check backlinks for current org-roam node."
     :examples nil)
 
 (me-register-mold
     :key "Backlinks as Org With transclusion"
+    :let ((backlinks (org-roam-backlinks-get (org-roam-node-at-point))))
     :given (:fn (and
                  (equal major-mode 'org-mode)
                  (me-require 'org-roam)
                  (me-require 'org-transclusion)
-                 (org-roam-node-p (org-roam-node-at-point))))
+                 (org-roam-node-p (org-roam-node-at-point))
+                 backlinks))
     :then (:fn
-           (let* ((backlinks (org-roam-backlinks-get (org-roam-node-at-point)))
-                  (org-transclusion-links
+           (let* ((org-transclusion-links
                    (-map 'me-org-roam-backlink-to-org-transclusion backlinks)))
-             (me-org-transclude-in-buffer org-transclusion-links buffername nil (lambda () (setq-local self backlinks)))))
+             (me-org-transclude-in-buffer
+              org-transclusion-links buffername nil
+              (lambda () (setq-local self backlinks)))))
     :docs "You can check backlinks for current org-roam node."
     :examples nil)
 
@@ -868,7 +872,8 @@ following in your lein project.clj
     :given (:fn (and
                  (equal major-mode 'org-mode)
                  (me-require 'org-roam)
-                 (org-roam-node-p (org-roam-node-at-point))))
+                 (org-roam-node-p (org-roam-node-at-point))
+                 (org-roam-backlinks-get (org-roam-node-at-point))))
     :then (:fn
            (let* ((backlinks-contents (me-org-roam-backlinks-contents (org-roam-node-at-point) me-backlinks-depth)))
              (with-current-buffer buffername
