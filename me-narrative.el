@@ -137,7 +137,7 @@ Each step has :key, :output, and optionally :form (for EvalSexp)."
                       :output (s-trim (s-join "\n" (reverse current-output)))
                       :form current-form)
                 steps))
-        (setq current-key (me-org-replace-link-by-link-description (s-trim (s-replace-regexp "^,\\*\\* " "" it))))
+        (setq current-key (me-replace-org-links-with-descriptions (s-trim (s-replace-regexp "^,\\*\\* " "" it))))
         (setq current-output nil)
         (setq current-form nil))
        ((s-contains-p "#+begin_src elisp" it)
