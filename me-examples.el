@@ -144,9 +144,7 @@ This is a function used to test mold examples."
            (pass (plist-get result :success))
            (issues (plist-get result :issues)))
       (unless pass
-        (warn (format
-               "The example you are trying to add does not work because the following did not match:\n%s"
-               issues))))
+        (warn "The example you are trying to add does not work because the following did not match:\n%s" issues)))
     (kill-new (pp-to-string me-last-example))
     (message "You have the example of the last run of this mold in the kill ring: use it!")
     ;; TODO make this smarter
