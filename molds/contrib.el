@@ -1107,7 +1107,7 @@ output as a string."
     :let ((query (read-string "Query:")))
     :then (:async ((output (lambda (cb)
                              (async-shell-command-to-string
-                              (format "duckdb -csv -header -c %S" query)
+                              (format "duckdb -light-mode -csv -header -c %S" query)
                               cb))))
                   :fn (with-current-buffer buffername
                         (csv-mode)
@@ -1116,7 +1116,7 @@ output as a string."
                         (ansi-osc-apply-on-region (point-min) (point-max))
                         (ansi-color-apply-on-region (point-min) (point-max))
                         (beginning-of-buffer)
-                        (setq-local self output)
+                        (setq-local self (list :input query :output output))
                         (me-override-keybiding-in-buffer
                          (kbd "C-c C-c")
                          `(lambda ()
@@ -1130,7 +1130,7 @@ output as a string."
                                  (ansi-osc-apply-on-region (point-min) (point-max))
                                  (ansi-color-apply-on-region (point-min) (point-max))
                                  (beginning-of-buffer)
-                                 (setq-local self out))))))))
+                                 (setq-local self (list :input ,query :output out)))))))))
     :docs "You can query a CSV file via DuckDB."
     :examples '((
                  :given (:type file :name "/tmp/my.csv" :mode csv-mode :contents "a,b,c
